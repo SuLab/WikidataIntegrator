@@ -27,6 +27,8 @@ __license__ = 'GPL'
 
 import pywikibot
 from pywikibot.data import api
+import time
+import datetime
 import json
 import urllib2
 import PBB_Debug
@@ -92,8 +94,6 @@ class WDItemEngine(object):
         """
         pass
 
-
-    @classmethod
     def add_reference(self, property, reference_type, reference_item):
         """
         Call this method to add a reference to a statement/claim
@@ -131,7 +131,7 @@ class WDItemEngine(object):
                 reference = setStatedIn(reference)
             references.append(reference)
         
-    def setDateRetrievedTimestamp(reference):
+    def setDateRetrievedTimestamp(self, reference):
         ts = time.time()
         timestamp = datetime.datetime.fromtimestamp(ts).strftime('+0000000%Y-%m-%dT00:00:00Z')
         wdTimestamp = dict()
@@ -151,7 +151,7 @@ class WDItemEngine(object):
         reference["snaks"]['P813']=[wdTimestamp]
         return reference
 
-    def setStatedIn(reference):
+    def setStatedIn(self, reference):
         doDate =  globalDiseaseOntology.findall('.//oboInOwl:date', namespaces)
         dateList = doDate[0].text.split(' ')[0].split(":")
         searchTerm = "Disease ontology release "+dateList[2]+"-"+dateList[1]+"-"+dateList[0]
@@ -171,8 +171,7 @@ class WDItemEngine(object):
             reference["snaks-order"]=['P143', 'P248', 'P813']
             reference["snaks"]['P248']=[snak]
         return reference
-        
-    @classmethod
+
     def autoadd_references(self, refernce_type, reference_item):
 
         """
@@ -223,4 +222,4 @@ class IDMissingError(Exception):
 
     def __str__(self):
         return repr(self.value)
->>>>>>> External Changes
+
