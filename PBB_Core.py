@@ -33,6 +33,7 @@ import json
 import urllib2
 import PBB_Debug
 
+
 class WDItemEngine(object):
 
     wd_item_id = ''
@@ -94,10 +95,10 @@ class WDItemEngine(object):
         """
         pass
 
-    def add_reference(self, property, reference_type, reference_item):
+    def add_reference(self, wd_property, reference_type, reference_item):
         """
         Call this method to add a reference to a statement/claim
-        :param property: the Wikidata property number a reference should be added to
+        :param wd_property: the Wikidata property number a reference should be added to
         :param reference_type: The reference property number (e.g. stated in (P248), imported from (P143))
         :param reference_item: the item a reference should point to
         :return: None
@@ -106,7 +107,7 @@ class WDItemEngine(object):
         for ref in references:
           if property in ref["snaks"]:
             for snak in ref["snaks"][property]:
-              if snak["datavalue"]["value"]["numeric-id"]==itemId:
+              if snak["datavalue"]["value"]["numeric-id"] == itemId:
                 ref = setDateRetrievedTimestamp(ref)
                 found = True
                 break
