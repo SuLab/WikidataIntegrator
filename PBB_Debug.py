@@ -30,7 +30,7 @@ def prettyPrint(variable):
     pp.pprint(variable)
     repo = site.data_repository()
 	
-def getSentryClient:
+def getSentryClient():
     return Client(settings.getSentryKey())
 	
 	

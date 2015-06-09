@@ -29,6 +29,7 @@ import pywikibot
 from pywikibot.data import api
 import json
 import urllib2
+import PBB_Debug
 
 class WDItemEngine(object):
 
@@ -63,10 +64,10 @@ class WDItemEngine(object):
                 '&normalize=',
                 '&format=json'
             )
-
             return(json.load(urllib2.urlopen(query)))
 
         except urllib2.HTTPError as e:
+            client.captureException(PBB_Debug.getSentryClient())
             print(e)
 
     @classmethod
@@ -78,16 +79,84 @@ class WDItemEngine(object):
         pass
 
     @classmethod
-    def add_reference(cls, property, reference_type, reference_item):
+    def add_reference(references, property, reference_type, reference_item):
         """
-        Call this method to add a reference to a property
+        Call this method to add a reference to a statement/claim
         :param property: the Wikidata property number a reference should be added to
         :param reference_type: The reference property number (e.g. stated in (P248), imported from (P143))
         :param reference_item: the item a reference should point to
         :return: None
         """
-        pass
+        found = False
+        for ref in references:
+          if property in ref["snaks"]:
+            for snak in ref["snaks"][property]:
+              if snak["datavalue"]["value"]["numeric-id"]==itemId:
+                ref = setDateRetrievedTimestamp(ref)
+                found = True
+                break
+        if not found:    
+            reference = dict()
+            snaks = dict()
+            reference["snaks"] = snaks
+            snaks[property]=[]
+            reference['snaks-order']=['P143']
+            snak=dict()
+            snaks[property].append(snak)
+            snak['property']=property
+            snak["snaktype"]='value'
+            snak["datatype"]='wikibase-item'
+            snak["datavalue"]=dict()
+            snak["datavalue"]["type"]='wikibase-entityid'
+            snak["datavalue"]["value"]=dict()
+            snak["datavalue"]["value"]["entity-type"]='item'
+            snak["datavalue"]["value"]["numeric-id"]=itemId
+            reference = setDateRetrievedTimestamp(reference)
+            if stated:
+                reference = setStatedIn(reference)
+            references.append(reference)
+        
+    def setDateRetrievedTimestamp(reference):
+        ts = time.time()
+        timestamp = datetime.datetime.fromtimestamp(ts).strftime('+0000000%Y-%m-%dT00:00:00Z')
+        wdTimestamp = dict()
+        reference["snaks-order"]=['P143', 'P813']                 
+        wdTimestamp["datatype"]='time'
+        wdTimestamp["property"]='P813'
+        wdTimestamp["snaktype"]='value'
+        wdTimestamp["datavalue"]=dict()
+        wdTimestamp["datavalue"]["type"]='time'
+        wdTimestamp["datavalue"]["value"]=dict()
+        wdTimestamp["datavalue"]["value"]["after"]=0
+        wdTimestamp["datavalue"]["value"]["before"]=0
+        wdTimestamp["datavalue"]["value"]["calendarmodel"]='http://www.wikidata.org/entity/Q1985727'
+        wdTimestamp["datavalue"]["value"]["precision"]=11
+        wdTimestamp["datavalue"]["value"]["time"]=timestamp
+        wdTimestamp["datavalue"]["value"]["timezone"]=0
+        reference["snaks"]['P813']=[wdTimestamp]
+        return reference
 
+    def setStatedIn(reference):
+        doDate =  globalDiseaseOntology.findall('.//oboInOwl:date', namespaces)
+        dateList = doDate[0].text.split(' ')[0].split(":")
+        searchTerm = "Disease ontology release "+dateList[2]+"-"+dateList[1]+"-"+dateList[0]
+        snak = dict()      
+        snak["datatype"]='wikibase-item'
+        snak["property"]='P248'
+        snak["snaktype"]='value'
+        snak["datavalue"]=dict()
+        snak["datavalue"]["type"]='wikibase-entityid'
+        snak["datavalue"]["value"]=dict()
+        snak["datavalue"]["value"]["entity-type"]='item'
+        searchResult = getItems(globalSite, searchTerm)['search'][0]["id"]
+        snak["datavalue"]["value"]["numeric-id"]=int(searchResult[1:])
+        print "gglobalWikidataID: "+globalWikidataID
+        print "searchResult: "+searchResult
+        if globalWikidataID != searchResult:
+            reference["snaks-order"]=['P143', 'P248', 'P813']
+            reference["snaks"]['P248']=[snak]
+        return reference
+        
     @classmethod
     def autoadd_references(cls, refernce_type, reference_item):
         """
