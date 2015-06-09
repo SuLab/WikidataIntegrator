@@ -7,5 +7,8 @@ This would include finding, updating and creating concepts in WikiData
 
 # list of general function libraries
 ## PBB_core.py
+This files contains the following functions
+### login
+This function enables login on WikiData's API
 
 Descriptions to be added soon.....
