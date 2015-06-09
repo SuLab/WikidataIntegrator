@@ -84,7 +84,7 @@ class WDItemEngine(object):
             return(json.load(urllib2.urlopen(query)))
 
         except urllib2.HTTPError as e:
-            client.captureException(PBB_Debug.getSentryClient())
+            PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
             print(e)
 
     def add_property(self, property):
