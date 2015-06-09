@@ -21,3 +21,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 '''
+
+def login():
+    # Login to wikidata
+    site = pywikibot.Site("wikidata", "wikidata")
+    repo = site.data_repository()
