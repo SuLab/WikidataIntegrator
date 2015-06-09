@@ -22,9 +22,11 @@ You should have received a copy of the GNU General Public License
 along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-__author__ = 'sebastian'
+__author__ = 'Sebastian Burgstaller, Andra Waagmeester'
+__license__ = 'GPL'
 
 import pywikibot
+from pywikibot.data import api
 import json
 import urllib2
 
@@ -137,3 +139,4 @@ class IDMissingError(Exception):
 
     def __str__(self):
         return repr(self.value)
+>>>>>>> External Changes
