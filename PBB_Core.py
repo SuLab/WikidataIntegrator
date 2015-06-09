@@ -30,17 +30,32 @@ import urllib2
 
 class WDItemEngine(object):
 
+    wd_item_id = ''
+    item_names = ''
+    autoadd_references = False
+
+    # a list with all properties an item should have and/or modify
+    property_list = []
+    wd_json_representation = ''
+
     def __init__(self, wd_item_id='', item_names=[]):
+        """
+        constructor
+        :param wd_item_id: Wikidata item id
+        :param item_names: Label of the wikidata item
+        """
         self.wd_item_id = wd_item_id
         self.item_names = item_names
         self.autoadd_references = False
 
-    @classmethod
-    def get_item_data(cls, item_name=None, item_id=None):
+        self.wd_json_representation = self.get_item_data(item_names[0], wd_item_id)
+
+    def get_item_data(self, item_name=None, item_id=None, normalize=True):
         """
         Instantiate a class by either providing a item name or a Wikidata item ID
         :param item_name: A name which should allow to find an item in Wikidata
         :param item_id: Wikidata item ID which allows loading of a Wikidata item
+        :param normalize: Set to true if the WD api call should use the normalize parameter
         :return: None
         """
         if item_name is None and item_id is None:
@@ -51,7 +66,7 @@ class WDItemEngine(object):
             if item_id is not None:
                 title_string = '&ids={}'.format(item_id)
             elif item_name is not None:
-                title_string = '&titles={}'.format(item_name.replace(' ', '%20'))
+                title_string = '&titles={}'.format(urllib2.quote(item_name))
 
             query = 'https://www.wikidata.org/w/api.php?action=wbgetentities{}{}{}{}{}{}'.format(
                 '&sites=enwiki',
@@ -67,16 +82,14 @@ class WDItemEngine(object):
         except urllib2.HTTPError as e:
             print(e)
 
-    @classmethod
-    def add_property(cls, property):
+    def add_property(self, property):
         """
         :param property: takes a property the WDItem should have
         :return: None
         """
         pass
 
-    @classmethod
-    def add_reference(cls, property, reference_type, reference_item):
+    def add_reference(self, property, reference_type, reference_item):
         """
         Call this method to add a reference to a property
         :param property: the Wikidata property number a reference should be added to
@@ -86,8 +99,7 @@ class WDItemEngine(object):
         """
         pass
 
-    @classmethod
-    def autoadd_references(cls, refernce_type, reference_item):
+    def autoadd_references(self, refernce_type, reference_item):
         """
         adds a reference to all properties of a WD item
         :param refernce_type:
@@ -119,8 +131,7 @@ class WDItemEngine(object):
         :return: None
         """
 
-    @classmethod
-    def write(cls):
+    def write(self):
         """
         function to initiate writing the item data in the instance to Wikidata
         :return:
