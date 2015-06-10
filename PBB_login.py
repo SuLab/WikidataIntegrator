@@ -6,7 +6,6 @@ __license__ = 'GPL'
 login routine for Wikidata
 """
 import urllib2
-import pprint
 import requests
 try: import simplejson as json
 except ImportError: import json # http://stackoverflow.com/a/712799/155046
@@ -19,7 +18,4 @@ def login(user, password):
     r1= requests.post(baseurl+'api.php'+login_params)
     return r1.json()
     
-def prettyPrint(variable):
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(variable)
     
