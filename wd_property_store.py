@@ -137,42 +137,42 @@ wd_properties = {
         'datatype': 'string',
         'name': 'Entrez Gene ID',
         'domain': ['genes']
-    }
+    },
     'P703': {
         'datatype': 'item',
         'name': 'found in taxon',
         'domain': ['genes']
-    }
+    },
     'P594': {
         'datatype': 'string',
         'name': 'Ensembl Gene ID',
         'domain': ['genes']
-    }
+    },
     'P704': {
         'datatype': 'string',
         'name': 'Ensembl Transcript ID',
         'domain': ['genes']
-    }
+    },
     'P353': {
         'datatype': 'string',
         'name': 'Gene symbol',
         'domain': ['genes']
-    }
+    },
     'P354': {
         'datatype': 'string',
         'name': 'HGNC symbol',
         'domain': ['genes']
-    }
+    },
     'P593': {
         'datatype': 'string',
         'name': 'homologene id',
         'domain': ['genes']
-    }
+    },
     'P639': {
         'datatype': 'string',
         'name': 'RefSeq RNA ID',
         'domain': ['genes']
-    }
+    },
     'P1057': {
         'datatype': 'item',
         'name': 'chromosome',

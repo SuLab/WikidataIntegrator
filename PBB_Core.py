@@ -25,8 +25,6 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = 'Sebastian Burgstaller, Andra Waagmeester'
 __license__ = 'GPL'
 
-import pywikibot
-from pywikibot.data import api
 import time
 import datetime
 import json
@@ -96,6 +94,7 @@ class WDItemEngine(object):
 
     def get_property_list(self):
         for x in wd_property_store.wd_properties:
+            pass
 
          
     def getItemsByProperty(self, wdproperty):
@@ -114,7 +113,7 @@ class WDItemEngine(object):
         """
         query = 'https://www.wikidata.org/w/api.php?action=wbgetclaims{}{}{}'.format(
             '&entity='+wdItem.getID() ,
-            'property'=claimProperty
+            'property'+claimProperty
         )        
         params = {
                     'entity' : wdItem.getID(),
