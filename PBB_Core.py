@@ -32,6 +32,7 @@ import datetime
 import json
 import urllib2
 import PBB_Debug
+import wd_property_store
 
 
 class WDItemEngine(object):
@@ -39,56 +40,65 @@ class WDItemEngine(object):
     wd_item_id = ''
     item_names = ''
     autoadd_references = False
+    normalize = True
 
     # a list with all properties an item should have and/or modify
     property_list = []
     wd_json_representation = ''
 
-    def __init__(self, wd_item_id='', item_names=[]):
+    def __init__(self, wd_item_id='', item_name='', normalize=True, domain=''):
         """
         constructor
         :param wd_item_id: Wikidata item id
         :param item_names: Label of the wikidata item
         """
         self.wd_item_id = wd_item_id
-        self.item_names = item_names
+        self.item_names = item_name
         self.autoadd_references = False
+        self.normalize = normalize
 
-        self.wd_json_representation = self.get_item_data(item_names[0], wd_item_id)
+        self.wd_json_representation = self.get_item_data(item_name, wd_item_id)
+        self.property_list = self.get_property_list()
 
-    def get_item_data(self, item_name=None, item_id=None, normalize=True):
+    def get_item_data(self, item_name='', item_id=''):
         """
         Instantiate a class by either providing a item name or a Wikidata item ID
         :param item_name: A name which should allow to find an item in Wikidata
         :param item_id: Wikidata item ID which allows loading of a Wikidata item
-        :param normalize: Set to true if the WD api call should use the normalize parameter
         :return: None
         """
-        if item_name is None and item_id is None:
+        if item_name is '' and item_id is '':
             raise IDMissingError('No item name or WD identifyer was given')
 
         try:
             title_string = ''
-            if item_id is not None:
+            if item_id is not '':
                 title_string = '&ids={}'.format(item_id)
-            elif item_name is not None:
+            elif item_name is not '':
                 title_string = '&titles={}'.format(urllib2.quote(item_name))
 
-            query = 'https://www.wikidata.org/w/api.php?action=wbgetentities{}{}{}{}{}{}'.format(
+            query = 'https://www.wikidata.org/w/api.php?action=wbgetentities{}{}{}{}{}'.format(
                 '&sites=enwiki',
                 '&languages=en',
                 title_string,
                 '&props=labels|aliases|claims',
-                '&normalize=',
                 '&format=json'
             )
+
+            if self.normalize:
+                query += '&normalize='
+
             return(json.load(urllib2.urlopen(query)))
 
         except urllib2.HTTPError as e:
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
             print(e)
+
+    def get_property_list(self):
+        for x in wd_property_store.wd_properties:
+
          
-    def getItemsByProperty(wdproperty):
+    def getItemsByProperty(self, wdproperty):
         """
         Gets all WikiData item IDs that contains statements containing property wdproperty
         """
@@ -98,7 +108,7 @@ class WDItemEngine(object):
         f = opener.open(req)
         return simplejson.load(f)
         
-    def getClaims(wdItem, claimProperty):
+    def getClaims(self, wdItem, claimProperty):
         """
         Returns all property values in a given wdItem
         """
@@ -113,7 +123,7 @@ class WDItemEngine(object):
         return(json.load(urllib2.urlopen(query)))
         
     
-    def countPropertyValues(wdItem, claimProperty):
+    def countPropertyValues(self, wdItem, claimProperty):
         '''
         Count the number of claims with a given property
         '''
