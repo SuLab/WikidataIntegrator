@@ -22,14 +22,20 @@ You should have received a copy of the GNU General Public License
 along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-from raven import Client
+__author__ = 'Sebastian Burgstaller, Andra Waagmeester'
+__license__ = 'GPL'
 
-def getSentryKey():
-    return '<Sentry key to be obtained from https://getsentry.com/welcome/>'
-    
-def getWikiDataUser():
-    return 'ProteinBoxBot'
-    
-def getWikiDataPassword():
-    return '<WikiData Password>'
-    
+import PBB_Debug
+import wd_property_store
+import urllib2
+try: import simplejson as json
+except ImportError: import json # http://stackoverflow.com/a/712799/155046
+
+def getItemsByProperty(wdproperty):
+    """
+    Gets all WikiData item IDs that contains statements containing property wdproperty
+    """
+    req = urllib2.Request("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, None, {'user-agent':'proteinBoxBot'})
+    opener = urllib2.build_opener()
+    f = opener.open(req)
+    return json.load(f)
