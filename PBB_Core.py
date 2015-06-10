@@ -32,6 +32,19 @@ import urllib2
 import PBB_Debug
 import wd_property_store
 
+class WDItemList(object):
+    def __init__(self, wdproperty):
+        self.wdproperty = wdproperty
+        self.wditems = getItemsByProperty(self, wdproperty) 
+    
+    def getItemsByProperty(self, wdproperty):
+        """
+        Gets all WikiData item IDs that contains statements containing property wdproperty
+        """
+        req = urllib2.Request("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, None, {'user-agent':'proteinBoxBot'})
+        opener = urllib2.build_opener()
+        f = opener.open(req)
+        return simplejson.load(f)
 
 class WDItemEngine(object):
 
@@ -95,17 +108,6 @@ class WDItemEngine(object):
     def get_property_list(self):
         for x in wd_property_store.wd_properties:
             pass
-
-         
-    def getItemsByProperty(self, wdproperty):
-        """
-        Gets all WikiData item IDs that contains statements containing property wdproperty
-        """
-        query - 'http'
-        req = urllib2.Request("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, None, {'user-agent':'proteinBoxBot'})
-        opener = urllib2.build_opener()
-        f = opener.open(req)
-        return simplejson.load(f)
         
     def getClaims(self, wdItem, claimProperty):
         """
