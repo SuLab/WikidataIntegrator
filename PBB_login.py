@@ -1,4 +1,6 @@
-__author__ = 'sebastian'
+__author__ = 'Andra Waagmeester and Sebastian Burgstaller'
+__license__ = 'GPL'
+
 
 """
 login routine for Wikidata
