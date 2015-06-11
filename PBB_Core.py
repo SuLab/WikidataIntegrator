@@ -103,8 +103,8 @@ class WDItemEngine(object):
         """
         property_list = []
         for x in wd_property_store.wd_properties:
-            if self.domain in x['domain']:
-                property_list.append(x.key)
+            if self.domain in wd_property_store.wd_properties[x]['domain']:
+                property_list.append(x)
 
         return(property_list)
 
