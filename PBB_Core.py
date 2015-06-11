@@ -25,8 +25,6 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = 'Sebastian Burgstaller, Andra Waagmeester'
 __license__ = 'GPL'
 
-import pywikibot
-from pywikibot.data import api
 import time
 import datetime
 import json
