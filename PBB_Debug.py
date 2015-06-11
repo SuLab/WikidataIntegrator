@@ -28,7 +28,6 @@ from raven import Client
 def prettyPrint(variable):
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(variable)
-    repo = site.data_repository()
 	
 def getSentryClient():
     return Client(settings.getSentryKey())
