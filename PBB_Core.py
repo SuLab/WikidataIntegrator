@@ -39,6 +39,7 @@ class WDItemEngine(object):
 
     wd_item_id = ''
     item_names = ''
+    domain = ''
     autoadd_references = False
     normalize = True
 
@@ -54,6 +55,7 @@ class WDItemEngine(object):
         """
         self.wd_item_id = wd_item_id
         self.item_names = item_name
+        self.domain = domain
         self.autoadd_references = False
         self.normalize = normalize
 
@@ -95,7 +97,16 @@ class WDItemEngine(object):
             print(e)
 
     def get_property_list(self):
+        """
+        extract the properties which belong to the domain of the WD item
+        :return: a list of property strings is being returned
+        """
+        property_list = []
         for x in wd_property_store.wd_properties:
+            if self.domain in x['domain']:
+                property_list.append(x.key)
+
+        return(property_list)
 
          
     def getItemsByProperty(self, wdproperty):
