@@ -29,10 +29,13 @@ import pywikibot
 from pywikibot.data import api
 import time
 import datetime
-import json
 import urllib2
 import PBB_Debug
 import wd_property_store
+try:
+    import simplejson as json
+except:
+    import json
 
 class WDItemList(object):
     def __init__(self, wdproperty):
@@ -46,7 +49,7 @@ class WDItemList(object):
         req = urllib2.Request("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, None, {'user-agent':'proteinBoxBot'})
         opener = urllib2.build_opener()
         f = opener.open(req)
-        return simplejson.load(f)
+        return json.load(f)
 
 class WDItemEngine(object):
 
@@ -121,7 +124,6 @@ class WDItemEngine(object):
 
         return(property_list)
 
-         
     def getItemsByProperty(self, wdproperty):
         """
         Gets all WikiData item IDs that contains statements containing property wdproperty
@@ -130,7 +132,7 @@ class WDItemEngine(object):
         req = urllib2.Request("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, None, {'user-agent':'proteinBoxBot'})
         opener = urllib2.build_opener()
         f = opener.open(req)
-        return simplejson.load(f)
+        return(simplejson.load(f))
         
     def getClaims(self, wdItem, claimProperty):
         """
@@ -141,19 +143,17 @@ class WDItemEngine(object):
             'property'+claimProperty
         )        
         params = {
-                    'entity' : wdItem.getID(),
-        			'property': claimProperty,
+                    'entity': wdItem.getID(),
+                    'property': claimProperty,
                  }
         return(json.load(urllib2.urlopen(query)))
-        
-    
+
     def countPropertyValues(self, wdItem, claimProperty):
         '''
         Count the number of claims with a given property
         '''
         data = getClaims(wdItem, claimProperty)
         return len(data["claims"][claimProperty])
-    
 
     def add_property(self, property):
         """
