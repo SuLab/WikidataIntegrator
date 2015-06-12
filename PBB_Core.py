@@ -61,7 +61,17 @@ class BotMainLog():
                     "(bot, start_date, finish_date, bot_ip, bot_user) "
                     "VALUES (%s, %s, %s, %s, %s)")
         data_tuple = (self.bot, self.start_date, self.finish_date, self.bot_ip, self.bot_user)
-        cursor.execute(sql_tuple, data_tuple)
+        print self.bot
+        print self.start_date
+        print self.finish_date
+        print cursor.execute(sql_tuple, data_tuple)
+        cnx.commit()
+        
+        # print all the first cell of all the rows
+        # Use all the SQL you like
+        cursor.execute("SELECT * FROM PBB_History")
+        for row in cursor.fetchall() :
+            print row[0]
         
         
         

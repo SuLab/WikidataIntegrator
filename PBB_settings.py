@@ -37,10 +37,10 @@ def getMySQLHost():
     return '127.0.0.1'
     
 def getMySQLUser():
-    return '<Mysql user'
+    return 'PBB'
 
 def getMySQLPW():
-    return '<Mysql pw>'
+    return ''
     
 
     
