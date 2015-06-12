@@ -30,6 +30,10 @@ import datetime
 import urllib2
 import PBB_Debug
 import PBB_Functions
+import PBB_settings
+import mysql.connector
+import socket
+import getpass
 
 import wd_property_store
 try:
@@ -37,6 +41,31 @@ try:
 except:
     import json
     
+class BotMainLog():
+    def __init__(self):
+        self.bot = ''
+        self.start_date = ''
+        self.finish_date = ''
+        self.bot_ip = socket.gethostbyname(socket.gethostname())
+        self.bot_user = getpass.getuser()
+            
+    def connectDb(self):
+        return mysql.connector.connect(user=PBB_settings.getMySQLUser(), password=PBB_settings.getMySQLPW(),
+                                      host=PBB_settings.getMySQLHost(),
+                                      database='ProteinBoxBot')
+    
+    def addTuple(self):
+        cnx = self.connectDb()
+        cursor = cnx.cursor()
+        sql_tuple = ("INSERT INTO PBB_History "
+                    "(bot, start_date, finish_date, bot_ip, bot_user) "
+                    "VALUES (%s, %s, %s, %s, %s)")
+        data_tuple = (self.bot, self.start_date, self.finish_date, self.bot_ip, self.bot_user)
+        cursor.execute(sql_tuple, data_tuple)
+        
+        
+        
+
 class WDItem(object):
     def __init__(self, wdItemID):
         self.id = wdItemID

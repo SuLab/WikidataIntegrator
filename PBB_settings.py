@@ -33,5 +33,14 @@ def getWikiDataUser():
 def getWikiDataPassword():
     return '<WikiData Password>'
     
+def getMySQLHost():
+    return '127.0.0.1'
+    
+def getMySQLUser():
+    return '<Mysql user'
+
+def getMySQLPW():
+    return '<Mysql pw>'
+    
 
     
