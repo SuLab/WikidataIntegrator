@@ -114,24 +114,30 @@ class WDItemEngine(object):
     domain = ''
     autoadd_references = False
     normalize = True
+    data = {}
 
     # a list with all properties an item should have and/or modify
-    property_list = []
+    property_list = {}
     wd_json_representation = ''
 
-    def __init__(self, wd_item_id='', item_name='', normalize=True, domain=''):
+    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}):
         """
         constructor
         :param wd_item_id: Wikidata item id
-        :param item_names: Label of the wikidata item
+        :param item_name: Label of the wikidata item
+        :param normalize: boolean if wbgetentity should use the parameter normalize
+        :param domain: string which tells the data domain the class should operate in
+        :param data: a dictionary with WD property strings as keys and the data which should be written to
+        a WD item as the property values
         """
         self.wd_item_id = wd_item_id
         self.item_names = item_name
         self.domain = domain
         self.autoadd_references = False
         self.normalize = normalize
+        self.data = data
 
-        self.wd_json_representation = self.get_item_data(item_name, wd_item_id)
+        self.get_item_data(item_name, wd_item_id)
         self.property_list = self.get_property_list()
 
     def get_item_data(self, item_name='', item_id=''):
@@ -142,27 +148,61 @@ class WDItemEngine(object):
         :return: None
         """
         if item_name is '' and item_id is '':
-            raise IDMissingError('No item name or WD identifyer was given')
+            raise IDMissingError('No item name or WD identifier was given')
+        elif item_id is not '':
+            self.wd_json_representation = self.get_wd_entity(item_id)
+        else:
+            try:
+                self._select_wd_item(self.get_wd_search_results(item_name))
+            except WDSearchError as e:
+                PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+                print(e)
 
+    def get_wd_entity(self, item=''):
+        """
+        retrieve a WD item in json representation from Wikidata
+        :param item: string which represents the wikidata QID
+        :return: python complex dictionary represenation of a json
+        """
         try:
-            title_string = ''
-            if item_id is not '':
-                title_string = '&ids={}'.format(item_id)
-            elif item_name is not '':
-                title_string = '&titles={}'.format(urllib2.quote(item_name))
-
             query = 'https://www.wikidata.org/w/api.php?action=wbgetentities{}{}{}{}{}'.format(
                 '&sites=enwiki',
                 '&languages=en',
-                title_string,
+                '&ids=' + urllib2.quote(item),
                 '&props=labels|aliases|claims',
                 '&format=json'
             )
 
-            if self.normalize:
-                query += '&normalize='
-
             return(json.load(urllib2.urlopen(query)))
+
+        except urllib2.HTTPError as e:
+            PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+            print(e)
+
+    def get_wd_search_results(self, search_string=''):
+        """
+        Performs a search in WD for a certain WD search string
+        :param search_string: a string which should be searched for in WD
+        :return: returns a list of QIDs found in the search
+        """
+        try:
+            query = 'https://www.wikidata.org/w/api.php?action=wbsearchentities{}{}'.format(
+                '&language=en',
+                '&search=' + urllib2.quote(search_string)
+            )
+
+            search_results = json.load(urllib2.urlopen(query))
+
+            if search_results['success'] != 1:
+                raise WDSearchError('WD search failed')
+            elif len(search_results['search']) > 0:
+                return([])
+            else:
+                id_list = []
+                for i in search_results['search']:
+                    id_list.append(i['id'])
+
+                return(id_list)
 
         except urllib2.HTTPError as e:
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
@@ -171,14 +211,31 @@ class WDItemEngine(object):
     def get_property_list(self):
         """
         extract the properties which belong to the domain of the WD item
-        :return: a list of property strings is being returned
+        :return: a dict with WD property strings as keys and empty strings as values
         """
         property_list = []
         for x in wd_property_store.wd_properties:
             if self.domain in wd_property_store.wd_properties[x]['domain']:
-                property_list.append(x)
+                property_list['x'] = ''
 
         return(property_list)
+
+    def _select_wd_item(self, item_list):
+        """
+        The most likely WD item QID should be returned, after querying WDQ for all core_id properties
+        :param item_list: a list of QIDs returned by a string search in WD
+        :return:
+        """
+        for wd_property in self.data:
+            try:
+                query = 'http://wdq.wmflabs.org/api?q=claim[{}:{}]'.format()
+
+
+                tmp_json = json.load(urllib2.urlopen(query))
+
+            except urllib2.HTTPError as e:
+                PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+                print(e)
 
     def getItemsByProperty(self, wdproperty):
         """
@@ -188,7 +245,7 @@ class WDItemEngine(object):
         req = urllib2.Request("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, None, {'user-agent':'proteinBoxBot'})
         opener = urllib2.build_opener()
         f = opener.open(req)
-        return(simplejson.load(f))
+        return(json.load(f))
         
     def getClaims(self, wdItem, claimProperty):
         """
@@ -311,6 +368,7 @@ class WDItemEngine(object):
         :param a list with WD property numbers (strings) which are used to check for integrity
         :return:
         """
+
         pass
 
     def set_label(self, label):
@@ -341,6 +399,13 @@ class WDItemEngine(object):
 
 
 class IDMissingError(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+class WDSearchError(Exception):
     def __init__(self, value):
         self.value = value
 
