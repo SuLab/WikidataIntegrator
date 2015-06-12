@@ -104,6 +104,7 @@ class WDItemEngine(object):
     domain = ''
     autoadd_references = False
     normalize = True
+    create_new_item = False
     data = {}
 
     # a list with all properties an item should have and/or modify
@@ -143,7 +144,7 @@ class WDItemEngine(object):
             self.wd_json_representation = self.get_wd_entity(item_id)
         else:
             try:
-                self._select_wd_item(self.get_wd_search_results(item_name))
+                self.__select_wd_item(self.get_wd_search_results(item_name))
             except WDSearchError as e:
                 PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
                 print(e)
@@ -210,22 +211,32 @@ class WDItemEngine(object):
 
         return(property_list)
 
-    def _select_wd_item(self, item_list):
+    def __select_wd_item(self, item_list):
         """
         The most likely WD item QID should be returned, after querying WDQ for all core_id properties
         :param item_list: a list of QIDs returned by a string search in WD
         :return:
         """
+        qid_list = []
         for wd_property in self.data:
             try:
-                query = 'http://wdq.wmflabs.org/api?q=claim[{}:{}]'.format()
+                # check if the property is a core_id and should be unique for every WD item
+                if wd_property_store[wd_property]['core_id'] == 'True':
+                    query = urllib2.quote('http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(wd_property, self.data[wd_property]))
+                    tmp_qids = json.load(urllib2.urlopen(query))['status']['items']
+                    qid_list.append(tmp_qids)
 
-
-                tmp_json = json.load(urllib2.urlopen(query))
+                    if len(tmp_qids) > 1:
+                        raise ManualInterventionReqException('More than one WD item has the same property value', wd_property, tmp_qids)
 
             except urllib2.HTTPError as e:
                 PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
                 print(e)
+
+        if len(qid_list) == 0:
+            self.create_new_item = True
+
+        
 
     def getItemsByProperty(self, wdproperty):
         """
@@ -398,6 +409,13 @@ class IDMissingError(Exception):
 class WDSearchError(Exception):
     def __init__(self, value):
         self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+class ManualInterventionReqException(Exception):
+    def __init__(self, value, property_string, item_list):
+        self.value = value + ' Property: {}, items affected: {}'.format(property_string, item_list)
 
     def __str__(self):
         return repr(self.value)
