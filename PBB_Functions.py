@@ -39,3 +39,8 @@ def getItemsByProperty(wdproperty):
     opener = urllib2.build_opener()
     f = opener.open(req)
     return json.load(f)
+    
+
+    
+    
+    
