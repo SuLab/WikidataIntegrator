@@ -28,6 +28,9 @@ __license__ = 'GPL'
 import time
 import datetime
 import urllib2
+
+
+
 import PBB_Debug
 import PBB_Functions
 import PBB_settings
@@ -154,7 +157,11 @@ class WDItemEngine(object):
             self.wd_json_representation = self.get_wd_entity(item_id)
         else:
             try:
-                self.__select_wd_item(self.get_wd_search_results(item_name))
+                qids_by_string = self.get_wd_search_results(item_name)
+                qids_by_props = self.__select_wd_item()
+                if qids_by_props is not '':
+                    self.wd_item_id = qids_by_props
+
             except WDSearchError as e:
                 PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
                 print(e)
@@ -245,8 +252,14 @@ class WDItemEngine(object):
 
         if len(qid_list) == 0:
             self.create_new_item = True
+            return('')
 
-        
+        unique_qids = set(qid_list)
+        if len(unique_qids) > 1:
+            # FIX: exception should be given a list at param 2 which properties are causing the conflicts
+            raise ManualInterventionReqException('More than one WD item has the same property value', 'implementation req', unique_qids)
+        elif len(unique_qids) == 1:
+            return(list(unique_qids)[0])
 
     def getItemsByProperty(self, wdproperty):
         """
