@@ -17,6 +17,25 @@ domain_incompatibilities = {
     ]
 }
 
+# a collection of values for the property 'instance of' (P31) which are valid for a certain domain.
+valid_instances = {
+    'drugs': [
+        'Q11173',  # chemical compound (only one single, pure chemical compound)
+        'Q79529',  # chemical substance (several defined chemical compounds)
+        'Q8054',   # protein
+        'Q12140',  # pharmaceutical drug
+        'Q422248'  # monoclonal antibodies
+    ],
+    'genes': [
+
+    ],
+    'proteins': [
+
+    ],
+    'disease ontology': [
+
+    ]
+}
 
 wd_properties = {
     'P715': {

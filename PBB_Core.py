@@ -99,7 +99,7 @@ class WDItem(object):
 class WDItemList(object):
     def __init__(self, wdproperty):
         self.wdproperty = wdproperty
-        self.wditems = getItemsByProperty(self, wdproperty)
+        self.wditems = self.getItemsByProperty(self, wdproperty)
 
     def getItemsByProperty(self, wdproperty):
         """
@@ -157,14 +157,16 @@ class WDItemEngine(object):
             self.wd_json_representation = self.get_wd_entity(item_id)
         else:
             try:
-                qids_by_string = self.get_wd_search_results(item_name)
-                qids_by_props = self.__select_wd_item()
-                if qids_by_props is not '':
-                    self.wd_item_id = qids_by_props
+                qids_by_string_search, labels_by_string_search = self.get_wd_search_results(item_name)
+                qids_by_props = self.__select_wd_item(qids_by_string_search)
 
             except WDSearchError as e:
                 PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
                 print(e)
+                qids_by_props = self.__select_wd_item([])
+
+            if qids_by_props is not '':
+                    self.wd_item_id = qids_by_props
 
     def get_wd_entity(self, item=''):
         """
@@ -191,7 +193,7 @@ class WDItemEngine(object):
         """
         Performs a search in WD for a certain WD search string
         :param search_string: a string which should be searched for in WD
-        :return: returns a list of QIDs found in the search
+        :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         """
         try:
             query = 'https://www.wikidata.org/w/api.php?action=wbsearchentities{}{}'.format(
@@ -207,8 +209,10 @@ class WDItemEngine(object):
                 return([])
             else:
                 id_list = []
+                id_labels = []
                 for i in search_results['search']:
                     id_list.append(i['id'])
+                    id_labels.append(i['label'])
 
                 return(id_list)
 
@@ -228,10 +232,11 @@ class WDItemEngine(object):
 
         return(property_list)
 
-    def __select_wd_item(self, item_list):
+    def __select_wd_item(self, item_list, item_labels):
         """
         The most likely WD item QID should be returned, after querying WDQ for all core_id properties
         :param item_list: a list of QIDs returned by a string search in WD
+        :param item_labels: a complementary list of WD item labels to the QIDs from param item_list
         :return:
         """
         qid_list = []
@@ -264,8 +269,9 @@ class WDItemEngine(object):
     def getItemsByProperty(self, wdproperty):
         """
         Gets all WikiData item IDs that contains statements containing property wdproperty
+        :param wdproperty: A string representation of a WD property ID
+        :return: A Python json representation object with the search results is returned
         """
-        query - 'http'
         req = urllib2.Request("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, None, {'user-agent':'proteinBoxBot'})
         opener = urllib2.build_opener()
         f = opener.open(req)
@@ -274,22 +280,25 @@ class WDItemEngine(object):
     def getClaims(self, wdItem, claimProperty):
         """
         Returns all property values in a given wdItem
+        :param wdItem: QID for a given WD item
+        :param claimProperty: WD Property ID
+        :return: a Python JSON representation of the requested WD item claim.
         """
-        query = 'https://www.wikidata.org/w/api.php?action=wbgetclaims{}{}{}'.format(
-            '&entity='+wdItem.getID() ,
-            'property'+claimProperty
-        )        
-        params = {
-                    'entity': wdItem.getID(),
-                    'property': claimProperty,
-                 }
+        query = 'https://www.wikidata.org/w/api.php?action=wbgetclaims{}{}'.format(
+            '&entity=' + wdItem.getID(),
+            'property' + claimProperty
+        )
+
         return(json.load(urllib2.urlopen(query)))
 
     def countPropertyValues(self, wdItem, claimProperty):
-        '''
+        """
         Count the number of claims with a given property
-        '''
-        data = getClaims(wdItem, claimProperty)
+        :param wdItem:
+        :param claimProperty:
+        :return: the number of properties a certain claim has.
+        """
+        data = self.getClaims(wdItem, claimProperty)
         return len(data["claims"][claimProperty])
 
     def add_property(self, property):
