@@ -78,18 +78,21 @@ class BotMainLog():
 
 
 class WDItemList(object):
-    def __init__(self, wdproperty):
+    def __init__(self, wdproperty = []):
         self.wdproperty = wdproperty
         self.wditems = self.getItemsByProperty(self, wdproperty)
-
-    def getItemsByProperty(self, wdproperty):
+        
+    def getItemsByProperty(self, wdquery):
         """
         Gets all WikiData item IDs that contains statements containing property wdproperty
+        :param wdquery: A string representation of a WD query
+        :return: A Python json representation object with the search results is returned
         """
-        req = urllib2.Request("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, None, {'user-agent':'proteinBoxBot'})
+        req = urllib2.Request("http://wdq.wmflabs.org/api?q="+urllib.urlencode(wdquery))
         opener = urllib2.build_opener()
         f = opener.open(req)
         return json.load(f)
+    
 
 class WDItemEngine(object):
 
@@ -246,17 +249,6 @@ class WDItemEngine(object):
             raise ManualInterventionReqException('More than one WD item has the same property value', 'implementation req', unique_qids)
         elif len(unique_qids) == 1:
             return(list(unique_qids)[0])
-
-    def getItemsByProperty(self, wdproperty):
-        """
-        Gets all WikiData item IDs that contains statements containing property wdproperty
-        :param wdproperty: A string representation of a WD property ID
-        :return: A Python json representation object with the search results is returned
-        """
-        req = urllib2.Request("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, None, {'user-agent':'proteinBoxBot'})
-        opener = urllib2.build_opener()
-        f = opener.open(req)
-        return(json.load(f))
         
     def getClaims(self, wdItem, claimProperty):
         """
