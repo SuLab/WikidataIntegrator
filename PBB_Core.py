@@ -75,26 +75,7 @@ class BotMainLog():
         cursor.execute("SELECT * FROM PBB_History")
         for row in cursor.fetchall() :
             print row[0]
-        
-        
-        
 
-class WDItem(object):
-    def __init__(self, wdItemID):
-        self.id = wdItemID
-        self.wdContent = self.getItems(wdItemID)
-        self.properties = self.getProperties()
-        
-    def getItems(self, wdItem):
-        query = 'https://www.wikidata.org/w/api.php?action=wbgetentities{}{}{}'.format(
-            '&ids='+wdItem,
-            '&props=labels|aliases|claims',
-            '&format=json'
-        )
-        return(json.load(urllib2.urlopen(query)))
-        
-    def getProperties(self):
-        return self.wdContent["entities"][self.id]["claims"].keys()
 
 class WDItemList(object):
     def __init__(self, wdproperty):
