@@ -27,6 +27,7 @@ __license__ = 'GPL'
 
 import time
 import datetime
+import urllib
 import urllib2
 
 
@@ -78,9 +79,9 @@ class BotMainLog():
 
 
 class WDItemList(object):
-    def __init__(self, wdproperty = []):
-        self.wdproperty = wdproperty
-        self.wditems = self.getItemsByProperty(self, wdproperty)
+    def __init__(self, wdquery = ""):
+        self.wdquery = wdquery
+        self.wditems = self.getItemsByProperty(wdquery)
         
     def getItemsByProperty(self, wdquery):
         """
@@ -88,7 +89,7 @@ class WDItemList(object):
         :param wdquery: A string representation of a WD query
         :return: A Python json representation object with the search results is returned
         """
-        req = urllib2.Request("http://wdq.wmflabs.org/api?q="+urllib.urlencode(wdquery))
+        req = urllib2.Request("http://wdq.wmflabs.org/api?"+urllib.urlencode({"q":wdquery}))
         opener = urllib2.build_opener()
         f = opener.open(req)
         return json.load(f)
