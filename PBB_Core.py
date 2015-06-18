@@ -41,9 +41,10 @@ import getpass
 import wd_property_store
 try:
     import simplejson as json
-except:
+except ImportError as e:
     import json
-    
+
+
 class BotMainLog():
     def __init__(self):
         self.bot = ''
@@ -144,6 +145,9 @@ class WDItemEngine(object):
         self.get_item_data(item_name, wd_item_id)
         self.property_list = self.get_property_list()
 
+        if self.wd_json_representation is not '':
+            pass
+
     def get_item_data(self, item_name='', item_id=''):
         """
         Instantiate a class by either providing a item name or a Wikidata item ID
@@ -166,7 +170,8 @@ class WDItemEngine(object):
                 qids_by_props = self.__select_wd_item([])
 
             if qids_by_props is not '':
-                    self.wd_item_id = qids_by_props
+                self.wd_item_id = qids_by_props
+                self.wd_json_representation = self.get_wd_entity(self.wd_item_id)
 
     def get_wd_entity(self, item=''):
         """
@@ -175,15 +180,16 @@ class WDItemEngine(object):
         :return: python complex dictionary represenation of a json
         """
         try:
-            query = 'https://www.wikidata.org/w/api.php?action=wbgetentities{}{}{}{}{}'.format(
+            query = 'https://www.wikidata.org/w/api.php?action=wbgetentities{}{}{}{}'.format(
                 '&sites=enwiki',
                 '&languages=en',
                 '&ids=' + urllib2.quote(item),
-                '&props=labels|aliases|claims',
                 '&format=json'
             )
 
-            return(json.load(urllib2.urlopen(query)))
+            wd_reply = json.load(urllib2.urlopen(query))['entities'][self.wd_item_id]
+            wd_reply = {x: wd_reply[x] for x in ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks') if x in wd_reply}
+            return(wd_reply)
 
         except urllib2.HTTPError as e:
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
@@ -241,19 +247,20 @@ class WDItemEngine(object):
         """
         qid_list = []
         for wd_property in self.data:
-            try:
-                # check if the property is a core_id and should be unique for every WD item
-                if wd_property_store[wd_property]['core_id'] == 'True':
-                    query = urllib2.quote('http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(wd_property, self.data[wd_property]))
-                    tmp_qids = json.load(urllib2.urlopen(query))['status']['items']
-                    qid_list.append(tmp_qids)
+            for i in self.data[wd_property]:
+                try:
+                    # check if the property is a core_id and should be unique for every WD item
+                    if wd_property_store[wd_property]['core_id'] == 'True':
+                        query = urllib2.quote('http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(wd_property, i))
+                        tmp_qids = json.load(urllib2.urlopen(query))['status']['items']
+                        qid_list.append(tmp_qids)
 
-                    if len(tmp_qids) > 1:
-                        raise ManualInterventionReqException('More than one WD item has the same property value', wd_property, tmp_qids)
+                        if len(tmp_qids) > 1:
+                            raise ManualInterventionReqException('More than one WD item has the same property value', wd_property, tmp_qids)
 
-            except urllib2.HTTPError as e:
-                PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
-                print(e)
+                except urllib2.HTTPError as e:
+                    PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+                    print(e)
 
         if len(qid_list) == 0:
             self.create_new_item = True
@@ -265,6 +272,70 @@ class WDItemEngine(object):
             raise ManualInterventionReqException('More than one WD item has the same property value', 'implementation req', unique_qids)
         elif len(unique_qids) == 1:
             return(list(unique_qids)[0])
+
+    def __construct_claim_json(self):
+        """
+        Writes the properties from self.data to a new or existing json in self.wd_json_representation
+        :return: None
+        """
+        claims = dict()
+        if 'claims' in self.wd_json_representation:
+            claims = self.wd_json_representation['claims']
+
+        value_is_item = False
+
+        for wd_property in self.data:
+            if wd_property_store.wd_properties[wd_property]['datatype'] == 'item':
+                claim_template = {
+                    'mainsnak': {
+                        'snaktype': 'value',
+                        'property': wd_property,
+                        'datatype': 'wikibase-item',
+                        'datavalue': {
+                            'value': {
+                                'entity-type': 'item',
+                                'numeric-id': ''
+                            },
+                            'type': 'wikibase-entityid'
+                        },
+                        'type': 'statement',
+                        'rank': 'normal'
+                    }
+                }
+                value_is_item = True
+
+            elif wd_property_store.wd_properties[wd_property]['datatype'] == 'string':
+                claim_template = {
+                    'mainsnak': {
+                        'snaktype': 'value',
+                        'property': wd_property,
+                        'datatype': 'string',
+                        'datavalue': {
+                            'value': '',
+                            'type': 'string'
+                        },
+                        'type': 'statement',
+                        'rank': 'normal'
+                    }
+                }
+                value_is_item = False
+
+            for data_value in self.data[wd_property]:
+                if wd_property in claims:
+                    # delete data from existing claim/property and build property statement new from self.data
+                    # more sophisticated treatment of pre-existing data might be required here
+                    claims[wd_property] = []
+                else:
+                    claims[wd_property] = []
+
+                ct = claim_template.copy()
+
+                if value_is_item:
+                    ct['mainsnak']['datavalue']['value']['numeric-id'] = data_value.upper().replace('Q', '')
+                elif not value_is_item:
+                    ct['mainsnak']['datavalue']['value'] = data_value
+
+                claims[wd_property].append(ct)
 
     def getItemsByProperty(self, wdproperty):
         """
@@ -308,14 +379,30 @@ class WDItemEngine(object):
         """
         pass
 
-    def add_reference(self, wd_property, reference_type, reference_item):
+    def add_reference(self, wd_property, value, reference_type, reference_item, timestamp=False):
         """
         Call this method to add a reference to a statement/claim
         :param wd_property: the Wikidata property number a reference should be added to
+        :param value: The value of a property the reference should be attached to
         :param reference_type: The reference property number (e.g. stated in (P248), imported from (P143))
         :param reference_item: the item a reference should point to
+        :param timestamp: A optional timestamp will be added as a reference.
         :return: None
         """
+        element_index = 0
+        for i, sub_statement in enumerate(self.wd_json_representation['claims'][wd_property]):
+            if sub_statement['mainsnak']['datatype'] == 'wikibase-item':
+                if sub_statement['mainsnak']['datavalue']['value']['numeric-id'] == value.upper().replace('Q', ''):
+                    element_index = i
+            elif sub_statement['mainsnak']['datatype'] == 'string':
+                if sub_statement['mainsnak']['datavalue']['value'] == value:
+                    element_index = i
+
+        references = {}
+        self.wd_json_representation['claims'][wd_property][element_index]['references'] = references
+
+
+
         found = False
         for ref in references:
           if property in ref["snaks"]:
@@ -328,7 +415,7 @@ class WDItemEngine(object):
             reference = dict()
             snaks = dict()
             reference["snaks"] = snaks
-            snaks[property]=[]
+            snaks[property] = []
             reference['snaks-order']=['P143']
             snak=dict()
             snaks[property].append(snak)
