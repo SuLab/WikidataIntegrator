@@ -80,17 +80,17 @@ class BotMainLog():
 
 
 class WDItemList(object):
-    def __init__(self, wdquery = ""):
+    def __init__(self, wdquery = "", wdprop=""):
         self.wdquery = wdquery
-        self.wditems = self.getItemsByProperty(wdquery)
+        self.wditems = self.getItemsByProperty(wdquery, wdprop)
 
-    def getItemsByProperty(self, wdquery):
+    def getItemsByProperty(self, wdquery, wdproperty):
         """
         Gets all WikiData item IDs that contains statements containing property wdproperty
         :param wdquery: A string representation of a WD query
         :return: A Python json representation object with the search results is returned
         """
-        req = urllib2.Request("http://wdq.wmflabs.org/api?"+urllib.urlencode({"q":wdquery}))
+        req = urllib2.Request("http://wdq.wmflabs.org/api?"+urllib.urlencode({"q":wdquery, "props":wdproperty}))
         opener = urllib2.build_opener()
         f = opener.open(req)
         return json.load(f)
