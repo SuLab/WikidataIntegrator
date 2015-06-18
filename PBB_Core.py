@@ -27,6 +27,7 @@ __license__ = 'GPL'
 
 import time
 import datetime
+import urllib
 import urllib2
 
 
@@ -76,40 +77,24 @@ class BotMainLog():
         cursor.execute("SELECT * FROM PBB_History")
         for row in cursor.fetchall() :
             print row[0]
-        
-        
-        
 
-class WDItem(object):
-    def __init__(self, wdItemID):
-        self.id = wdItemID
-        self.wdContent = self.getItems(wdItemID)
-        self.properties = self.getProperties()
-        
-    def getItems(self, wdItem):
-        query = 'https://www.wikidata.org/w/api.php?action=wbgetentities{}{}{}'.format(
-            '&ids='+wdItem,
-            '&props=labels|aliases|claims',
-            '&format=json'
-        )
-        return(json.load(urllib2.urlopen(query)))
-        
-    def getProperties(self):
-        return self.wdContent["entities"][self.id]["claims"].keys()
 
 class WDItemList(object):
-    def __init__(self, wdproperty):
-        self.wdproperty = wdproperty
-        self.wditems = self.getItemsByProperty(self, wdproperty)
+    def __init__(self, wdquery = ""):
+        self.wdquery = wdquery
+        self.wditems = self.getItemsByProperty(wdquery)
 
-    def getItemsByProperty(self, wdproperty):
+    def getItemsByProperty(self, wdquery):
         """
         Gets all WikiData item IDs that contains statements containing property wdproperty
+        :param wdquery: A string representation of a WD query
+        :return: A Python json representation object with the search results is returned
         """
-        req = urllib2.Request("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, None, {'user-agent':'proteinBoxBot'})
+        req = urllib2.Request("http://wdq.wmflabs.org/api?"+urllib.urlencode({"q":wdquery}))
         opener = urllib2.build_opener()
         f = opener.open(req)
         return json.load(f)
+
 
 class WDItemEngine(object):
 
