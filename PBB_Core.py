@@ -131,7 +131,7 @@ class WDItemEngine(object):
         self.property_list = self.get_property_list()
 
         if self.wd_json_representation is not '':
-            pass
+            self.__construct_claim_json()
 
     def get_item_data(self, item_name='', item_id=''):
         """
@@ -364,14 +364,16 @@ class WDItemEngine(object):
         """
         pass
 
-    def add_reference(self, wd_property, value, reference_type, reference_item, timestamp=False):
+    def add_reference(self, wd_property, value, reference_types, reference_items, timestamp=False, overwrite=False):
         """
-        Call this method to add a reference to a statement/claim
+        Call this method to add a reference to a statement
         :param wd_property: the Wikidata property number a reference should be added to
         :param value: The value of a property the reference should be attached to
-        :param reference_type: The reference property number (e.g. stated in (P248), imported from (P143))
-        :param reference_item: the item a reference should point to
-        :param timestamp: A optional timestamp will be added as a reference.
+        :param reference_types: A list with reference property number strings (e.g. ['P248', 'P143'] stated in (P248),
+                imported from (P143)) in the correct order they should be added to the claim
+        :param reference_items: a list with item  strings the reference types should point to
+        :param timestamp: Flag to add an optional timestamp as a reference. Default: False
+        :param overwrite: Flag, set True if previous references for a property should be deleted
         :return: None
         """
         element_index = 0
@@ -383,80 +385,54 @@ class WDItemEngine(object):
                 if sub_statement['mainsnak']['datavalue']['value'] == value:
                     element_index = i
 
-        references = {}
-        self.wd_json_representation['claims'][wd_property][element_index]['references'] = references
+        references = []
 
+        # Do not overwrite existing references unless specifically requested
+        if (not overwrite) and 'references' in self.wd_json_representation['claims'][wd_property][element_index]['references']:
+            references = self.wd_json_representation['claims'][wd_property][element_index]['references']
+        else:
+            self.wd_json_representation['claims'][wd_property][element_index]['references'] = references
 
+        snaks = {}
+        for i in reference_types:
+            snak = dict()
+            snak['property'] = i
+            snak['snaktype'] = 'value'
+            snak['datatype'] = 'wikibase-item'
+            snak['datavalue'] = dict()
+            snak['datavalue']['type'] = 'wikibase-entityid'
+            snak['datavalue']['value'] = dict()
+            snak['datavalue']['value']['entity-type'] = 'item'
+            snak['datavalue']['value']['numeric-id'] = reference_items[reference_types.index(i)].upper().replace('Q', '')
 
-        found = False
-        for ref in references:
-          if property in ref["snaks"]:
-            for snak in ref["snaks"][property]:
-              if snak["datavalue"]["value"]["numeric-id"] == itemId:
-                ref = setDateRetrievedTimestamp(ref)
-                found = True
-                break
-        if not found:    
-            reference = dict()
-            snaks = dict()
-            reference["snaks"] = snaks
-            snaks[property] = []
-            reference['snaks-order']=['P143']
-            snak=dict()
-            snaks[property].append(snak)
-            snak['property']=property
-            snak["snaktype"]='value'
-            snak["datatype"]='wikibase-item'
-            snak["datavalue"]=dict()
-            snak["datavalue"]["type"]='wikibase-entityid'
-            snak["datavalue"]["value"]=dict()
-            snak["datavalue"]["value"]["entity-type"]='item'
-            snak["datavalue"]["value"]["numeric-id"]=itemId
-            reference = setDateRetrievedTimestamp(reference)
-            if stated:
-                reference = setStatedIn(reference)
-            references.append(reference)
-        
-    def setDateRetrievedTimestamp(self, reference):
-        ts = time.time()
-        timestamp = datetime.datetime.fromtimestamp(ts).strftime('+0000000%Y-%m-%dT00:00:00Z')
-        wdTimestamp = dict()
-        reference["snaks-order"]=['P143', 'P813']                 
-        wdTimestamp["datatype"]='time'
-        wdTimestamp["property"]='P813'
-        wdTimestamp["snaktype"]='value'
-        wdTimestamp["datavalue"]=dict()
-        wdTimestamp["datavalue"]["type"]='time'
-        wdTimestamp["datavalue"]["value"]=dict()
-        wdTimestamp["datavalue"]["value"]["after"]=0
-        wdTimestamp["datavalue"]["value"]["before"]=0
-        wdTimestamp["datavalue"]["value"]["calendarmodel"]='http://www.wikidata.org/entity/Q1985727'
-        wdTimestamp["datavalue"]["value"]["precision"]=11
-        wdTimestamp["datavalue"]["value"]["time"]=timestamp
-        wdTimestamp["datavalue"]["value"]["timezone"]=0
-        reference["snaks"]['P813']=[wdTimestamp]
-        return reference
+            snaks[i] = [snak]
 
-    def setStatedIn(self, reference):
-        doDate =  globalDiseaseOntology.findall('.//oboInOwl:date', namespaces)
-        dateList = doDate[0].text.split(' ')[0].split(":")
-        searchTerm = "Disease ontology release "+dateList[2]+"-"+dateList[1]+"-"+dateList[0]
-        snak = dict()      
-        snak["datatype"]='wikibase-item'
-        snak["property"]='P248'
-        snak["snaktype"]='value'
-        snak["datavalue"]=dict()
-        snak["datavalue"]["type"]='wikibase-entityid'
-        snak["datavalue"]["value"]=dict()
-        snak["datavalue"]["value"]["entity-type"]='item'
-        searchResult = getItems(globalSite, searchTerm)['search'][0]["id"]
-        snak["datavalue"]["value"]["numeric-id"]=int(searchResult[1:])
-        print "gglobalWikidataID: "+globalWikidataID
-        print "searchResult: "+searchResult
-        if globalWikidataID != searchResult:
-            reference["snaks-order"]=['P143', 'P248', 'P813']
-            reference["snaks"]['P248']=[snak]
-        return reference
+        # if required, create timestamp element
+        if timestamp:
+            ts = time.time()
+            timestamp = datetime.datetime.fromtimestamp(ts).strftime('+0000000%Y-%m-%dT00:00:00Z')
+            wdTimestamp = dict()
+            wdTimestamp['datatype'] = 'time'
+            wdTimestamp['property'] = 'P813'
+            wdTimestamp['snaktype'] = 'value'
+            wdTimestamp['datavalue'] = dict()
+            wdTimestamp['datavalue']['type'] = 'time'
+            wdTimestamp['datavalue']['value'] = dict()
+            wdTimestamp['datavalue']['value']['after'] = 0
+            wdTimestamp['datavalue']['value']['before'] = 0
+            wdTimestamp['datavalue']['value']['calendarmodel'] = 'http://www.wikidata.org/entity/Q1985727'
+            wdTimestamp['datavalue']['value']['precision'] = 11
+            wdTimestamp['datavalue']['value']['time'] = timestamp
+            wdTimestamp['datavalue']['value']['timezone'] = 0
+
+            snaks['P813'] = wdTimestamp
+
+        snak_order = reference_types
+        if timestamp:
+            snak_order.append('P813')
+
+        # add snacks and snack order to claims
+        references.append({'snaks': snaks, 'snak-order': snak_order})
 
     def autoadd_references(self, refernce_type, reference_item):
 
@@ -497,7 +473,23 @@ class WDItemEngine(object):
         function to initiate writing the item data in the instance to Wikidata
         :return:
         """
-        pass
+        base_string = 'https://www.wikidata.org/w/api.php?action=wbeditentity'
+
+        item_string = ''
+        if self.create_new_item:
+            item_string = '&new=item'
+        else:
+            item_string = '&id=' + self.wd_item_id
+
+        base_string += item_string
+        base_string += '&data={{{}}}'.format(self.data)
+        base_string += '&token={}'.format()
+
+        try:
+            print(base_string)
+        except urllib2.HTTPError as e:
+            PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+            print(e)
 
 
 
