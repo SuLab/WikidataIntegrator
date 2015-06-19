@@ -30,8 +30,6 @@ import datetime
 import urllib
 import urllib2
 
-
-
 import PBB_Debug
 import PBB_Functions
 import PBB_settings
@@ -91,6 +89,7 @@ class WDItemList(object):
         :return: A Python json representation object with the search results is returned
         """
         req = urllib2.Request("http://wdq.wmflabs.org/api?"+urllib.urlencode({"q":wdquery, "props":wdproperty}))
+        
         opener = urllib2.build_opener()
         f = opener.open(req)
         return json.load(f)
