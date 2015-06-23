@@ -330,16 +330,6 @@ class WDItemEngine(object):
 
                 claims[wd_property].append(ct)
 
-    def getItemsByProperty(self, wdproperty):
-        """
-        Gets all WikiData item IDs that contains statements containing property wdproperty
-        :param wdproperty: A string representation of a WD property ID
-        :return: A Python json representation object with the search results is returned
-        """
-        req = urllib2.Request("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, None, {'user-agent':'proteinBoxBot'})
-        opener = urllib2.build_opener()
-        f = opener.open(req)
-        return(json.load(f))
         
     def getClaims(self, wdItem, claimProperty):
         """
