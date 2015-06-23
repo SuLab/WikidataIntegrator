@@ -29,6 +29,7 @@ import time
 import datetime
 import urllib
 import urllib2
+import itertools
 
 import PBB_Debug
 import PBB_Functions
@@ -145,8 +146,8 @@ class WDItemEngine(object):
             self.wd_json_representation = self.get_wd_entity(item_id)
         else:
             try:
-                qids_by_string_search, labels_by_string_search = self.get_wd_search_results(item_name)
-                qids_by_props = self.__select_wd_item(qids_by_string_search)
+                qids_by_string_search = self.get_wd_search_results(item_name)
+                qids_by_props = self.__select_wd_item(item_list=qids_by_string_search, item_labels=[])
 
             except WDSearchError as e:
                 PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
@@ -154,7 +155,7 @@ class WDItemEngine(object):
                 qids_by_props = self.__select_wd_item([])
 
             if qids_by_props is not '':
-                self.wd_item_id = qids_by_props
+                self.wd_item_id = 'Q{}'.format(qids_by_props)
                 self.wd_json_representation = self.get_wd_entity(self.wd_item_id)
 
     def get_wd_entity(self, item=''):
@@ -167,7 +168,7 @@ class WDItemEngine(object):
             query = 'https://www.wikidata.org/w/api.php?action=wbgetentities{}{}{}{}'.format(
                 '&sites=enwiki',
                 '&languages=en',
-                '&ids=' + urllib2.quote(item),
+                '&ids={}'.format(item),
                 '&format=json'
             )
 
@@ -186,10 +187,13 @@ class WDItemEngine(object):
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         """
         try:
-            query = 'https://www.wikidata.org/w/api.php?action=wbsearchentities{}{}'.format(
+            query = 'https://www.wikidata.org/w/api.php?action=wbsearchentities{}{}{}'.format(
                 '&language=en',
-                '&search=' + urllib2.quote(search_string)
+                '&search=' + urllib2.quote(search_string),
+                '&format=json'
             )
+
+            print(query)
 
             search_results = json.load(urllib2.urlopen(query))
 
@@ -218,7 +222,7 @@ class WDItemEngine(object):
         property_list = []
         for x in wd_property_store.wd_properties:
             if self.domain in wd_property_store.wd_properties[x]['domain']:
-                property_list['x'] = ''
+                property_list.append(x)
 
         return(property_list)
 
@@ -231,12 +235,13 @@ class WDItemEngine(object):
         """
         qid_list = []
         for wd_property in self.data:
-            for i in self.data[wd_property]:
+            if wd_property in wd_property_store.wd_properties:
                 try:
                     # check if the property is a core_id and should be unique for every WD item
-                    if wd_property_store[wd_property]['core_id'] == 'True':
-                        query = urllib2.quote('http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(wd_property, i))
-                        tmp_qids = json.load(urllib2.urlopen(query))['status']['items']
+                    if wd_property_store.wd_properties[wd_property]['core_id'] == 'True':
+                        query = 'http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(wd_property.replace('P', ''), urllib2.quote(self.data[wd_property]))
+                        print(query)
+                        tmp_qids = json.load(urllib2.urlopen(query))['items']
                         qid_list.append(tmp_qids)
 
                         if len(tmp_qids) > 1:
@@ -246,9 +251,13 @@ class WDItemEngine(object):
                     PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
                     print(e)
 
+        qid_list = [i for i in itertools.chain.from_iterable(qid_list)]
+
         if len(qid_list) == 0:
             self.create_new_item = True
             return('')
+
+        print(qid_list)
 
         unique_qids = set(qid_list)
         if len(unique_qids) > 1:
@@ -432,6 +441,13 @@ class WDItemEngine(object):
 
         # add snacks and snack order to claims
         references.append({'snaks': snaks, 'snak-order': snak_order})
+
+    def get_wd_json_representation(self):
+        """
+        A method to access the internal json representation of the WD item, mainly for testing
+        :return: returns a Python json representation object of the WD item at the current state of the instance
+        """
+        return(self.wd_json_representation)
 
     def autoadd_references(self, refernce_type, reference_item):
 

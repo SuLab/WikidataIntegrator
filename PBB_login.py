@@ -77,7 +77,7 @@ class WDLogin(object):
     def get_edit_token(self):
         """
         Can be called in order to retrieve the edit token from an instance of WDLogin
-        :return: returns the edit token 
+        :return: returns the edit token
         """
         if self.edit_token is '':
             self.generate_edit_credentials()
