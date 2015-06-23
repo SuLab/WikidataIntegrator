@@ -35,15 +35,17 @@ class WDLogin(object):
         if server is not None:
             self.server = server
 
-        self.baseurl = 'https://' + self.server + '/w/api.php'
+        self.baseurl = 'http://' + self.server + '/w/api.php'
 
         # Get login token and cookie
         login_params = '?action=login&lgname=%s&lgpassword=%s&format=json' % (self.user, urllib2.quote(self.pwd))
         response1 = requests.post(self.baseurl + login_params)
-
+        print "Does come here?"
         cookies = response1.cookies
+        print cookies
         login_token = response1.json()['login']['token']
-
+        print login_token
+        
         # do the login using the login token
         login_params2 = login_params + '&lgtoken={}'.format(login_token)
         response2 = requests.post(self.baseurl + login_params2, cookies=cookies)
