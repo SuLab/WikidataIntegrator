@@ -110,7 +110,7 @@ class WDItemEngine(object):
     property_list = {}
     wd_json_representation = ''
 
-    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}):
+    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token=''):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -126,6 +126,7 @@ class WDItemEngine(object):
         self.autoadd_references = False
         self.normalize = normalize
         self.data = data
+        self.token = token
 
         self.get_item_data(item_name, wd_item_id)
         self.property_list = self.get_property_list()
@@ -485,15 +486,14 @@ class WDItemEngine(object):
             item_string = '&new=item'
         else:
             item_string = '&id=' + self.wd_item_id
-
-
-        
+    
         base_url_string += item_string
         base_string += '&data={{{}}}'.format(json.dumps(json.loads(self.wd_json_representation)["entities"][self.wd_item_id])))
-        base_string += '&token={}'.format()
+        base_string += '&token={}'.format(self.token)
 
         try:
-            print(base_string)
+            print(base_url_string)
+            urllib2.urlopen(base_url_string)
         except urllib2.HTTPError as e:
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
             print(e)
