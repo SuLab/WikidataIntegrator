@@ -478,7 +478,7 @@ class WDItemEngine(object):
         function to initiate writing the item data in the instance to Wikidata
         :return:
         """
-        base_string = 'https://www.wikidata.org/w/api.php?action=wbeditentity'
+        base_url_string = 'https://www.wikidata.org/w/api.php?action=wbeditentity'
 
         item_string = ''
         if self.create_new_item:
@@ -486,8 +486,10 @@ class WDItemEngine(object):
         else:
             item_string = '&id=' + self.wd_item_id
 
-        base_string += item_string
-        base_string += '&data={{{}}}'.format(self.data)
+
+        
+        base_url_string += item_string
+        base_string += '&data={{{}}}'.format(json.dumps(json.loads(self.wd_json_representation)["entities"][self.wd_item_id])))
         base_string += '&token={}'.format()
 
         try:
