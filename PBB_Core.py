@@ -488,7 +488,7 @@ class WDItemEngine(object):
             item_string = '&id=' + self.wd_item_id
     
         base_url_string += item_string
-        base_string += '&data={{{}}}'.format(json.dumps(json.loads(self.wd_json_representation)["entities"][self.wd_item_id])))
+        base_string += '&data={{{}}}'.format(json.dumps(json.loads(self.wd_json_representation)["entities"][self.wd_item_id]))
         base_string += '&token={}'.format(self.token)
 
         try:
