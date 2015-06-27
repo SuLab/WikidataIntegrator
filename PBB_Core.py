@@ -28,7 +28,8 @@ __license__ = 'GPL'
 import time
 import datetime
 import urllib
-import urllib2
+import urllib3
+import certifi
 import itertools
 
 import PBB_Debug
@@ -89,11 +90,9 @@ class WDItemList(object):
         :param wdquery: A string representation of a WD query
         :return: A Python json representation object with the search results is returned
         """
-        req = urllib2.Request("http://wdq.wmflabs.org/api?"+urllib.urlencode({"q":wdquery, "props":wdproperty}))
-        
-        opener = urllib2.build_opener()
-        f = opener.open(req)
-        return json.load(f)
+        http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+        req = http.request("GET", "http://wdq.wmflabs.org/api?"+urllib.urlencode({"q":wdquery, "props":wdproperty}))
+        return json.loads(req.data)
 
 
 class WDItemEngine(object):
@@ -172,12 +171,14 @@ class WDItemEngine(object):
                 '&ids={}'.format(item),
                 '&format=json'
             )
+            http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+            request = http.request("GET", query)
 
-            wd_reply = json.load(urllib2.urlopen(query))['entities'][self.wd_item_id]
+            wd_reply = json.load(request.data)['entities'][self.wd_item_id]
             wd_reply = {x: wd_reply[x] for x in ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks') if x in wd_reply}
             return(wd_reply)
 
-        except urllib2.HTTPError as e:
+        except urllib3.exceptions.HTTPError as e:
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
             print(e)
 
@@ -190,13 +191,12 @@ class WDItemEngine(object):
         try:
             query = 'https://www.wikidata.org/w/api.php?action=wbsearchentities{}{}{}'.format(
                 '&language=en',
-                '&search=' + urllib2.quote(search_string),
+                '&search=' + urllib.quote(search_string),
                 '&format=json'
             )
-
-            print(query)
-
-            search_results = json.load(urllib2.urlopen(query))
+            http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+            request = http.request("GET", query)
+            search_results = json.loads(request.data)
 
             if search_results['success'] != 1:
                 raise WDSearchError('WD search failed')
@@ -211,7 +211,7 @@ class WDItemEngine(object):
 
                 return(id_list)
 
-        except urllib2.HTTPError as e:
+        except urllib3.exceptions.HTTPError as e:
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
             print(e)
 
@@ -241,14 +241,15 @@ class WDItemEngine(object):
                     # check if the property is a core_id and should be unique for every WD item
                     if wd_property_store.wd_properties[wd_property]['core_id'] == 'True':
                         query = 'http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(wd_property.replace('P', ''), urllib2.quote(self.data[wd_property]))
-                        print(query)
-                        tmp_qids = json.load(urllib2.urlopen(query))['items']
+                        http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+                        request = http.request("GET", query)
+                        tmp_qids = json.loads(request.data)['items']
                         qid_list.append(tmp_qids)
 
                         if len(tmp_qids) > 1:
                             raise ManualInterventionReqException('More than one WD item has the same property value', wd_property, tmp_qids)
 
-                except urllib2.HTTPError as e:
+                except urllib3.exceptions.HTTPError as e:
                     PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
                     print(e)
 
@@ -493,8 +494,8 @@ class WDItemEngine(object):
 
         try:
             print(base_url_string)
-            urllib2.urlopen(base_url_string)
-        except urllib2.HTTPError as e:
+            # urllib2.urlopen(base_url_string)
+        except urllib3.exceptions.HTTPError as e:
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
             print(e)
 
