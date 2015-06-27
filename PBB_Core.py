@@ -174,7 +174,7 @@ class WDItemEngine(object):
             http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
             request = http.request("GET", query)
 
-            wd_reply = json.load(request.data)['entities'][self.wd_item_id]
+            wd_reply = json.loads(request.data)['entities'][self.wd_item_id]
             wd_reply = {x: wd_reply[x] for x in ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks') if x in wd_reply}
             return(wd_reply)
 
