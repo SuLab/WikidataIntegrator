@@ -509,38 +509,30 @@ class WDItemEngine(object):
             'action': "wbeditentity",
             "data": json.dumps(wikidata["entities"]["Q1318"]),
             'token': self.token,
-            'id': "Q1318",
+            'id': self.wd_item_id,
             'format': "json",
             'bot': True,
         }
 
-
-        reply = requests.post(query, headers=headers, data=fields, cookies=cookies)
-        json_data = json.loads(reply.text)
-        PBB_Debug.prettyPrint(json_data)
+        try:            
+            reply = requests.post(query, headers=headers, data=fields, cookies=cookies)
+            json_data = json.loads(reply.text)
         
-        base_url_string = 'https://test.wikidata.org/w/api.php?action=wbeditentity'
+            base_url_string = 'https://test.wikidata.org/w/api.php?action=wbeditentity'
 
-        item_string = ''
-        if self.create_new_item:
-            item_string = '&new=item'
-        else:
-            item_string = '&id=' + self.wd_item_id
+            item_string = ''
+            if self.create_new_item:
+                item_string = '&new=item'
+            else:
+                item_string = '&id=' + self.wd_item_id
     
-        base_url_string += item_string
-        base_string += '&data={{{}}}'.format(json.dumps(json.loads(self.wd_json_representation)["entities"][self.wd_item_id]))
-        base_string += '&token={}'.format(self.token)
+            base_url_string += item_string
+            base_string += '&data={{{}}}'.format(json.dumps(json.loads(self.wd_json_representation)["entities"][self.wd_item_id]))
+            base_string += '&token={}'.format(self.token)
 
-        try:
-            print(base_url_string)
-            # urllib2.urlopen(base_url_string)
-        except urllib3.exceptions.HTTPError as e:
+        except requests.exceptions.RequestException as e:
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
             print(e)
-
-
-
-
 
 class IDMissingError(Exception):
     def __init__(self, value):
