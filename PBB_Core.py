@@ -166,9 +166,7 @@ class WDItemEngine(object):
         :return: python complex dictionary represenation of a json
         """
         try:
-            query = 'https://test.wikidata.org/w/api.php?action=wbgetentities{}{}{}{}'.format(
-                '&sites=enwiki',
-                '&languages=en',
+            query = 'https://www.wikidata.org/w/api.php?action=wbgetentities{}{}'.format(
                 '&ids={}'.format(item),
                 '&format=json'
             )
@@ -190,7 +188,7 @@ class WDItemEngine(object):
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         """
         try:
-            query = 'https://test.wikidata.org/w/api.php?action=wbsearchentities{}{}{}'.format(
+            query = 'https://www.wikidata.org/w/api.php?action=wbsearchentities{}{}{}'.format(
                 '&language=en',
                 '&search=' + urllib.quote(search_string),
                 '&format=json'
