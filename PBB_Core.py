@@ -45,6 +45,7 @@ try:
 except ImportError as e:
     import json
 
+## all servers are now set to test.wikidata.org
 
 class BotMainLog():
     def __init__(self):
@@ -109,7 +110,7 @@ class WDItemEngine(object):
     property_list = {}
     wd_json_representation = ''
 
-    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token=''):
+    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token='', server=''):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -165,7 +166,7 @@ class WDItemEngine(object):
         :return: python complex dictionary represenation of a json
         """
         try:
-            query = 'https://www.wikidata.org/w/api.php?action=wbgetentities{}{}{}{}'.format(
+            query = 'https://test.wikidata.org/w/api.php?action=wbgetentities{}{}{}{}'.format(
                 '&sites=enwiki',
                 '&languages=en',
                 '&ids={}'.format(item),
@@ -189,7 +190,7 @@ class WDItemEngine(object):
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         """
         try:
-            query = 'https://www.wikidata.org/w/api.php?action=wbsearchentities{}{}{}'.format(
+            query = 'https://test.wikidata.org/w/api.php?action=wbsearchentities{}{}{}'.format(
                 '&language=en',
                 '&search=' + urllib.quote(search_string),
                 '&format=json'
@@ -340,7 +341,7 @@ class WDItemEngine(object):
         :param claimProperty: WD Property ID
         :return: a Python JSON representation of the requested WD item claim.
         """
-        query = 'https://www.wikidata.org/w/api.php?action=wbgetclaims{}{}'.format(
+        query = 'https://test.wikidata.org/w/api.php?action=wbgetclaims{}{}'.format(
             '&entity=' + wdItem.getID(),
             'property' + claimProperty
         )
@@ -440,6 +441,19 @@ class WDItemEngine(object):
         :return: returns a Python json representation object of the WD item at the current state of the instance
         """
         return(self.wd_json_representation)
+        
+    def isPBBReference(self, reference):
+        """
+        A method to verify if a claim has been added by the ProteinBoxBot
+        :return: Returns true of a claim contains a reference to the resource under scrutiny
+        """
+        return ["P143","P248","P813"].issubset(reference["snaks"].keys())
+        
+    def countReferences(self, claim):
+        """
+        A method to count the number of references to a statement
+        """
+        return len(claim["references"]) 
 
     def autoadd_references(self, refernce_type, reference_item):
 
@@ -465,7 +479,6 @@ class WDItemEngine(object):
         :param label: a label string as the wikidata item.
         :return: None
         """
-
         setattr(self, 'label', label)
 
     def set_aliases(self, aliases):
@@ -474,13 +487,39 @@ class WDItemEngine(object):
         :param aliases: a list of strings representing the aliases of a WD item
         :return: None
         """
+        setattr(self, 'synonyms', synonyms)
 
     def write(self):
         """
         function to initiate writing the item data in the instance to Wikidata
         :return:
         """
-        base_url_string = 'https://www.wikidata.org/w/api.php?action=wbeditentity'
+        login_obj = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
+        cookies = login_obj.get_edit_cookie()
+        edit_token = login_obj.get_edit_token()
+        
+        
+        
+        query = 'https://test.wikidata.org/w/api.php'
+        token = edit_token
+        headers = {'content-type': 'application/x-www-form-urlencoded'}
+
+
+        fields = {
+            'action': "wbeditentity",
+            "data": json.dumps(wikidata["entities"]["Q1318"]),
+            'token': self.token,
+            'id': "Q1318",
+            'format': "json",
+            'bot': True,
+        }
+
+
+        reply = requests.post(query, headers=headers, data=fields, cookies=cookies)
+        json_data = json.loads(reply.text)
+        PBB_Debug.prettyPrint(json_data)
+        
+        base_url_string = 'https://test.wikidata.org/w/api.php?action=wbeditentity'
 
         item_string = ''
         if self.create_new_item:

@@ -17,12 +17,12 @@ class WDLogin(object):
     """
     user = ''
     pwd = ''
-    server = 'www.wikidata.org'
+    server = 'test.wikidata.org'
     cookie_jar = {}
     edit_token = ''
     baseurl = ''
 
-    def __init__(self, user, pwd, server=None):
+    def __init__(self, user, pwd, server="test.wikidata.org"):
         """
         constructor
         :param user: the username which should be used for the login
@@ -42,7 +42,7 @@ class WDLogin(object):
         response1 = requests.post(self.baseurl + login_params)
         cookies = response1.cookies
         login_token = response1.json()['login']['token']
-
+        self.token = login_token
         
         # do the login using the login token
         login_params2 = login_params + '&lgtoken={}'.format(login_token)
