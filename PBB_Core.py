@@ -318,7 +318,10 @@ class WDItemEngine(object):
                 if wd_property in claims:
                     # delete data from existing claim/property and build property statement new from self.data
                     # more sophisticated treatment of pre-existing data might be required here
-                    claims[wd_property] = []
+                    for claim in claims[wd_property]:
+                        removePBBReference(claim)
+                        if len(claim["references"]) == 0:
+                           claims[wd_property].remove(claim)
                 else:
                     claims[wd_property] = []
 
@@ -440,13 +443,28 @@ class WDItemEngine(object):
         """
         return(self.wd_json_representation)
         
-    def isPBBReference(self, reference):
+    def removePBBReference(claim):
         """
-        A method to verify if a claim has been added by the ProteinBoxBot
-        :return: Returns true of a claim contains a reference to the resource under scrutiny
+        A method to remove a reference in a claim that has been added by the ProteinBoxBot
+        :return: Returns the claim without the PBB Reference
         """
-        return ["P143","P248","P813"].issubset(reference["snaks"].keys())
+        has_pbb_reference = False
+        for reference in claim["references"]:
+            if ["P143","P248","P813"].issubset(reference["snaks"].keys()):
+                has_pbb_reference = True
+            elif [""].issubset(reference["snaks"].keys()):
+                has_pbb_reference = True 
+            if has_pbb_reference:
+                claim["references"].remove(reference)
+                if len(claim["references"]) == 0:
+                               
+        return has_pbb_reference
         
+    def removePBBReference(claim, reference):
+        """
+        A method to remove a reference added by the ProteinBoxBot in previous runs.
+        """
+        return claim["references"].remove(reference)
     def countReferences(self, claim):
         """
         A method to count the number of references to a statement
