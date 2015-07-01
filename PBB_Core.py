@@ -331,7 +331,6 @@ class WDItemEngine(object):
                     ct['mainsnak']['datavalue']['value']['numeric-id'] = data_value.upper().replace('Q', '')
                 elif not value_is_item:
                     ct['mainsnak']['datavalue']['value'] = data_value
-
                 claims[wd_property].append(ct)
 
         
@@ -452,19 +451,12 @@ class WDItemEngine(object):
         for reference in claim["references"]:
             if ["P143","P248","P813"].issubset(reference["snaks"].keys()):
                 has_pbb_reference = True
-            elif [""].issubset(reference["snaks"].keys()):
-                has_pbb_reference = True 
             if has_pbb_reference:
                 claim["references"].remove(reference)
                 if len(claim["references"]) == 0:
                                
         return has_pbb_reference
         
-    def removePBBReference(claim, reference):
-        """
-        A method to remove a reference added by the ProteinBoxBot in previous runs.
-        """
-        return claim["references"].remove(reference)
     def countReferences(self, claim):
         """
         A method to count the number of references to a statement
