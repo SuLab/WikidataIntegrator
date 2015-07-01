@@ -334,19 +334,14 @@ class WDItemEngine(object):
                 claims[wd_property].append(ct)
 
         
-    def getClaims(self, wdItem, claimProperty):
+    def getClaims(self, claimProperty):
         """
         Returns all property values in a given wdItem
-        :param wdItem: QID for a given WD item
         :param claimProperty: WD Property ID
         :return: a Python JSON representation of the requested WD item claim.
         """
-        query = 'https://test.wikidata.org/w/api.php?action=wbgetclaims{}{}'.format(
-            '&entity=' + wdItem.getID(),
-            'property' + claimProperty
-        )
 
-        return(json.load(urllib2.urlopen(query)))
+        return(self.wd_json_representation["claims"][claimProperty])
 
     def countPropertyValues(self, wdItem, claimProperty):
         """
@@ -358,7 +353,7 @@ class WDItemEngine(object):
         data = self.getClaims(wdItem, claimProperty)
         return len(data["claims"][claimProperty])
 
-    def add_property(self, property):
+    def set_claim(self, property):
         """
         :param property: takes a property the WDItem should have
         :return: None
@@ -472,7 +467,7 @@ class WDItemEngine(object):
 
 
     def autoadd_references(self, refernce_type, reference_item):
-
+        # Do we really want this? Shouldn't we add reference on a case by case base?
         """
         adds a reference to all properties of a WD item
         :param refernce_type:
