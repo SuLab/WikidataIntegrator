@@ -365,6 +365,34 @@ class WDItemEngine(object):
         """
         pass
 
+    def remove_reference(self, wd_property, value, reference_items, sourceWDID):
+        """
+        Call this method to remove a reference from a statement if refers to the resource under scrutiny
+        :param wd_property: the Wikidata property number a reference should be added to
+        :param value: The value of a property the reference should be attached to
+        :param reference_types: A list with reference property number strings (e.g. ['P248', 'P143'] stated in (P248),
+                imported from (P143)) in the correct order they should be added to the claim
+        :param reference_items: a list with item  strings the reference types should point to
+        :param sourceWDID: The Wikidata ID for the resource under scrutiny
+        """
+        
+        element_index = 0
+        for i, sub_statement in enumerate(self.wd_json_representation['claims'][wd_property]):
+            if sub_statement['mainsnak']['datatype'] == 'wikibase-item':
+                if sub_statement['mainsnak']['datavalue']['value']['numeric-id'] == value.upper().replace('Q', ''):
+                    element_index = i
+            elif sub_statement['mainsnak']['datatype'] == 'string':
+                if sub_statement['mainsnak']['datavalue']['value'] == value:
+                    element_index = i
+                       
+        has_pbb_reference = False
+        for reference in self.wd_json_representation['claims'][wd_property][element_index]['references']:
+            if "P143" in reference["snaks"].keys():
+                has_pbb_reference = True
+            if has_pbb_reference:
+                self.wd_json_representation['claims'][wd_property][element_index]['references'].remove(reference)
+                
+        
     def add_reference(self, wd_property, value, reference_types, reference_items, timestamp=False, overwrite=False):
         """
         Call this method to add a reference to a statement
@@ -389,7 +417,7 @@ class WDItemEngine(object):
         references = []
 
         # Do not overwrite existing references unless specifically requested
-        if (not overwrite) and 'references' in self.wd_json_representation['claims'][wd_property][element_index]['references']:
+        if (not overwrite) and 'references' in self.wd_json_representation['claims'][wd_property][element_index]:
             references = self.wd_json_representation['claims'][wd_property][element_index]['references']
         else:
             self.wd_json_representation['claims'][wd_property][element_index]['references'] = references
@@ -441,27 +469,7 @@ class WDItemEngine(object):
         :return: returns a Python json representation object of the WD item at the current state of the instance
         """
         return(self.wd_json_representation)
-        
-    def removePBBReference(claim):
-        """
-        A method to remove a reference in a claim that has been added by the ProteinBoxBot
-        :return: Returns the claim without the PBB Reference
-        """
-        has_pbb_reference = False
-        for reference in claim["references"]:
-            if ["P143","P248","P813"].issubset(reference["snaks"].keys()):
-                has_pbb_reference = True
-            if has_pbb_reference:
-                claim["references"].remove(reference)
-                if len(claim["references"]) == 0:
-                               
-        return has_pbb_reference
-        
-    def countReferences(self, claim):
-        """
-        A method to count the number of references to a statement
-        """
-        return len(claim["references"]) 
+
 
     def autoadd_references(self, refernce_type, reference_item):
 
