@@ -104,12 +104,13 @@ class WDItemEngine(object):
     normalize = True
     create_new_item = False
     data = {}
+    append_value = []
 
     # a list with all properties an item should have and/or modify
     property_list = {}
     wd_json_representation = ''
 
-    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token=''):
+    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token='', append_value=[]):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -118,6 +119,8 @@ class WDItemEngine(object):
         :param domain: string which tells the data domain the class should operate in
         :param data: a dictionary with WD property strings as keys and the data which should be written to
         a WD item as the property values
+        :param append_value: a list of properties where potential existing values should not be overwritten by the data
+        passed in the :parameter data.
         """
         self.wd_item_id = wd_item_id
         self.item_names = item_name
@@ -126,6 +129,7 @@ class WDItemEngine(object):
         self.normalize = normalize
         self.data = data
         self.token = token
+        self.append_value = append_value
 
         self.get_item_data(item_name, wd_item_id)
         self.property_list = self.get_property_list()
@@ -315,24 +319,59 @@ class WDItemEngine(object):
                 }
                 value_is_item = False
 
-            for data_value in self.data[wd_property]:
-                if wd_property in claims:
-                    # delete data from existing claim/property and build property statement new from self.data
-                    # more sophisticated treatment of pre-existing data might be required here
-                    claims[wd_property] = []
-                else:
-                    claims[wd_property] = []
-
-                ct = claim_template.copy()
+            # search for statements which have already the correct value
+            values_present = []
+            for i in claims[wd_property]:
+                current_value = ''
 
                 if value_is_item:
-                    ct['mainsnak']['datavalue']['value']['numeric-id'] = data_value.upper().replace('Q', '')
+                    current_value = i['mainsnak']['datavalue']['value']['numeric-id']
                 elif not value_is_item:
-                    ct['mainsnak']['datavalue']['value'] = data_value
+                    current_value = i['mainsnak']['datavalue']['value']
 
-                claims[wd_property].append(ct)
+                if current_value in self.data[wd_property]:
+                    values_present.append(current_value)
 
-        
+            # for appending and new claims, just append to the existing claims
+            if wd_property in self.append_value:
+                for value in self.data[wd_property]:
+                    if value in values_present:
+                        continue
+                    else:
+                        ct = claim_template.copy()
+                        if value_is_item:
+                            ct['mainsnak']['datavalue']['value']['numeric-id'] = value.upper().replace('Q', '')
+                        elif not value_is_item:
+                            ct['mainsnak']['datavalue']['value'] = value
+
+                        claims[wd_property].append(ct)
+            else:
+                # set all claims for removal, except those where the values are already correct
+                for x in claims[wd_property]:
+                    if value_is_item:
+                        value = i['mainsnak']['datavalue']['value']['numeric-id']
+                    elif not value_is_item:
+                        value = i['mainsnak']['datavalue']['value']
+
+                    if value not in values_present:
+                        claims[wd_property][x].update({'remove': ''})
+                    else:
+                        values_present.pop(value)
+                        self.data[wd_property].pop(value)
+
+                # add new claims for remaining values (could also be implemented in a way that old claims are recycled)
+                for x in self.data[wd_property]:
+                    ct = claim_template.copy()
+                    if value_is_item:
+                        ct['mainsnak']['datavalue']['value']['numeric-id'] = data_value.upper().replace('Q', '')
+                    elif not value_is_item:
+                        ct['mainsnak']['datavalue']['value'] = data_value
+
+                    claims[wd_property].append(ct)
+
+
+
+
     def getClaims(self, wdItem, claimProperty):
         """
         Returns all property values in a given wdItem
