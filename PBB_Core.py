@@ -104,12 +104,13 @@ class WDItemEngine(object):
     normalize = True
     create_new_item = False
     data = {}
+    append_value = []
 
     # a list with all properties an item should have and/or modify
     property_list = {}
     wd_json_representation = ''
 
-    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token='', append_value=[]):
+    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token='', server='', append_value=[]):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -118,6 +119,8 @@ class WDItemEngine(object):
         :param domain: string which tells the data domain the class should operate in
         :param data: a dictionary with WD property strings as keys and the data which should be written to
         a WD item as the property values
+        :param append_value: a list of properties where potential existing values should not be overwritten by the data
+        passed in the :parameter data.
         """
         self.wd_item_id = wd_item_id
         self.item_names = item_name
@@ -126,6 +129,8 @@ class WDItemEngine(object):
         self.normalize = normalize
         self.data = data
         self.token = token
+        self.server = server
+        self.append_value = append_value
 
         self.get_item_data(item_name, wd_item_id)
         self.property_list = self.get_property_list()
@@ -359,14 +364,12 @@ class WDItemEngine(object):
                 for x in self.data[wd_property]:
                     ct = claim_template.copy()
                     if value_is_item:
-                        ct['mainsnak']['datavalue']['value']['numeric-id'] = data_value.upper().replace('Q', '')
+                        ct['mainsnak']['datavalue']['value']['numeric-id'] = x.upper().replace('Q', '')
                     elif not value_is_item:
-                        ct['mainsnak']['datavalue']['value'] = data_value
+                        ct['mainsnak']['datavalue']['value'] = x
 
                     claims[wd_property].append(ct)
 
-
-        
     def getClaims(self, claimProperty):
         """
         Returns all property values in a given wdItem
@@ -514,7 +517,7 @@ class WDItemEngine(object):
         function to initiate writing the item data in the instance to Wikidata
         :return:
         """
-        base_url_string = 'https://www.wikidata.org/w/api.php?action=wbeditentity'
+        base_url = 'https://www.wikidata.org/w/api.php?action=wbeditentity'
 
         item_string = ''
         if self.create_new_item:
@@ -522,12 +525,12 @@ class WDItemEngine(object):
         else:
             item_string = '&id=' + self.wd_item_id
     
-        base_url_string += item_string
-        base_string += '&data={{{}}}'.format(json.dumps(json.loads(self.wd_json_representation)["entities"][self.wd_item_id]))
-        base_string += '&token={}'.format(self.token)
+        base_url += item_string
+        base_url += '&data={{{}}}'.format(json.dumps(json.loads(self.wd_json_representation)["entities"][self.wd_item_id]))
+        base_url += '&token={}'.format(self.token)
 
         try:
-            print(base_url_string)
+            print(base_url)
             # urllib2.urlopen(base_url_string)
         except urllib3.exceptions.HTTPError as e:
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
