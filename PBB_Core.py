@@ -104,7 +104,6 @@ class WDItemEngine(object):
     normalize = True
     create_new_item = False
     data = {}
-    append_value = []
 
     # a list with all properties an item should have and/or modify
     property_list = {}
@@ -119,8 +118,6 @@ class WDItemEngine(object):
         :param domain: string which tells the data domain the class should operate in
         :param data: a dictionary with WD property strings as keys and the data which should be written to
         a WD item as the property values
-        :param append_value: a list of properties where potential existing values should not be overwritten by the data
-        passed in the :parameter data.
         """
         self.wd_item_id = wd_item_id
         self.item_names = item_name
@@ -129,7 +126,6 @@ class WDItemEngine(object):
         self.normalize = normalize
         self.data = data
         self.token = token
-        self.append_value = append_value
 
         self.get_item_data(item_name, wd_item_id)
         self.property_list = self.get_property_list()
@@ -370,9 +366,8 @@ class WDItemEngine(object):
                     claims[wd_property].append(ct)
 
 
-
-
-    def getClaims(self, wdItem, claimProperty):
+        
+    def getClaims(self, claimProperty):
         """
         Returns all property values in a given wdItem
         :param wdItem: QID for a given WD item
