@@ -203,6 +203,7 @@ class WDItemEngine(object):
                 '&search=' + urllib.quote(search_string),
                 '&format=json'
             )
+            print query
             http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
             request = http.request("GET", query)
             search_results = json.loads(request.data)
@@ -221,8 +222,9 @@ class WDItemEngine(object):
                 return(id_list)
 
         except urllib3.exceptions.HTTPError as e:
-            PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
             print(e)
+            PBB_Debug.getSentryClient().captureException(e)
+            
 
     def get_property_list(self):
         """
