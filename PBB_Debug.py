@@ -30,6 +30,6 @@ def prettyPrint(variable):
     pp.pprint(variable)
 	
 def getSentryClient():
-    return Client(settings.getSentryKey())
-	
+    # return Client(settings.getSentryKey())
+	return "http://fe8543035e154f6591e0b578faeddb07:dba0f35cfa0a4e24880557c4ba99c7c0@sentry.sulab.org/9"
 	
