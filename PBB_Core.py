@@ -137,8 +137,7 @@ class WDItemEngine(object):
         self.get_item_data(item_name, wd_item_id)
         self.property_list = self.get_property_list()
 
-        if self.wd_json_representation is not '':
-            self.__construct_claim_json()
+        self.__construct_claim_json()
 
     def get_item_data(self, item_name='', item_id=''):
         """
@@ -501,21 +500,33 @@ class WDItemEngine(object):
 
         pass
 
-    def set_label(self, label):
+    def set_label(self, label, lang='en'):
         """
         set the label for a WD item
         :param label: a label string as the wikidata item.
         :return: None
         """
+        self.wd_json_representation['labels'][lang] = {
+            'language': lang,
+            'value': label
+        }
 
-        setattr(self, 'label', label)
-
-    def set_aliases(self, aliases):
+    def set_aliases(self, aliases, lang='en', append=True):
         """
         set the aliases for a WD item
         :param aliases: a list of strings representing the aliases of a WD item
+        :param append: If true, append a new alias to the list of existing aliases, else, overwrite. Default: True
         :return: None
         """
+
+        current_aliases = set(self.wd_json_representation['aliases'][lang])
+        current_aliases.update(aliases)
+
+        for i in aliases:
+            self.wd_json_representation['aliases'][lang].append({
+                'language': lang,
+                'value': list(current_aliases)
+            })
 
     def write(self):
         """
