@@ -38,6 +38,7 @@ import PBB_settings
 import mysql.connector
 import socket
 import getpass
+import copy
 
 import wd_property_store
 try:
@@ -105,6 +106,7 @@ class WDItemEngine(object):
     create_new_item = False
     data = {}
     append_value = []
+    server = 'www.wikidata.org'
 
     # a list with all properties an item should have and/or modify
     property_list = {}
@@ -170,7 +172,8 @@ class WDItemEngine(object):
         :return: python complex dictionary represenation of a json
         """
         try:
-            query = 'https://www.wikidata.org/w/api.php?action=wbgetentities{}{}{}{}'.format(
+            query = 'https://{}/w/api.php?action=wbgetentities{}{}{}{}'.format(
+                self.server,
                 '&sites=enwiki',
                 '&languages=en',
                 '&ids={}'.format(item),
@@ -194,7 +197,8 @@ class WDItemEngine(object):
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         """
         try:
-            query = 'https://www.wikidata.org/w/api.php?action=wbsearchentities{}{}{}'.format(
+            query = 'https://{}/w/api.php?action=wbsearchentities{}{}{}'.format(
+                self.server,
                 '&language=en',
                 '&search=' + urllib.quote(search_string),
                 '&format=json'
@@ -245,7 +249,7 @@ class WDItemEngine(object):
                 try:
                     # check if the property is a core_id and should be unique for every WD item
                     if wd_property_store.wd_properties[wd_property]['core_id'] == 'True':
-                        query = 'http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(wd_property.replace('P', ''), urllib2.quote(self.data[wd_property]))
+                        query = 'http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(wd_property.replace('P', ''), urllib.quote(self.data[wd_property]))
                         http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
                         request = http.request("GET", query)
                         tmp_qids = json.loads(request.data)['items']
@@ -339,7 +343,7 @@ class WDItemEngine(object):
                     if value in values_present:
                         continue
                     else:
-                        ct = claim_template.copy()
+                        ct = copy.deepcopy(claim_template)
                         if value_is_item:
                             ct['mainsnak']['datavalue']['value']['numeric-id'] = value.upper().replace('Q', '')
                         elif not value_is_item:
@@ -348,21 +352,21 @@ class WDItemEngine(object):
                         claims[wd_property].append(ct)
             else:
                 # set all claims for removal, except those where the values are already correct
-                for x in claims[wd_property]:
+                for x in range(0, len(claims[wd_property])):
                     if value_is_item:
-                        value = i['mainsnak']['datavalue']['value']['numeric-id']
+                        value = claims[wd_property][x]['mainsnak']['datavalue']['value']['numeric-id']
                     elif not value_is_item:
-                        value = i['mainsnak']['datavalue']['value']
+                        value = claims[wd_property][x]['mainsnak']['datavalue']['value']
 
                     if value not in values_present:
                         claims[wd_property][x].update({'remove': ''})
                     else:
-                        values_present.pop(value)
-                        self.data[wd_property].pop(value)
+                        values_present.remove(value)
+                        self.data[wd_property].remove(value)
 
                 # add new claims for remaining values (could also be implemented in a way that old claims are recycled)
                 for x in self.data[wd_property]:
-                    ct = claim_template.copy()
+                    ct = copy.deepcopy(claim_template)
                     if value_is_item:
                         ct['mainsnak']['datavalue']['value']['numeric-id'] = x.upper().replace('Q', '')
                     elif not value_is_item:
@@ -377,12 +381,13 @@ class WDItemEngine(object):
         :param claimProperty: WD Property ID
         :return: a Python JSON representation of the requested WD item claim.
         """
-        query = 'https://www.wikidata.org/w/api.php?action=wbgetclaims{}{}'.format(
-            '&entity=' + wdItem.getID(),
+        query = 'https://{}/w/api.php?action=wbgetclaims{}{}'.format(
+            self.server,
+            # '&entity=' + wdItem.getID(), BUG!!!!!! wdItem does not exist any more, as parameter has been removed
             'property' + claimProperty
         )
 
-        return(json.load(urllib2.urlopen(query)))
+        return(json.load(urllib.urlopen(query)))
 
     def countPropertyValues(self, wdItem, claimProperty):
         """
@@ -517,9 +522,8 @@ class WDItemEngine(object):
         function to initiate writing the item data in the instance to Wikidata
         :return:
         """
-        base_url = 'https://www.wikidata.org/w/api.php?action=wbeditentity'
+        base_url = 'https://' + self.server + '/w/api.php?action=wbeditentity'
 
-        item_string = ''
         if self.create_new_item:
             item_string = '&new=item'
         else:
