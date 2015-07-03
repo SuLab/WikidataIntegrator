@@ -511,6 +511,7 @@ class WDItemEngine(object):
         """
         set the label for a WD item
         :param label: a label string as the wikidata item.
+        :param lang: The language a description should be set for
         :return: None
         """
         self.wd_json_representation['labels'][lang] = {
@@ -522,18 +523,35 @@ class WDItemEngine(object):
         """
         set the aliases for a WD item
         :param aliases: a list of strings representing the aliases of a WD item
+        :param lang: The language a description should be set for
         :param append: If true, append a new alias to the list of existing aliases, else, overwrite. Default: True
         :return: None
         """
 
         current_aliases = set(self.wd_json_representation['aliases'][lang])
-        current_aliases.update(aliases)
+        if append:
+            current_aliases.update(aliases)
+        else:
+            current_aliases = aliases
 
-        for i in aliases:
+        self.wd_json_representation['aliases'][lang] = []
+        for i in current_aliases:
             self.wd_json_representation['aliases'][lang].append({
                 'language': lang,
-                'value': list(current_aliases)
+                'value': i
             })
+
+    def set_description(self, description, lang='en'):
+        """
+        Set the description for a WD item in a certain language
+        :param description: The description of the item in a certain language
+        :param lang: The language a description should be set for. Datatype: String
+        :return: None
+        """
+        self.wd_json_representation['descriptions'][lang] = {
+            'language': lang,
+            'value': description
+        }
 
     def write(self):
         """
