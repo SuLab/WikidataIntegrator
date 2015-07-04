@@ -1,4 +1,4 @@
-__author__ = 'Sebastian Burgstaller'
+__author__ = 'Sebastian Burgstaller and Andra Waagmeester'
 __licence__ = 'GPLv3'
 
 
@@ -27,7 +27,7 @@ valid_instances = {
         'Q422248'  # monoclonal antibodies
     ],
     'genes': [
-
+        'Q7187'
     ],
     'proteins': [
 

@@ -113,7 +113,7 @@ class WDItemEngine(object):
     property_list = {}
     wd_json_representation = ''
 
-    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token='', server='', append_value=[]):
+    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token='', server='', append_value=[], references={}):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -134,6 +134,7 @@ class WDItemEngine(object):
         self.token = token
         self.server = server
         self.append_value = append_value
+        self.references = references
 
         self.get_item_data(item_name, wd_item_id)
         self.property_list = self.get_property_list()
@@ -363,7 +364,9 @@ class WDItemEngine(object):
                         value = claims[wd_property][x]['mainsnak']['datavalue']['value']['numeric-id']
                     elif not value_is_item:
                         value = claims[wd_property][x]['mainsnak']['datavalue']['value']
-
+                    self.add_reference(claim=claims[wd_property][x], timestamp=True, overwrite=False)
+                    
+                    value = claims[wd_property][x]
                     if value not in values_present:
                         claims[wd_property][x].update({'remove': ''})
                     else:
@@ -377,7 +380,10 @@ class WDItemEngine(object):
                         ct['mainsnak']['datavalue']['value']['numeric-id'] = x.upper().replace('Q', '')
                     elif not value_is_item:
                         ct['mainsnak']['datavalue']['value'] = x
-
+                    ## Hier komt de referentie
+                    self.add_reference( claim=ct,  timestamp=True, overwrite=False,)
+                    
+                    
                     claims[wd_property].append(ct)
 
     def getClaims(self, claimProperty):
@@ -412,11 +418,11 @@ class WDItemEngine(object):
         """
         pass
 
-    def add_reference(self, wd_property, value, reference_types, reference_items, timestamp=False, overwrite=False):
+    def add_reference(self, claim={}, timestamp=False, overwrite=False):
+        ### Changed timestamp to True
         """
         Call this method to add a reference to a statement
-        :param wd_property: the Wikidata property number a reference should be added to
-        :param value: The value of a property the reference should be attached to
+        :claim the claim to which a reference should be added
         :param reference_types: A list with reference property number strings (e.g. ['P248', 'P143'] stated in (P248),
                 imported from (P143)) in the correct order they should be added to the claim
         :param reference_items: a list with item  strings the reference types should point to
@@ -424,6 +430,7 @@ class WDItemEngine(object):
         :param overwrite: Flag, set True if previous references for a property should be deleted
         :return: None
         """
+        '''        
         element_index = 0
         for i, sub_statement in enumerate(self.wd_json_representation['claims'][wd_property]):
             if sub_statement['mainsnak']['datatype'] == 'wikibase-item':
@@ -432,17 +439,19 @@ class WDItemEngine(object):
             elif sub_statement['mainsnak']['datatype'] == 'string':
                 if sub_statement['mainsnak']['datavalue']['value'] == value:
                     element_index = i
-
+        '''
         references = []
 
         # Do not overwrite existing references unless specifically requested
+        
+        '''
         if (not overwrite) and 'references' in self.wd_json_representation['claims'][wd_property][element_index]['references']:
             references = self.wd_json_representation['claims'][wd_property][element_index]['references']
         else:
             self.wd_json_representation['claims'][wd_property][element_index]['references'] = references
-
+        '''
         snaks = {}
-        for i in reference_types:
+        for i in self.references.keys():
             snak = dict()
             snak['property'] = i
             snak['snaktype'] = 'value'
@@ -451,8 +460,7 @@ class WDItemEngine(object):
             snak['datavalue']['type'] = 'wikibase-entityid'
             snak['datavalue']['value'] = dict()
             snak['datavalue']['value']['entity-type'] = 'item'
-            snak['datavalue']['value']['numeric-id'] = reference_items[reference_types.index(i)].upper().replace('Q', '')
-
+            snak['datavalue']['value']['numeric-id'] = self.references[i.upper()].replace('Q', '')
             snaks[i] = [snak]
 
         # if required, create timestamp element
@@ -475,7 +483,7 @@ class WDItemEngine(object):
 
             snaks['P813'] = wdTimestamp
 
-        snak_order = reference_types
+        snak_order = self.references.keys()
         if timestamp:
             snak_order.append('P813')
 
