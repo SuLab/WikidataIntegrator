@@ -364,7 +364,7 @@ class WDItemEngine(object):
                         value = claims[wd_property][x]['mainsnak']['datavalue']['value']['numeric-id']
                     elif not value_is_item:
                         value = claims[wd_property][x]['mainsnak']['datavalue']['value']
-                    self.add_reference(claim=claims[wd_property][x], timestamp=True, overwrite=False)
+                    self.add_reference(wd_property, claim=claims[wd_property][x], timestamp=True, overwrite=False)
                     
                     value = claims[wd_property][x]
                     if value not in values_present:
@@ -380,8 +380,8 @@ class WDItemEngine(object):
                         ct['mainsnak']['datavalue']['value']['numeric-id'] = x.upper().replace('Q', '')
                     elif not value_is_item:
                         ct['mainsnak']['datavalue']['value'] = x
-                    ## Hier komt de referentie
-                    self.add_reference( claim=ct,  timestamp=True, overwrite=False,)
+
+                    self.add_reference(wd_property, claim=ct,  timestamp=True, overwrite=False)
                     
                     
                     claims[wd_property].append(ct)
@@ -418,7 +418,7 @@ class WDItemEngine(object):
         """
         pass
 
-    def add_reference(self, claim={}, timestamp=False, overwrite=False):
+    def add_reference(self, wd_property, claim={}, timestamp=False, overwrite=False):
         ### Changed timestamp to True
         """
         Call this method to add a reference to a statement
@@ -430,26 +430,31 @@ class WDItemEngine(object):
         :param overwrite: Flag, set True if previous references for a property should be deleted
         :return: None
         """
-        '''        
+              
         element_index = 0
         for i, sub_statement in enumerate(self.wd_json_representation['claims'][wd_property]):
+            print sub_statement
             if sub_statement['mainsnak']['datatype'] == 'wikibase-item':
                 if sub_statement['mainsnak']['datavalue']['value']['numeric-id'] == value.upper().replace('Q', ''):
                     element_index = i
             elif sub_statement['mainsnak']['datatype'] == 'string':
-                if sub_statement['mainsnak']['datavalue']['value'] == value:
+                if sub_statement['mainsnak']['datavalue']['value'] == self.data[wd_property]:
                     element_index = i
-        '''
+        
         references = []
 
         # Do not overwrite existing references unless specifically requested
-        
-        '''
-        if (not overwrite) and 'references' in self.wd_json_representation['claims'][wd_property][element_index]['references']:
-            references = self.wd_json_representation['claims'][wd_property][element_index]['references']
+        print element_index
+        print wd_property
+        print len( self.wd_json_representation['claims'][wd_property])
+        if (not overwrite) and type(self.wd_json_representation['claims'][wd_property]) == dict:
+            if 'references' in self.wd_json_representation['claims'][wd_property][element_index] :
+                 references = self.wd_json_representation['claims'][wd_property][element_index]['references']
+            else:
+                self.wd_json_representation['claims'][wd_property][element_index]['references'] = references
         else:
-            self.wd_json_representation['claims'][wd_property][element_index]['references'] = references
-        '''
+            self.wd_json_representation['claims'][wd_property] = [{'references': references}]
+        
         snaks = {}
         for i in self.references.keys():
             snak = dict()
