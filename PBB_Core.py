@@ -434,12 +434,14 @@ class WDItemEngine(object):
         element_index = 0
         for i, sub_statement in enumerate(self.wd_json_representation['claims'][wd_property]):
             print sub_statement
-            if sub_statement['mainsnak']['datatype'] == 'wikibase-item':
-                if sub_statement['mainsnak']['datavalue']['value']['numeric-id'] == value.upper().replace('Q', ''):
+            if 'mainsnak' in sub_statement:
+              if sub_statement['mainsnak']['datatype'] == 'wikibase-item':
+                if sub_statement['mainsnak']['datavalue']['value']['numeric-id'] == self.data[wd_property][i].upper().replace('Q', ''):
                     element_index = i
-            elif sub_statement['mainsnak']['datatype'] == 'string':
+              elif sub_statement['mainsnak']['datatype'] == 'string':
                 if sub_statement['mainsnak']['datavalue']['value'] == self.data[wd_property]:
                     element_index = i
+        
         
         references = []
 
