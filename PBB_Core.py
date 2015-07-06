@@ -306,10 +306,10 @@ class WDItemEngine(object):
                                 'numeric-id': ''
                             },
                             'type': 'wikibase-entityid'
-                        },
-                        'type': 'statement',
-                        'rank': 'normal'
-                    }
+                        }
+                    },
+                    'type': 'statement',
+                    'rank': 'normal'
                 }
                 value_is_item = True
 
@@ -322,10 +322,10 @@ class WDItemEngine(object):
                         'datavalue': {
                             'value': '',
                             'type': 'string'
-                        },
-                        'type': 'statement',
-                        'rank': 'normal'
-                    }
+                        }
+                    },
+                    'type': 'statement',
+                    'rank': 'normal'
                 }
                 value_is_item = False
 
@@ -333,6 +333,7 @@ class WDItemEngine(object):
             values_present = []
             if wd_property in claims:
                 for i in claims[wd_property]:
+                    print(i)
                     current_value = ''
 
                     if value_is_item:
@@ -354,7 +355,7 @@ class WDItemEngine(object):
                     else:
                         ct = copy.deepcopy(claim_template)
                         if value_is_item:
-                            ct['mainsnak']['datavalue']['value']['numeric-id'] = value.upper().replace('Q', '')
+                            ct['mainsnak']['datavalue']['value']['numeric-id'] = int(value.upper().replace('Q', ''))
                         elif not value_is_item:
                             ct['mainsnak']['datavalue']['value'] = value
 
@@ -378,7 +379,7 @@ class WDItemEngine(object):
                 for x in loc_data[wd_property]:
                     ct = copy.deepcopy(claim_template)
                     if value_is_item:
-                        ct['mainsnak']['datavalue']['value']['numeric-id'] = x.upper().replace('Q', '')
+                        ct['mainsnak']['datavalue']['value']['numeric-id'] = int(x.upper().replace('Q', ''))
                     elif not value_is_item:
                         ct['mainsnak']['datavalue']['value'] = x
 
@@ -505,7 +506,7 @@ class WDItemEngine(object):
             wdTimestamp['datavalue']['value']['time'] = timestamp
             wdTimestamp['datavalue']['value']['timezone'] = 0
 
-            snaks['P813'] = wdTimestamp
+            snaks['P813'] = [wdTimestamp]
 
         snak_order = reference_types
         if timestamp:
