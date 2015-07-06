@@ -404,6 +404,7 @@ class WDItemEngine(object):
 
                 print(count)
                 # print(self.data[wd_property][count])
+                print self.data
                 self.add_reference(wd_property=wd_property, value=self.data[wd_property][count], reference_types=ref['ref_properties'],
                                    reference_items=ref['ref_values'], timestamp=timestamp, overwrite=True)
 
