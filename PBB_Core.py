@@ -254,7 +254,7 @@ class WDItemEngine(object):
                     # check if the property is a core_id and should be unique for every WD item
                     if wd_property_store.wd_properties[wd_property]['core_id'] == 'True':
                         for data_point in self.data[wd_property]:
-                            query = 'http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(wd_property.replace('P', ''), urllib.quote(str(data_point)))
+                            query = 'http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(str(wd_property.replace('P', '')), urllib.quote(str(data_point)))
                             http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
                             request = http.request("GET", query)
                             tmp_qids = json.loads(request.data)['items']
@@ -403,7 +403,7 @@ class WDItemEngine(object):
                     ref['ref_values'].remove('TIMESTAMP')
 
                 print(count)
-                print(self.data[wd_property][count])
+                # print(self.data[wd_property][count])
                 self.add_reference(wd_property=wd_property, value=self.data[wd_property][count], reference_types=ref['ref_properties'],
                                    reference_items=ref['ref_values'], timestamp=timestamp, overwrite=True)
 
@@ -469,7 +469,10 @@ class WDItemEngine(object):
             self.wd_json_representation['claims'][wd_property][element_index]['references'] = references
 
         snaks = {}
+        print reference_types
+        
         for i in reference_types:
+            print reference_items[reference_types.index(i)]
             snak = dict()
             snak['property'] = i
             snak['snaktype'] = 'value'
