@@ -40,6 +40,7 @@ import mysql.connector
 import socket
 import getpass
 import copy
+import pprint
 
 import wd_property_store
 try:
@@ -113,7 +114,7 @@ class WDItemEngine(object):
     property_list = {}
     wd_json_representation = ''
 
-    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token='', server='', append_value=[], references={}):
+    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token='', server='', append_value=[], references = {}):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -140,6 +141,7 @@ class WDItemEngine(object):
         self.property_list = self.get_property_list()
 
         self.__construct_claim_json()
+        self.__append_references()
 
     def get_item_data(self, item_name='', item_id=''):
         """
@@ -359,32 +361,51 @@ class WDItemEngine(object):
                         claims[wd_property].append(ct)
             else:
                 # set all claims for removal, except those where the values are already correct
+                loc_data = copy.deepcopy(self.data)
                 for x in range(0, len(claims[wd_property])):
                     if value_is_item:
                         value = claims[wd_property][x]['mainsnak']['datavalue']['value']['numeric-id']
                     elif not value_is_item:
                         value = claims[wd_property][x]['mainsnak']['datavalue']['value']
-                    self.add_reference(claim=claims[wd_property][x], timestamp=True, overwrite=False)
-                    
-                    value = claims[wd_property][x]
+
                     if value not in values_present:
                         claims[wd_property][x].update({'remove': ''})
                     else:
                         values_present.remove(value)
-                        self.data[wd_property].remove(value)
+                        loc_data[wd_property].remove(value)
 
                 # add new claims for remaining values (could also be implemented in a way that old claims are recycled)
-                for x in self.data[wd_property]:
+                for x in loc_data[wd_property]:
                     ct = copy.deepcopy(claim_template)
                     if value_is_item:
                         ct['mainsnak']['datavalue']['value']['numeric-id'] = x.upper().replace('Q', '')
                     elif not value_is_item:
                         ct['mainsnak']['datavalue']['value'] = x
-                    ## Hier komt de referentie
-                    self.add_reference( claim=ct,  timestamp=True, overwrite=False,)
-                    
-                    
+
                     claims[wd_property].append(ct)
+
+    def __append_references(self):
+        """
+        Adds references using the self.references dictionary passed in the constructor. The references in self.reference[property]
+        map to the values in self.data[property], therefore, the length of both lists MUST be equal. In other words,
+        if for a property references should be added, reference values for all property values are required.
+        If a timestamp should be added, the string 'TIMESTAMP' is reqired as the last element in the 'values' list
+        :return:
+        """
+
+        # introduce a reference data check here!
+
+        for wd_property in self.references:
+            for count, ref in enumerate(self.references[wd_property]):
+                timestamp = False
+                if 'TIMESTAMP' in ref['ref_values']:
+                    timestamp = True
+                    ref['ref_values'].remove('TIMESTAMP')
+
+                print(count)
+                print(self.data[wd_property][count])
+                self.add_reference(wd_property=wd_property, value=self.data[wd_property][count], reference_types=ref['ref_properties'],
+                                   reference_items=ref['ref_values'], timestamp=timestamp, overwrite=True)
 
     def getClaims(self, claimProperty):
         """
@@ -418,11 +439,11 @@ class WDItemEngine(object):
         """
         pass
 
-    def add_reference(self, claim={}, timestamp=False, overwrite=False):
-        ### Changed timestamp to True
+    def add_reference(self, wd_property, value, reference_types, reference_items, timestamp=False, overwrite=False):
         """
         Call this method to add a reference to a statement
-        :claim the claim to which a reference should be added
+        :param wd_property: the Wikidata property number a reference should be added to
+        :param value: The value of a property the reference should be attached to
         :param reference_types: A list with reference property number strings (e.g. ['P248', 'P143'] stated in (P248),
                 imported from (P143)) in the correct order they should be added to the claim
         :param reference_items: a list with item  strings the reference types should point to
@@ -430,7 +451,6 @@ class WDItemEngine(object):
         :param overwrite: Flag, set True if previous references for a property should be deleted
         :return: None
         """
-        '''        
         element_index = 0
         for i, sub_statement in enumerate(self.wd_json_representation['claims'][wd_property]):
             if sub_statement['mainsnak']['datatype'] == 'wikibase-item':
@@ -439,19 +459,17 @@ class WDItemEngine(object):
             elif sub_statement['mainsnak']['datatype'] == 'string':
                 if sub_statement['mainsnak']['datavalue']['value'] == value:
                     element_index = i
-        '''
+
         references = []
 
         # Do not overwrite existing references unless specifically requested
-        
-        '''
         if (not overwrite) and 'references' in self.wd_json_representation['claims'][wd_property][element_index]['references']:
             references = self.wd_json_representation['claims'][wd_property][element_index]['references']
         else:
             self.wd_json_representation['claims'][wd_property][element_index]['references'] = references
-        '''
+
         snaks = {}
-        for i in self.references.keys():
+        for i in reference_types:
             snak = dict()
             snak['property'] = i
             snak['snaktype'] = 'value'
@@ -460,7 +478,8 @@ class WDItemEngine(object):
             snak['datavalue']['type'] = 'wikibase-entityid'
             snak['datavalue']['value'] = dict()
             snak['datavalue']['value']['entity-type'] = 'item'
-            snak['datavalue']['value']['numeric-id'] = self.references[i.upper()].replace('Q', '')
+            snak['datavalue']['value']['numeric-id'] = reference_items[reference_types.index(i)].upper().replace('Q', '')
+
             snaks[i] = [snak]
 
         # if required, create timestamp element
@@ -483,12 +502,12 @@ class WDItemEngine(object):
 
             snaks['P813'] = wdTimestamp
 
-        snak_order = self.references.keys()
+        snak_order = reference_types
         if timestamp:
             snak_order.append('P813')
 
         # add snacks and snack order to claims
-        references.append({'snaks': snaks, 'snak-order': snak_order})
+        references.append({'snaks': snaks, 'snaks-order': snak_order})
 
     def get_wd_json_representation(self):
         """
@@ -561,26 +580,38 @@ class WDItemEngine(object):
             'value': description
         }
 
-    def write(self):
+    def write(self, login):
         """
         function to initiate writing the item data in the instance to Wikidata
-        :return:
+        :param login: a instance of the class PBB_login which provides edit-cookies and edit-tokens
+        :return: None
         """
-        base_url = 'https://' + self.server + '/w/api.php?action=wbeditentity'
+
+        cookies = login.get_edit_cookie()
+        edit_token = login.get_edit_token()
+
+        headers = {'content-type': 'application/x-www-form-urlencoded'}
+        payload = {
+            'action': 'wbeditentity',
+            'data': '{}'.format(str(self.wd_json_representation)),
+            'format': 'json',
+            'token': edit_token
+        }
 
         if self.create_new_item:
-            item_string = '&new=item'
+            payload.update({'new': 'item'})
         else:
-            item_string = '&id=' + self.wd_item_id
-    
-        base_url += item_string
-        base_url += '&data={{{}}}'.format(json.dumps(json.loads(self.wd_json_representation)["entities"][self.wd_item_id]))
-        base_url += '&token={}'.format(self.token)
+            payload.update({'id': self.wd_item_id})
+
+        base_url = 'https://' + self.server + '/w/api.php'
 
         try:
-            print(base_url)
-            # urllib2.urlopen(base_url_string)
-        except urllib3.exceptions.HTTPError as e:
+            reply = requests.post(base_url, headers=headers, data=payload, cookies=cookies)
+
+            json_data = json.loads(reply.text)
+            pprint.pprint(json_data)
+
+        except requests.HTTPError as e:
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
             print(e)
 
