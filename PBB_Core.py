@@ -333,7 +333,6 @@ class WDItemEngine(object):
             values_present = []
             if wd_property in claims:
                 for i in claims[wd_property]:
-                    print(i)
                     current_value = ''
 
                     if value_is_item:
@@ -618,8 +617,9 @@ class WDItemEngine(object):
             pprint.pprint(json_data)
 
         except requests.HTTPError as e:
-            PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
             print(e)
+            PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+            
 
 
 
