@@ -484,7 +484,6 @@ class WDItemEngine(object):
             snak['datavalue']['value'] = dict()
             snak['datavalue']['value']['entity-type'] = 'item'
             snak['datavalue']['value']['numeric-id'] = reference_items[reference_types.index(i)].upper().replace('Q', '')
-
             snaks[i] = [snak]
 
         # if required, create timestamp element
@@ -504,7 +503,6 @@ class WDItemEngine(object):
             wdTimestamp['datavalue']['value']['precision'] = 11
             wdTimestamp['datavalue']['value']['time'] = timestamp
             wdTimestamp['datavalue']['value']['timezone'] = 0
-
             snaks['P813'] = wdTimestamp
 
         snak_order = reference_types
@@ -585,13 +583,13 @@ class WDItemEngine(object):
             'value': description
         }
 
-    def write(self, login):
+    def write(self):
         """
         function to initiate writing the item data in the instance to Wikidata
         :param login: a instance of the class PBB_login which provides edit-cookies and edit-tokens
         :return: None
         """
-
+        login = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
         cookies = login.get_edit_cookie()
         edit_token = login.get_edit_token()
 
@@ -612,13 +610,14 @@ class WDItemEngine(object):
 
         try:
             reply = requests.post(base_url, headers=headers, data=payload, cookies=cookies)
-
+            print reply
             json_data = json.loads(reply.text)
             pprint.pprint(json_data)
 
         except requests.HTTPError as e:
-            PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
             print(e)
+            PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+            
 
 
 
