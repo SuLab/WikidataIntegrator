@@ -402,10 +402,7 @@ class WDItemEngine(object):
                     timestamp = True             
                     ref['ref_properties'].pop(ref['ref_values'].index('TIMESTAMP'))
                     ref['ref_values'].remove('TIMESTAMP')
-                    
-                print(count)
-                # print(self.data[wd_property][count])
-                print self.data
+
                 self.add_reference(wd_property=wd_property, value=self.data[wd_property][count], reference_types=ref['ref_properties'],
                                    reference_items=ref['ref_values'], timestamp=timestamp, overwrite=True)
 
@@ -559,19 +556,26 @@ class WDItemEngine(object):
         :param append: If true, append a new alias to the list of existing aliases, else, overwrite. Default: True
         :return: None
         """
+        if 'aliases' not in self.wd_json_representation:
+            self.wd_json_representation['aliases'] = {}
 
-        current_aliases = set(self.wd_json_representation['aliases'][lang])
-        if append:
-            current_aliases.update(aliases)
-        else:
-            current_aliases = aliases
+        if not append or lang not in self.wd_json_representation['aliases']:
+            self.wd_json_representation['aliases'][lang] = {}
 
-        self.wd_json_representation['aliases'][lang] = []
-        for i in current_aliases:
-            self.wd_json_representation['aliases'][lang].append({
-                'language': lang,
-                'value': i
-            })
+        for alias in aliases:
+            found = False
+            for current_aliases in self.wd_json_representation['aliases'][lang]:
+                if alias not in current_aliases['value']:
+                    continue
+                else:
+                    found = True
+                    break
+
+            if not found:
+                self.wd_json_representation['aliases'][lang].append({
+                    'language': lang,
+                    'value': alias
+                })
 
     def set_description(self, description, lang='en'):
         """
@@ -583,6 +587,21 @@ class WDItemEngine(object):
         self.wd_json_representation['descriptions'][lang] = {
             'language': lang,
             'value': description
+        }
+
+    def set_sitelink(self, site, title):
+        """
+        Set sitelinks to corresponding Wikipedia pages
+        :param site: The Wikipedia page a sitelink is directed to (e.g. 'enwiki')
+        :param title: The title of the Wikipedia page the sitelink is directed to
+        :return:
+        """
+        if 'sitelinks' not in self.wd_json_representation:
+            self.wd_json_representation['sitelinks'] = {}
+
+        self.wd_json_representation['sitelinks'][site] = {
+            'site': site,
+            'title': title
         }
 
     def write(self, login):
