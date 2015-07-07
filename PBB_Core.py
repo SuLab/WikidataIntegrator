@@ -36,12 +36,13 @@ import requests
 import PBB_Debug
 import PBB_Functions
 import PBB_settings
+import PBB_login
 import mysql.connector
 import socket
 import getpass
 import copy
 import pprint
-
+import sys
 import wd_property_store
 try:
     import simplejson as json
@@ -468,10 +469,15 @@ class WDItemEngine(object):
             self.wd_json_representation['claims'][wd_property][element_index]['references'] = references
 
         snaks = {}
+        print "reference types"
         print reference_types
-        
         for i in reference_types:
+            if i == 'P813':
+                break
+            print "referece items"
+            print reference_items
             print reference_items[reference_types.index(i)]
+            print reference_items[reference_types.index(i)].upper().replace('Q', '')
             snak = dict()
             snak['property'] = i
             snak['snaktype'] = 'value'
@@ -487,7 +493,7 @@ class WDItemEngine(object):
         # if required, create timestamp element
         if timestamp:
             ts = time.time()
-            timestamp = datetime.datetime.fromtimestamp(ts).strftime('+0000000%Y-%m-%dT00:00:00Z')
+            timestamp = datetime.datetime.fromtimestamp(ts).strftime('+%Y-%m-%dT00:00:00Z')
             wdTimestamp = dict()
             wdTimestamp['datatype'] = 'time'
             wdTimestamp['property'] = 'P813'
@@ -610,9 +616,12 @@ class WDItemEngine(object):
         :param login: a instance of the class PBB_login which provides edit-cookies and edit-tokens
         :return: None
         """
-
+        login_obj = PBB_login.WDLogin(user=PBB_settings.getWikiDataUser(), pwd=PBB_settings.getWikiDataPassword(), server='www.wikidata.org')
         cookies = login.get_edit_cookie()
         edit_token = login.get_edit_token()
+        print cookies
+        print edit_token
+       
 
         headers = {'content-type': 'application/x-www-form-urlencoded'}
         payload = {
@@ -638,6 +647,7 @@ class WDItemEngine(object):
         except requests.HTTPError as e:
             print(e)
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+
             
 
 
