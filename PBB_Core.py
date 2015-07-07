@@ -469,15 +469,8 @@ class WDItemEngine(object):
             self.wd_json_representation['claims'][wd_property][element_index]['references'] = references
 
         snaks = {}
-        print "reference types"
-        print reference_types
+
         for i in reference_types:
-            if i == 'P813':
-                break
-            print "referece items"
-            print reference_items
-            print reference_items[reference_types.index(i)]
-            print reference_items[reference_types.index(i)].upper().replace('Q', '')
             snak = dict()
             snak['property'] = i
             snak['snaktype'] = 'value'
@@ -510,7 +503,7 @@ class WDItemEngine(object):
 
             snaks['P813'] = [wdTimestamp]
 
-        snak_order = reference_types
+        snak_order = copy.deepcopy(reference_types)
         if timestamp:
             snak_order.append('P813')
 
