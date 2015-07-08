@@ -32,6 +32,7 @@ import urllib3
 import certifi
 import itertools
 import requests
+import re
 
 import PBB_Debug
 import PBB_Functions
@@ -179,25 +180,23 @@ class WDItemEngine(object):
         :return: python complex dictionary represenation of a json
         """
         try:
-            query = 'https://{}/w/api.php?action=wbgetentities{}{}{}{}'.format(
-                self.server,
-                '&sites=enwiki',
-                # TODO: remove &languages=en
-                '&languages=en',
-                '&ids={}'.format(item),
-                '&format=json'
-            )
-            http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
-            request = http.request("GET", query)
+            url = 'https://{}/w/api.php'.format(self.server)
+            params = {
+                'action': 'wbgetentities',
+                'sites': 'enwiki',
+                # 'languages': 'en',
+                'ids': item,
+                'format': 'json'
+            }
 
-            # TODO: Highly important: Everything MUST be handles as UNICODE!!!!!!
+            reply = requests.get(url, params=params)
 
-            wd_reply = json.loads(request.data)['entities'][self.wd_item_id]
-            wd_reply = {x: wd_reply[x] for x in ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks') if x in wd_reply}
-            pprint.pprint(wd_reply)
+            wd_reply = json.loads(reply.text)['entities'][self.wd_item_id]
+            wd_reply = {x: wd_reply[x] for x in (u'labels', u'descriptions', u'claims', u'aliases', u'sitelinks') if x in wd_reply}
+
             return(wd_reply)
 
-        except urllib3.exceptions.HTTPError as e:
+        except requests.HTTPError as e:
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
             print(e)
 
@@ -320,6 +319,7 @@ class WDItemEngine(object):
                     'rank': 'normal'
                 }
                 value_is_item = True
+                self.data[wd_property] = [int(re.sub('[Qq]', '', x)) for x in self.data[wd_property]]
 
             elif wd_property_store.wd_properties[wd_property]['datatype'] == 'string':
                 claim_template = {
@@ -343,8 +343,6 @@ class WDItemEngine(object):
                 for i in claims[wd_property]:
                     current_value = ''
 
-                    # TODO: handle strings and integers differently, so that numeric-id claims do not get overwritten, although data in self.data equals the original
-
                     if value_is_item:
                         current_value = i['mainsnak']['datavalue']['value']['numeric-id']
                     elif not value_is_item:
@@ -364,7 +362,7 @@ class WDItemEngine(object):
                     else:
                         ct = copy.deepcopy(claim_template)
                         if value_is_item:
-                            ct['mainsnak']['datavalue']['value']['numeric-id'] = int(value.upper().replace('Q', ''))
+                            ct['mainsnak']['datavalue']['value']['numeric-id'] = value
                         elif not value_is_item:
                             ct['mainsnak']['datavalue']['value'] = value
 
@@ -388,7 +386,7 @@ class WDItemEngine(object):
                 for x in loc_data[wd_property]:
                     ct = copy.deepcopy(claim_template)
                     if value_is_item:
-                        ct['mainsnak']['datavalue']['value']['numeric-id'] = int(x.upper().replace('Q', ''))
+                        ct['mainsnak']['datavalue']['value']['numeric-id'] = x
                     elif not value_is_item:
                         ct['mainsnak']['datavalue']['value'] = x
 
@@ -463,7 +461,7 @@ class WDItemEngine(object):
         element_index = 0
         for i, sub_statement in enumerate(self.wd_json_representation['claims'][wd_property]):
             if sub_statement['mainsnak']['datatype'] == 'wikibase-item':
-                if sub_statement['mainsnak']['datavalue']['value']['numeric-id'] == value.upper().replace('Q', ''):
+                if sub_statement['mainsnak']['datavalue']['value']['numeric-id'] == value:
                     element_index = i
             elif sub_statement['mainsnak']['datatype'] == 'string':
                 if sub_statement['mainsnak']['datavalue']['value'] == value:
@@ -626,25 +624,24 @@ class WDItemEngine(object):
         :param login: a instance of the class PBB_login which provides edit-cookies and edit-tokens
         :return: None
         """
-        # login_obj = PBB_login.WDLogin(user=PBB_settings.getWikiDataUser(), pwd=PBB_settings.getWikiDataPassword(), server='www.wikidata.org')
         cookies = login.get_edit_cookie()
         edit_token = login.get_edit_token()
-        print cookies
-        print edit_token
-       
 
-        headers = {'content-type': 'application/x-www-form-urlencoded'}
+        headers = {
+            'content-type': 'application/x-www-form-urlencoded',
+            'charset': 'utf-8'
+        }
         payload = {
-            'action': 'wbeditentity',
-            'data': u'{}'.format(str(self.wd_json_representation)),
-            'format': 'json',
-            'token': edit_token
+            u'action': u'wbeditentity',
+            u'data': json.dumps(self.wd_json_representation, encoding='utf-8'),
+            u'format': u'json',
+            u'token': edit_token
         }
 
         if self.create_new_item:
-            payload.update({'new': 'item'})
+            payload.update({u'new': u'item'})
         else:
-            payload.update({'id': self.wd_item_id})
+            payload.update({u'id': self.wd_item_id})
 
         base_url = 'https://' + self.server + '/w/api.php'
 
