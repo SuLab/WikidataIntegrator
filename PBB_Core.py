@@ -113,7 +113,7 @@ class WDItemEngine(object):
 
     # a list with all properties an item should have and/or modify
     property_list = {}
-    wd_json_representation = ''
+    wd_json_representation = {}
 
     def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token='', server='', append_value=[], references = {}):
         """
@@ -143,6 +143,9 @@ class WDItemEngine(object):
 
         self.__construct_claim_json()
         self.__append_references()
+
+        if 'labels' not in self.wd_json_representation and item_name != '':
+            self.set_label(label=item_name, lang='en')
 
     def get_item_data(self, item_name='', item_id=''):
         """
@@ -537,11 +540,15 @@ class WDItemEngine(object):
 
     def set_label(self, label, lang='en'):
         """
-        set the label for a WD item
-        :param label: a label string as the wikidata item.
-        :param lang: The language a description should be set for
+        Set the label for a WD item in a certain language
+        :param label: The description of the item in a certain language
+        :type label: str
+        :param lang: The language a label should be set for.
+        :type lang: str
         :return: None
         """
+        if 'labels' not in self.wd_json_representation:
+            self.wd_json_representation['labels'] = {}
         self.wd_json_representation['labels'][lang] = {
             'language': lang,
             'value': label
@@ -580,9 +587,13 @@ class WDItemEngine(object):
         """
         Set the description for a WD item in a certain language
         :param description: The description of the item in a certain language
-        :param lang: The language a description should be set for. Datatype: String
+        :type description: str
+        :param lang: The language a description should be set for.
+        :type lang: str
         :return: None
         """
+        if 'descriptions' not in self.wd_json_representation:
+            self.wd_json_representation['descriptions'] = {}
         self.wd_json_representation['descriptions'][lang] = {
             'language': lang,
             'value': description
