@@ -182,6 +182,7 @@ class WDItemEngine(object):
             query = 'https://{}/w/api.php?action=wbgetentities{}{}{}{}'.format(
                 self.server,
                 '&sites=enwiki',
+                # TODO: remove &languages=en
                 '&languages=en',
                 '&ids={}'.format(item),
                 '&format=json'
@@ -189,8 +190,11 @@ class WDItemEngine(object):
             http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
             request = http.request("GET", query)
 
+            # TODO: Highly important: Everything MUST be handles as UNICODE!!!!!!
+
             wd_reply = json.loads(request.data)['entities'][self.wd_item_id]
             wd_reply = {x: wd_reply[x] for x in ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks') if x in wd_reply}
+            pprint.pprint(wd_reply)
             return(wd_reply)
 
         except urllib3.exceptions.HTTPError as e:
@@ -339,6 +343,8 @@ class WDItemEngine(object):
                 for i in claims[wd_property]:
                     current_value = ''
 
+                    # TODO: handle strings and integers differently, so that numeric-id claims do not get overwritten, although data in self.data equals the original
+
                     if value_is_item:
                         current_value = i['mainsnak']['datavalue']['value']['numeric-id']
                     elif not value_is_item:
@@ -482,7 +488,7 @@ class WDItemEngine(object):
             snak['datavalue']['type'] = 'wikibase-entityid'
             snak['datavalue']['value'] = dict()
             snak['datavalue']['value']['entity-type'] = 'item'
-            snak['datavalue']['value']['numeric-id'] = reference_items[reference_types.index(i)].upper().replace('Q', '')
+            snak['datavalue']['value']['numeric-id'] = int(reference_items[reference_types.index(i)].upper().replace('Q', ''))
 
             snaks[i] = [snak]
 
@@ -620,7 +626,7 @@ class WDItemEngine(object):
         :param login: a instance of the class PBB_login which provides edit-cookies and edit-tokens
         :return: None
         """
-        login_obj = PBB_login.WDLogin(user=PBB_settings.getWikiDataUser(), pwd=PBB_settings.getWikiDataPassword(), server='www.wikidata.org')
+        # login_obj = PBB_login.WDLogin(user=PBB_settings.getWikiDataUser(), pwd=PBB_settings.getWikiDataPassword(), server='www.wikidata.org')
         cookies = login.get_edit_cookie()
         edit_token = login.get_edit_token()
         print cookies
@@ -630,7 +636,7 @@ class WDItemEngine(object):
         headers = {'content-type': 'application/x-www-form-urlencoded'}
         payload = {
             'action': 'wbeditentity',
-            'data': '{}'.format(str(self.wd_json_representation)),
+            'data': u'{}'.format(str(self.wd_json_representation)),
             'format': 'json',
             'token': edit_token
         }
