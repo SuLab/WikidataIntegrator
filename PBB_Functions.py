@@ -43,41 +43,7 @@ def getItemsByProperty(wdproperty):
     f = opener.open(req)
     return json.load(f)
     
-def write(wd_json_representation, wd_item_id, server):
-    """
-    function to initiate writing the item data in the instance to Wikidata
-    :param login: a instance of the class PBB_login which provides edit-cookies and edit-tokens
-    :return: None
-    """
-    login = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-    cookies = login.get_edit_cookie()
-    edit_token = login.get_edit_token()
 
-    headers = {'content-type': 'application/x-www-form-urlencoded'}
-    payload = {
-        'action': 'wbeditentity',
-        'data': '{}'.format(str(wd_json_representation)),
-        'format': 'json',
-        'token': edit_token
-    }
-
-    #if self.create_new_item:
-    #    payload.update({'new': 'item'})
-    # else:
-        
-    payload.update({'id': wd_item_id})
-
-    base_url = 'https://' + server + '/w/api.php'
-
-    try:
-        reply = requests.post(base_url, headers=headers, data=payload, cookies=cookies)
-        print reply
-        json_data = json.loads(reply.text)
-        PBB_Debug.prettyPrint(json_data)
-
-    except requests.HTTPError as e:
-        print(e)
-        PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
 
     
     
