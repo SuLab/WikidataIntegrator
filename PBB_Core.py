@@ -213,7 +213,7 @@ class WDItemEngine(object):
                 '&search=' + urllib.quote(search_string),
                 '&format=json'
             )
-            print query
+
             http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
             request = http.request("GET", query)
             search_results = json.loads(request.data)
@@ -401,7 +401,7 @@ class WDItemEngine(object):
         :return:
         """
 
-        # introduce a reference data check here!
+        # TODO: introduce a reference data check here!
 
         for wd_property in self.references:
             for count, ref in enumerate(self.references[wd_property]):
@@ -633,7 +633,8 @@ class WDItemEngine(object):
         }
         payload = {
             u'action': u'wbeditentity',
-            u'data': json.dumps(self.wd_json_representation, encoding='utf-8'),
+            # u'data': json.dumps(self.wd_json_representation, encoding='utf-8'),
+            u'data': json.JSONEncoder(encoding='utf-8').encode(self.wd_json_representation),
             u'format': u'json',
             u'token': edit_token
         }
