@@ -479,14 +479,14 @@ class WDItemEngine(object):
 
         for i in reference_types:
             snak = dict()
-            snak['property'] = i
-            snak['snaktype'] = 'value'
-            snak['datatype'] = 'wikibase-item'
-            snak['datavalue'] = dict()
-            snak['datavalue']['type'] = 'wikibase-entityid'
-            snak['datavalue']['value'] = dict()
-            snak['datavalue']['value']['entity-type'] = 'item'
-            snak['datavalue']['value']['numeric-id'] = int(reference_items[reference_types.index(i)].upper().replace('Q', ''))
+            snak[u'property'] = i
+            snak[u'snaktype'] = u'value'
+            snak[u'datatype'] = u'wikibase-item'
+            snak[u'datavalue'] = dict()
+            snak[u'datavalue'][u'type'] = u'wikibase-entityid'
+            snak[u'datavalue'][u'value'] = dict()
+            snak[u'datavalue'][u'value'][u'entity-type'] = u'item'
+            snak[u'datavalue'][u'value'][u'numeric-id'] = int(reference_items[reference_types.index(i)].upper().replace('Q', ''))
 
             snaks[i] = [snak]
 
@@ -495,24 +495,24 @@ class WDItemEngine(object):
             ts = time.time()
             timestamp = datetime.datetime.fromtimestamp(ts).strftime('+%Y-%m-%dT00:00:00Z')
             wdTimestamp = dict()
-            wdTimestamp['datatype'] = 'time'
-            wdTimestamp['property'] = 'P813'
-            wdTimestamp['snaktype'] = 'value'
-            wdTimestamp['datavalue'] = dict()
-            wdTimestamp['datavalue']['type'] = 'time'
-            wdTimestamp['datavalue']['value'] = dict()
-            wdTimestamp['datavalue']['value']['after'] = 0
-            wdTimestamp['datavalue']['value']['before'] = 0
-            wdTimestamp['datavalue']['value']['calendarmodel'] = 'http://www.wikidata.org/entity/Q1985727'
-            wdTimestamp['datavalue']['value']['precision'] = 11
-            wdTimestamp['datavalue']['value']['time'] = timestamp
-            wdTimestamp['datavalue']['value']['timezone'] = 0
+            wdTimestamp[u'datatype'] = u'time'
+            wdTimestamp[u'property'] = u'P813'
+            wdTimestamp[u'snaktype'] = u'value'
+            wdTimestamp[u'datavalue'] = dict()
+            wdTimestamp[u'datavalue'][u'type'] = u'time'
+            wdTimestamp[u'datavalue'][u'value'] = dict()
+            wdTimestamp[u'datavalue'][u'value'][u'after'] = 0
+            wdTimestamp[u'datavalue'][u'value'][u'before'] = 0
+            wdTimestamp[u'datavalue'][u'value'][u'calendarmodel'] = u'http://www.wikidata.org/entity/Q1985727'
+            wdTimestamp[u'datavalue'][u'value'][u'precision'] = 11
+            wdTimestamp[u'datavalue'][u'value'][u'time'] = timestamp
+            wdTimestamp[u'datavalue'][u'value'][u'timezone'] = 0
 
-            snaks['P813'] = [wdTimestamp]
+            snaks[u'P813'] = [wdTimestamp]
 
         snak_order = copy.deepcopy(reference_types)
         if timestamp:
-            snak_order.append('P813')
+            snak_order.append(u'P813')
 
         # add snacks and snack order to claims
         references.append({'snaks': snaks, 'snaks-order': snak_order})
