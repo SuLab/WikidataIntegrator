@@ -250,18 +250,24 @@ wd_properties = {
     },
 
     #### for test.wikidata.org
-    'P477': {
-        'datatype': 'string',
-        'name': 'Alt_Symbol',
-        'domain': ['genes'],
-        'core_id': 'False'
-    },
-    'P480': {
-        'datatype': 'string',
-        'name': 'Ensembl',
-        'domain': ['genes'],
-        'core_id': 'False'
-    }
+    # 'P477': {
+    #     'datatype': 'string',
+    #     'name': 'Alt_Symbol',
+    #     'domain': ['genes'],
+    #     'core_id': 'False'
+    # },
+    # 'P480': {
+    #     'datatype': 'string',
+    #     'name': 'Ensembl',
+    #     'domain': ['genes'],
+    #     'core_id': 'False'
+    # },
+    # 'P7': {
+    #     'datatype': 'item',
+    #     'name': 'instance of duplicate',
+    #     'domain': ['genes'],
+    #     'core_id': 'False'
+    # }
     ###########################
 
     # ,
