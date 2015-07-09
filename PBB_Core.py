@@ -376,7 +376,8 @@ class WDItemEngine(object):
                     elif not value_is_item:
                         value = claims[wd_property][x]['mainsnak']['datavalue']['value']
 
-                    if value not in values_present:
+                    # Remove value if not in self.data. If self.data has no values at all, remove thw whole claim
+                    if value not in values_present or len(self.data[wd_property]) == 0:
                         claims[wd_property][x].update({'remove': ''})
                     else:
                         values_present.remove(value)
