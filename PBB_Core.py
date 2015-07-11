@@ -28,8 +28,6 @@ __license__ = 'GPL'
 import time
 import datetime
 import urllib
-import urllib3
-import certifi
 import itertools
 import requests
 import re
@@ -95,9 +93,15 @@ class WDItemList(object):
         :param wdquery: A string representation of a WD query
         :return: A Python json representation object with the search results is returned
         """
-        http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
-        req = http.request("GET", "http://wdq.wmflabs.org/api?"+urllib.urlencode({"q":wdquery, "props":wdproperty}))
-        return json.loads(req.data)
+        url = 'http://wdq.wmflabs.org/api'
+        params = {
+            'q': wdquery,
+            'props': wdproperty
+        }
+
+        reply = requests.get(url, params=params)
+
+        return(json.loads(reply.text))
 
 
 class WDItemEngine(object):
@@ -207,16 +211,16 @@ class WDItemEngine(object):
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         """
         try:
-            query = 'https://{}/w/api.php?action=wbsearchentities{}{}{}'.format(
-                self.server,
-                '&language=en',
-                '&search=' + urllib.quote(search_string),
-                '&format=json'
-            )
+            url = 'https://{}/w/api.php'.format(self.server)
+            params = {
+                'action': 'wbsearchentities',
+                'language': 'en',
+                'search': search_string,
+                'format': 'json'
+            }
 
-            http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
-            request = http.request("GET", query)
-            search_results = json.loads(request.data)
+            reply = requests.get(url, params=params)
+            search_results = json.loads(reply.text)
 
             if search_results['success'] != 1:
                 raise WDSearchError('WD search failed')
@@ -231,7 +235,7 @@ class WDItemEngine(object):
 
                 return(id_list)
 
-        except urllib3.exceptions.HTTPError as e:
+        except requests.HTTPError as e:
             print(e)
             PBB_Debug.getSentryClient().captureException(e)
 
@@ -261,16 +265,21 @@ class WDItemEngine(object):
                     # check if the property is a core_id and should be unique for every WD item
                     if wd_property_store.wd_properties[wd_property]['core_id'] == 'True':
                         for data_point in self.data[wd_property]:
-                            query = 'http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(str(wd_property.replace('P', '')), urllib.quote(str(data_point)))
-                            http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
-                            request = http.request("GET", query)
-                            tmp_qids = json.loads(request.data)['items']
+                            url = 'http://wdq.wmflabs.org/api'
+                            params = {
+                                'q': 'string[{}:{}]'.format(str(wd_property.replace('P', '')), unicode(data_point)),
+                            }
+
+                            reply = requests.get(url, params=params)
+
+                            tmp_qids = json.loads(reply.text)['items']
                             qid_list.append(tmp_qids)
 
                             if len(tmp_qids) > 1:
-                                raise ManualInterventionReqException('More than one WD item has the same property value', wd_property, tmp_qids)
+                                raise ManualInterventionReqException(
+                                    'More than one WD item has the same property value', wd_property, tmp_qids)
 
-                except urllib3.exceptions.HTTPError as e:
+                except requests.HTTPError as e:
                     PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
                     print(e)
 
@@ -297,6 +306,8 @@ class WDItemEngine(object):
         claims = dict()
         if 'claims' in self.wd_json_representation:
             claims = self.wd_json_representation['claims']
+        else:
+            self.wd_json_representation['claims'] = claims
 
         value_is_item = False
 
@@ -376,7 +387,8 @@ class WDItemEngine(object):
                     elif not value_is_item:
                         value = claims[wd_property][x]['mainsnak']['datavalue']['value']
 
-                    # Remove value if not in self.data. If self.data has no values at all, remove thw whole claim
+                    # Remove value if not in self.data.
+                    # If the value list in self.data[property] has no values at all, remove the whole claim
                     if value not in values_present or len(self.data[wd_property]) == 0:
                         claims[wd_property][x].update({'remove': ''})
                     else:
@@ -415,6 +427,7 @@ class WDItemEngine(object):
                 self.add_reference(wd_property=wd_property, value=self.data[wd_property][count], reference_types=ref['ref_properties'],
                                    reference_items=ref['ref_values'], timestamp=timestamp, overwrite=True)
 
+    # TODO: Is this method needed anymore? It seems completely disfunctional!!
     def getClaims(self, claimProperty):
         """
         Returns all property values in a given wdItem
@@ -657,11 +670,6 @@ class WDItemEngine(object):
             print(e)
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
 
-            
-
-
-
-
 
 class IDMissingError(Exception):
     def __init__(self, value):
@@ -670,12 +678,14 @@ class IDMissingError(Exception):
     def __str__(self):
         return repr(self.value)
 
+
 class WDSearchError(Exception):
     def __init__(self, value):
         self.value = value
 
     def __str__(self):
         return repr(self.value)
+
 
 class ManualInterventionReqException(Exception):
     def __init__(self, value, property_string, item_list):
