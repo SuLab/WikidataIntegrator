@@ -109,7 +109,6 @@ class WDItemEngine(object):
     wd_item_id = ''
     item_names = ''
     domain = ''
-    autoadd_references = False
     normalize = True
     create_new_item = False
     data = {}
@@ -538,19 +537,11 @@ class WDItemEngine(object):
         """
         return(self.wd_json_representation)
 
-    def autoadd_references(self, refernce_type, reference_item):
-
+    def __check_integrity(self):
         """
-        adds a reference to all properties of a WD item
-        :param refernce_type:
-        :param reference_item:
-        :return:
-        """
-
-    def check_integrity(self, property_list):
-        """
-        Invokes the check of integrity of an item, i.e. if labels are consistent and properties fit to the domain
-        :param a list with WD property numbers (strings) which are used to check for integrity
+        A method to check if when invoking __select_wd_item() and the WD item does not exist yet, but another item
+        has a property of the current domain with a value like submitted in the data dict, this item does not get
+        selected but a ManualInterventionReqException() is raised.
         :return:
         """
 
