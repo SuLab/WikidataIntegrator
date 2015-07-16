@@ -584,10 +584,6 @@ class WDItemEngine(object):
         # make decision if ManualInterventionReqException should be raised.
         if data_match_count < (count_existing_ids - data_match_count) and self.item_name.lower() not in names:
             raise ManualInterventionReqException('Retrieved name does not match provided item name or core IDs')
-
-        # compare labels
-        if self.item_name.lower() not in names:
-            raise ManualInterventionReqException('Retrieved name does not match provided item name')
         else:
             return(True)
 
