@@ -107,7 +107,7 @@ class WDItemList(object):
 class WDItemEngine(object):
 
     wd_item_id = ''
-    item_names = ''
+    item_name = ''
     domain = ''
     normalize = True
     create_new_item = False
@@ -132,7 +132,7 @@ class WDItemEngine(object):
         passed in the :parameter data.
         """
         self.wd_item_id = wd_item_id
-        self.item_names = item_name
+        self.item_name = item_name
         self.domain = domain
         self.autoadd_references = False
         self.normalize = normalize
@@ -142,8 +142,8 @@ class WDItemEngine(object):
         self.append_value = append_value
         self.references = references
 
-        self.get_item_data(item_name, wd_item_id)
         self.property_list = self.get_property_list()
+        self.get_item_data(item_name, wd_item_id)
 
         self.__construct_claim_json()
         self.__append_references()
@@ -170,11 +170,12 @@ class WDItemEngine(object):
             except WDSearchError as e:
                 PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
                 print(e)
-                qids_by_props = self.__select_wd_item([])
+                qids_by_props = self.__select_wd_item()
 
             if qids_by_props is not '':
                 self.wd_item_id = 'Q{}'.format(qids_by_props)
                 self.wd_json_representation = self.get_wd_entity(self.wd_item_id)
+                self.__check_integrity()
 
     def get_wd_entity(self, item=''):
         """
@@ -542,10 +543,53 @@ class WDItemEngine(object):
         A method to check if when invoking __select_wd_item() and the WD item does not exist yet, but another item
         has a property of the current domain with a value like submitted in the data dict, this item does not get
         selected but a ManualInterventionReqException() is raised.
-        :return:
+        :return: boolean True if test passed
         """
+        # get all claim values for the currently loaded QID
+        claim_values = dict()
+        for key, value in self.wd_json_representation['claims'].iteritems():
+            claim_values[key] = list()
+            for data_json in value:
+                if data_json['mainsnak']['datatype'] == 'wikibase-item':
+                    claim_values[key].append('Q{}'.format(data_json['mainsnak']['datavalue']['value']['numeric-id']))
+                elif data_json['mainsnak']['datatype'] == 'string':
+                    claim_values[key].append(data_json['mainsnak']['datavalue']['value'])
 
-        pass
+        # compare the claim values of the currently loaded QIDs to the data provided in self.data
+        count_existing_ids = 0
+        for i in self.data:
+            if i in wd_property_store.wd_properties:
+                count_existing_ids += 1
+
+        data_match_count = 0
+        for key, value_list in self.data.iteritems():
+            if len(set(value_list).intersection(set(claim_values[key]))) != 0:
+                data_match_count += 1
+
+        # collect all names and aliases in English and German
+        names = list()
+        names.append(self.wd_json_representation['labels']['en']['value'])
+        names.append(self.wd_json_representation['labels']['de']['value'])
+
+        if 'en' in self.wd_json_representation['aliases']:
+            for i in self.wd_json_representation['aliases']['en']:
+                names.append(i['value'])
+
+        if 'de' in self.wd_json_representation['aliases']:
+            for i in self.wd_json_representation['aliases']['de']:
+                names.append(i['value'])
+
+        names = [x.lower() for x in names]
+
+        # make decision if ManualInterventionReqException should be raised.
+        if data_match_count < (count_existing_ids - data_match_count) and self.item_name.lower() not in names:
+            raise ManualInterventionReqException('Retrieved name does not match provided item name or core IDs')
+
+        # compare labels
+        if self.item_name.lower() not in names:
+            raise ManualInterventionReqException('Retrieved name does not match provided item name')
+        else:
+            return(True)
 
     def set_label(self, label, lang='en'):
         """
@@ -679,7 +723,7 @@ class WDSearchError(Exception):
 
 
 class ManualInterventionReqException(Exception):
-    def __init__(self, value, property_string, item_list):
+    def __init__(self, value, property_string='', item_list=''):
         self.value = value + ' Property: {}, items affected: {}'.format(property_string, item_list)
 
     def __str__(self):
