@@ -563,21 +563,20 @@ class WDItemEngine(object):
 
         data_match_count = 0
         for key, value_list in self.data.iteritems():
-            if len(set(value_list).intersection(set(claim_values[key]))) != 0:
-                data_match_count += 1
+            if key in claim_values:
+                if len(set(value_list).intersection(set(claim_values[key]))) != 0:
+                    data_match_count += 1
 
         # collect all names and aliases in English and German
         names = list()
-        names.append(self.wd_json_representation['labels']['en']['value'])
-        names.append(self.wd_json_representation['labels']['de']['value'])
+        for lang in self.wd_json_representation['labels']:
+            if lang == 'en' or lang == 'de':
+                names.append(self.wd_json_representation['labels'][lang]['value'])
 
-        if 'en' in self.wd_json_representation['aliases']:
-            for i in self.wd_json_representation['aliases']['en']:
-                names.append(i['value'])
-
-        if 'de' in self.wd_json_representation['aliases']:
-            for i in self.wd_json_representation['aliases']['de']:
-                names.append(i['value'])
+        for lang in self.wd_json_representation['aliases']:
+            if lang == 'en' or lang == 'de':
+                for alias in self.wd_json_representation['aliases'][lang]:
+                    names.append(alias['value'])
 
         names = [x.lower() for x in names]
 
@@ -615,12 +614,12 @@ class WDItemEngine(object):
             self.wd_json_representation['aliases'] = {}
 
         if not append or lang not in self.wd_json_representation['aliases']:
-            self.wd_json_representation['aliases'][lang] = {}
+            self.wd_json_representation['aliases'][lang] = []
 
         for alias in aliases:
             found = False
             for current_aliases in self.wd_json_representation['aliases'][lang]:
-                if alias not in current_aliases['value']:
+                if alias != current_aliases['value']:
                     continue
                 else:
                     found = True
