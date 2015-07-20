@@ -259,6 +259,7 @@ class WDItemEngine(object):
         :return:
         """
         qid_list = []
+        conflict_source = {}
         for wd_property in self.data:
             if wd_property in wd_property_store.wd_properties:
                 try:
@@ -267,13 +268,20 @@ class WDItemEngine(object):
                         for data_point in self.data[wd_property]:
                             url = 'http://wdq.wmflabs.org/api'
                             params = {
-                                'q': 'string[{}:{}]'.format(str(wd_property.replace('P', '')), unicode(data_point)),
+                                'q': 'string[{}:{}]'.format(str(wd_property.replace('P', '')),
+                                                            unicode('"{}"'.format(data_point))),
                             }
 
                             reply = requests.get(url, params=params)
 
                             tmp_qids = json.loads(reply.text)['items']
                             qid_list.append(tmp_qids)
+
+                            # Protocol in what property the conflict arises
+                            if wd_property in conflict_source:
+                                conflict_source[wd_property].append(tmp_qids)
+                            else:
+                                conflict_source[wd_property] = [tmp_qids]
 
                             if len(tmp_qids) > 1:
                                 raise ManualInterventionReqException(
@@ -294,7 +302,8 @@ class WDItemEngine(object):
         unique_qids = set(qid_list)
         if len(unique_qids) > 1:
             # FIX: exception should be given a list at param 2 which properties are causing the conflicts
-            raise ManualInterventionReqException('More than one WD item has the same property value', 'implementation req', unique_qids)
+            raise ManualInterventionReqException('More than one WD item has the same property value',
+                                                 conflict_source, unique_qids)
         elif len(unique_qids) == 1:
             return(list(unique_qids)[0])
 
@@ -569,14 +578,17 @@ class WDItemEngine(object):
 
         # collect all names and aliases in English and German
         names = list()
-        for lang in self.wd_json_representation['labels']:
-            if lang == 'en' or lang == 'de':
-                names.append(self.wd_json_representation['labels'][lang]['value'])
 
-        for lang in self.wd_json_representation['aliases']:
-            if lang == 'en' or lang == 'de':
-                for alias in self.wd_json_representation['aliases'][lang]:
-                    names.append(alias['value'])
+        if 'labels' in self.wd_json_representation:
+            for lang in self.wd_json_representation['labels']:
+                if lang == 'en' or lang == 'de':
+                    names.append(self.wd_json_representation['labels'][lang]['value'])
+
+        if 'aliases' in self.wd_json_representation:
+            for lang in self.wd_json_representation['aliases']:
+                if lang == 'en' or lang == 'de':
+                    for alias in self.wd_json_representation['aliases'][lang]:
+                        names.append(alias['value'])
 
         names = [x.lower() for x in names]
 
@@ -718,7 +730,7 @@ class WDSearchError(Exception):
 
 
 class ManualInterventionReqException(Exception):
-    def __init__(self, value, property_string='', item_list=''):
+    def __init__(self, value, property_string, item_list):
         self.value = value + ' Property: {}, items affected: {}'.format(property_string, item_list)
 
     def __str__(self):
