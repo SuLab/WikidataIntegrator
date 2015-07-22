@@ -23,7 +23,7 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 import pprint
-from raven import Client
+
 
 def prettyPrint(variable):
     pp = pprint.PrettyPrinter(indent=4)

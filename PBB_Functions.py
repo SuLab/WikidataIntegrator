@@ -30,7 +30,7 @@ import PBB_login
 import PBB_settings
 import requests
 import wd_property_store
-import urllib2
+
 try: import simplejson as json
 except ImportError: import json # http://stackoverflow.com/a/712799/155046
 
@@ -38,10 +38,9 @@ def getItemsByProperty(wdproperty):
     """
     Gets all WikiData item IDs that contains statements containing property wdproperty
     """
-    req = urllib2.Request("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, None, {'user-agent':'proteinBoxBot'})
-    opener = urllib2.build_opener()
-    f = opener.open(req)
-    return json.load(f)
+    req = requests.get("http://wdq.wmflabs.org/api?q=claim%5B"+wdproperty+"%5D&props="+wdproperty, headers={'user-agent':'proteinBoxBot'})
+
+    return req.json()
     
 
 

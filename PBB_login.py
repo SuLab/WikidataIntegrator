@@ -4,7 +4,6 @@ __license__ = 'GPLv3'
 """
 login routine for Wikidata
 """
-import urllib2
 import requests
 try:
     import simplejson as json
@@ -22,7 +21,7 @@ class WDLogin(object):
     edit_token = ''
     baseurl = ''
 
-    def __init__(self, user, pwd, server="www.wikidata.org"):
+    def __init__(self, user, pwd, server='www.wikidata.org'):
         """
         constructor
         :param user: the username which should be used for the login
@@ -38,15 +37,21 @@ class WDLogin(object):
         self.baseurl = 'https://' + self.server + '/w/api.php'
 
         # Get login token and cookie
-        login_params = '?action=login&lgname=%s&lgpassword=%s&format=json' % (self.user, urllib2.quote(self.pwd))
-        response1 = requests.post(self.baseurl + login_params)
+        params = {
+            'action': 'login',
+            'lgname': self.user,
+            'lgpassword': self.pwd,
+            'format': 'json'
+        }
+
+        response1 = requests.post(self.baseurl, params=params)
         cookies = response1.cookies
         login_token = response1.json()['login']['token']
         self.token = login_token
         
         # do the login using the login token
-        login_params2 = login_params + '&lgtoken={}'.format(login_token)
-        response2 = requests.post(self.baseurl + login_params2, cookies=cookies)
+        params.update({'lgtoken': login_token})
+        response2 = requests.post(self.baseurl, params=params, cookies=cookies)
         self.cookie_jar = response2.cookies.copy()
 
         self.generate_edit_credentials()

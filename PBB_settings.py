@@ -22,7 +22,7 @@ You should have received a copy of the GNU General Public License
 along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-from raven import Client
+# from raven import Client
 
 def getSentryKey():
     return '<Sentry key to be obtained from https://getsentry.com/welcome/>'

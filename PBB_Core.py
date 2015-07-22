@@ -33,15 +33,12 @@ import requests
 import re
 
 import PBB_Debug
-import PBB_Functions
 import PBB_settings
-import PBB_login
 import mysql.connector
 import socket
 import getpass
 import copy
 import pprint
-import sys
 import wd_property_store
 try:
     import simplejson as json
@@ -69,17 +66,17 @@ class BotMainLog():
                     "(bot, start_date, finish_date, bot_ip, bot_user) "
                     "VALUES (%s, %s, %s, %s, %s)")
         data_tuple = (self.bot, self.start_date, self.finish_date, self.bot_ip, self.bot_user)
-        print self.bot
-        print self.start_date
-        print self.finish_date
-        print cursor.execute(sql_tuple, data_tuple)
+        print(self.bot)
+        print(self.start_date)
+        print(self.finish_date)
+        print(cursor.execute(sql_tuple, data_tuple))
         cnx.commit()
         
         # print all the first cell of all the rows
         # Use all the SQL you like
         cursor.execute("SELECT * FROM PBB_History")
         for row in cursor.fetchall() :
-            print row[0]
+            print(row[0])
 
 
 class WDItemList(object):
@@ -268,8 +265,8 @@ class WDItemEngine(object):
                         for data_point in self.data[wd_property]:
                             url = 'http://wdq.wmflabs.org/api'
                             params = {
-                                'q': 'string[{}:{}]'.format(str(wd_property.replace('P', '')),
-                                                            unicode('"{}"'.format(data_point))),
+                                'q': u'string[{}:{}]'.format(str(wd_property.replace('P', '')),
+                                                             u'"{}"'.format(data_point)),
                             }
 
                             reply = requests.get(url, params=params)
@@ -556,7 +553,7 @@ class WDItemEngine(object):
         """
         # get all claim values for the currently loaded QID
         claim_values = dict()
-        for key, value in self.wd_json_representation['claims'].iteritems():
+        for key, value in self.wd_json_representation['claims'].items():
             claim_values[key] = list()
             for data_json in value:
                 if data_json['mainsnak']['datatype'] == 'wikibase-item':
@@ -571,7 +568,7 @@ class WDItemEngine(object):
                 count_existing_ids += 1
 
         data_match_count = 0
-        for key, value_list in self.data.iteritems():
+        for key, value_list in self.data.items():
             if key in claim_values:
                 if len(set(value_list).intersection(set(claim_values[key]))) != 0:
                     data_match_count += 1
