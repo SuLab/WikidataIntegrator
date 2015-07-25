@@ -1,7 +1,7 @@
 #!usr/bin/env python
 # -*- coding: utf-8 -*-
 
-'''
+"""
 Authors: 
   Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
   Andra Waagmeester (andra' at ' micelio.be)
@@ -20,14 +20,13 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 __author__ = 'Sebastian Burgstaller, Andra Waagmeester'
 __license__ = 'GPL'
 
 import time
 import datetime
-import urllib
 import itertools
 import requests
 import re
@@ -80,7 +79,7 @@ class BotMainLog():
 
 
 class WDItemList(object):
-    def __init__(self, wdquery = "", wdprop=""):
+    def __init__(self, wdquery, wdprop=""):
         self.wdquery = wdquery
         self.wditems = self.getItemsByProperty(wdquery, wdprop)
 
@@ -98,7 +97,7 @@ class WDItemList(object):
 
         reply = requests.get(url, params=params)
 
-        return(json.loads(reply.text))
+        return reply.json()
 
 
 class WDItemEngine(object):
@@ -106,22 +105,20 @@ class WDItemEngine(object):
     wd_item_id = ''
     item_name = ''
     domain = ''
-    normalize = True
     create_new_item = False
     data = {}
     append_value = []
-    server = 'www.wikidata.org'
 
     # a list with all properties an item should have and/or modify
     property_list = {}
     wd_json_representation = {}
 
-    def __init__(self, wd_item_id='', item_name='', normalize=True, domain='', data={}, token='', server='', append_value=[], references = {}):
+    def __init__(self, wd_item_id='', item_name='', domain='', data={}, server='www.wikidata.org',
+                 append_value=[], references={}):
         """
         constructor
         :param wd_item_id: Wikidata item id
         :param item_name: Label of the wikidata item
-        :param normalize: boolean if wbgetentity should use the parameter normalize
         :param domain: string which tells the data domain the class should operate in
         :param data: a dictionary with WD property strings as keys and the data which should be written to
         a WD item as the property values
@@ -131,10 +128,7 @@ class WDItemEngine(object):
         self.wd_item_id = wd_item_id
         self.item_name = item_name
         self.domain = domain
-        self.autoadd_references = False
-        self.normalize = normalize
         self.data = data
-        self.token = token
         self.server = server
         self.append_value = append_value
         self.references = references
@@ -192,7 +186,7 @@ class WDItemEngine(object):
 
             reply = requests.get(url, params=params)
 
-            wd_reply = json.loads(reply.text)['entities'][self.wd_item_id]
+            wd_reply = reply.json()['entities'][self.wd_item_id]
             wd_reply = {x: wd_reply[x] for x in (u'labels', u'descriptions', u'claims', u'aliases', u'sitelinks') if x in wd_reply}
 
             return(wd_reply)
@@ -433,7 +427,7 @@ class WDItemEngine(object):
                 self.add_reference(wd_property=wd_property, value=self.data[wd_property][count], reference_types=ref['ref_properties'],
                                    reference_items=ref['ref_values'], timestamp=timestamp, overwrite=True)
 
-    # TODO: Is this method needed anymore? It seems completely disfunctional!!
+    # TODO: Is this method needed anymore? It seems completely dysfunctional!!
     def getClaims(self, claimProperty):
         """
         Returns all property values in a given wdItem
@@ -447,7 +441,7 @@ class WDItemEngine(object):
             'property' + claimProperty
         )
 
-        return(json.load(urllib.urlopen(query)))
+        return requests.get(query).json()
 
     def countPropertyValues(self, wdItem, claimProperty):
         """
