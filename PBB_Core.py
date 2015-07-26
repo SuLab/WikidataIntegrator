@@ -710,7 +710,6 @@ class WDBaseDataType(object):
     def __init__(self):
         pass
 
-
 class IDMissingError(Exception):
     def __init__(self, value):
         self.value = value
