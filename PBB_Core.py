@@ -704,6 +704,13 @@ class WDItemEngine(object):
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
 
 
+class WDBaseDataType(object):
+    json_representation = {}
+
+    def __init__(self):
+        pass
+
+
 class IDMissingError(Exception):
     def __init__(self, value):
         self.value = value
