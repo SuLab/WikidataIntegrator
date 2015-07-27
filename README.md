@@ -7,7 +7,12 @@ This would include finding, updating and creating concepts in WikiData
 
 # list of general function libraries
 ## PBB_core.py
-This files contains the following functions
+PBB_core checks if an appropriate item is present in Wikidata where data should be written to. Also, the json representation of the data is generated and the whole item is written to Wikidata.
+
+A scheme of the item selection process:
+![Scheme of item selection process](https://bytebucket.org/sulab/wikidatabots/raw/04e6e8a514fa2c7a189e60c466774434ed48b023/ProteinBoxBot_Core/doc/item_selection_overview.svg)
+
+
 ### login
 This function enables login on WikiData's API
 
