@@ -585,9 +585,40 @@ class WDItemEngine(object):
 
         # make decision if ManualInterventionReqException should be raised.
         if data_match_count < (count_existing_ids - data_match_count) and self.item_name.lower() not in names:
-            raise ManualInterventionReqException('Retrieved name does not match provided item name or core IDs')
+            raise ManualInterventionReqException('Retrieved name does not match provided item name or core IDs. '
+                                                 'Matching count {}, nonmatching count {}'
+                                                 .format(data_match_count, count_existing_ids - data_match_count), '', '')
         else:
-            return(True)
+            return True
+
+    def set_rank(self, prop, prop_value, rank):
+        """
+        sets the rank of a certain claim
+        :param prop: the property number
+        :type prop: str
+        :param prop_value: the value of the claim, so the rank can be set for the correct value
+        :type prop_value: str
+        :param rank: the rank
+        :type rank: str with one of three possible values: 'preferred', 'normal' or 'deprecated'
+        :return:
+        """
+        valid_ranks = ['preferred', 'normal', 'deprecated']
+
+        if rank not in valid_ranks:
+            raise ValueError('No valid rank provided')
+
+        if prop in self.wd_json_representation:
+            for claim in self.wd_json_representation[prop]:
+                dtype = claim['mainsnak']['datatype']
+                value = ''
+                if dtype == 'string':
+                    value = claim['mainsnak']['datavalue']['value']
+                elif dtype == 'wikibase-item':
+                    value = str(claim['mainsnak']['datavalue']['value']['numeric-id'])
+                    prop_value = prop_value.lstrip('Q')
+
+                if prop_value == value:
+                    claim['rank'] = rank
 
     def set_label(self, label, lang='en'):
         """
