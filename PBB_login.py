@@ -5,10 +5,8 @@ __license__ = 'GPLv3'
 login routine for Wikidata
 """
 import requests
-try:
-    import simplejson as json
-except ImportError:
-    import json  # http://stackoverflow.com/a/712799/155046
+import time
+
 
 class WDLogin(object):
     """
@@ -20,19 +18,26 @@ class WDLogin(object):
     cookie_jar = {}
     edit_token = ''
     baseurl = ''
+    instantiation_time = time.time()
+    token_renew_period = 1800
 
-    def __init__(self, user, pwd, server='www.wikidata.org'):
+    def __init__(self, user, pwd, server='www.wikidata.org', token_renew_period=1800):
         """
         constructor
         :param user: the username which should be used for the login
         :param pwd: the password which should be used for the login
         :param server: the wikimedia server the login should be made to
+        :param token_renew_period: Seconds after which a new token should be requested from the Wikidata server
+        :type token_renew_period: int
         :return: None
         """
         self.user = user
         self.pwd = pwd
         if server is not None:
             self.server = server
+
+        self.instantiation_time = time.time()
+        self.token_renew_period = token_renew_period
 
         self.baseurl = 'https://' + self.server + '/w/api.php'
 
@@ -61,30 +66,36 @@ class WDLogin(object):
         request an edit token and update the cookie_jar in order to add the session cookie
         :return: Returns a json with all relevant cookies, aka cookie jar
         """
-        params = '?format=json&action=query&meta=tokens'
-        response = requests.get(self.baseurl + params, cookies=self.cookie_jar)
+        params = {
+            'action': 'query',
+            'meta': 'tokens',
+            'format': 'json'
+        }
+        response = requests.get(self.baseurl, params=params, cookies=self.cookie_jar)
         self.edit_token = response.json()['query']['tokens']['csrftoken']
 
         self.cookie_jar.update(response.cookies)
 
-        return(self.cookie_jar)
+        return self.cookie_jar
 
     def get_edit_cookie(self):
         """
         Can be called in order to retrieve the cookies from an instance of WDLogin
         :return: Returns a json with all relevant cookies, aka cookie jar
         """
-        if self.cookie_jar is {}:
+        if self.cookie_jar is {} or (time.time() - self.instantiation_time) > self.token_renew_period:
             self.generate_edit_credentials()
+            self.instantiation_time = time.time()
 
-        return(self.cookie_jar)
+        return self.cookie_jar
 
     def get_edit_token(self):
         """
         Can be called in order to retrieve the edit token from an instance of WDLogin
         :return: returns the edit token
         """
-        if self.edit_token is '':
+        if self.edit_token is '' or (time.time() - self.instantiation_time) > self.token_renew_period:
             self.generate_edit_credentials()
+            self.instantiation_time = time.time()
 
-        return(self.edit_token)
+        return self.edit_token
