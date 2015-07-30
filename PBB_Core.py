@@ -729,8 +729,10 @@ class WDItemEngine(object):
 
             json_data = json.loads(reply.text)
             pprint.pprint(json_data)
+            if 'error' in json_data.keys:
+                raise UserWarning("Wikidata api returns error: "+json_data['error']['info']
 
-        except requests.HTTPError as e:
+        except (requests.HTTPError, UserWarning) as e:
             print(e)
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
 
