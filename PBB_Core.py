@@ -732,8 +732,11 @@ class WDItemEngine(object):
             if 'error' in json_data.keys:
                 raise UserWarning("Wikidata api returns error: "+json_data['error']['info']
 
-        except (requests.HTTPError, UserWarning) as e:
-            print(e)
+        except requests.HTTPError as e: 
+            repr(e)
+            PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+        except UserWarning as e: 
+            repr(e)
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
 
 
