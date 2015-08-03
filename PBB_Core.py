@@ -361,7 +361,7 @@ class WDItemEngine(object):
 
                     if current_value in self.data[wd_property]:
                         values_present.append(current_value)
-            elif len(self.data[wd_property]) > 0:
+            else:
                 # if not in claims, initialize new property
                 claims[wd_property] = []
 
@@ -424,8 +424,10 @@ class WDItemEngine(object):
                     ref['ref_properties'].pop(ref['ref_values'].index('TIMESTAMP'))
                     ref['ref_values'].remove('TIMESTAMP')
 
-                self.add_reference(wd_property=wd_property, value=self.data[wd_property][count], reference_types=ref['ref_properties'],
-                                   reference_items=ref['ref_values'], timestamp=timestamp, overwrite=True)
+                if len(self.data[wd_property]) > 0:
+                    self.add_reference(wd_property=wd_property, value=self.data[wd_property][count],
+                                       reference_types=ref['ref_properties'], reference_items=ref['ref_values'],
+                                       timestamp=timestamp, overwrite=True)
 
     # TODO: Is this method needed anymore? It seems completely dysfunctional!!
     def getClaims(self, claimProperty):
@@ -714,7 +716,8 @@ class WDItemEngine(object):
             # u'data': json.dumps(self.wd_json_representation, encoding='utf-8'),
             u'data': json.JSONEncoder(encoding='utf-8').encode(self.wd_json_representation),
             u'format': u'json',
-            u'token': edit_token
+            u'token': edit_token,
+            u'bot': 1
         }
 
         if self.create_new_item:
