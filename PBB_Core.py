@@ -361,7 +361,7 @@ class WDItemEngine(object):
 
                     if current_value in self.data[wd_property]:
                         values_present.append(current_value)
-            else:
+            elif len(self.data[wd_property]) > 0:
                 # if not in claims, initialize new property
                 claims[wd_property] = []
 
