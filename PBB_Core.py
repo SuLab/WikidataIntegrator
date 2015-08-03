@@ -389,7 +389,7 @@ class WDItemEngine(object):
 
                     # Remove value if not in self.data.
                     # If the value list in self.data[property] has no values at all, remove the whole claim
-                    if value not in values_present or len(self.data[wd_property]) == 0:
+                    if value not in values_present or (len(self.data[wd_property]) == 0 and not self.create_new_item):
                         claims[wd_property][x].update({'remove': ''})
                     else:
                         values_present.remove(value)
