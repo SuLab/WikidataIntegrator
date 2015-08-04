@@ -330,8 +330,7 @@ class WDItemEngine(object):
                     'rank': 'normal'
                 }
                 value_is_item = True
-                print wd_property
-                print self.data[wd_property]
+                
                 self.data[wd_property] = [int(re.sub('[Qq]', '', x)) for x in self.data[wd_property]]
 
             elif wd_property_store.wd_properties[wd_property]['datatype'] == 'string':
