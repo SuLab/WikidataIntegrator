@@ -585,8 +585,12 @@ class WDItemEngine(object):
 
         names = [x.lower() for x in names]
 
+        count = 0
+        if len(claim_values) - data_match_count > 0:
+            count = round((len(claim_values) - data_match_count) / 2)
+
         # make decision if ManualInterventionReqException should be raised.
-        if data_match_count < (count_existing_ids - data_match_count) and self.item_name.lower() not in names:
+        if data_match_count < count and self.item_name.lower() not in names:
             raise ManualInterventionReqException('Retrieved name does not match provided item name or core IDs. '
                                                  'Matching count {}, nonmatching count {}'
                                                  .format(data_match_count, count_existing_ids - data_match_count), '', '')
