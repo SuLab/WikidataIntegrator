@@ -186,7 +186,7 @@ class WDItemEngine(object):
 
             reply = requests.get(url, params=params)
 
-            wd_reply = reply.json()['entities'][self.wd_item_id]
+            wd_reply = json.loads(reply.text, encoding='utf-8')['entities'][self.wd_item_id]
             wd_reply = {x: wd_reply[x] for x in (u'labels', u'descriptions', u'claims', u'aliases', u'sitelinks') if x in wd_reply}
 
             return(wd_reply)
@@ -259,13 +259,13 @@ class WDItemEngine(object):
                         for data_point in self.data[wd_property]:
                             url = 'http://wdq.wmflabs.org/api'
                             params = {
-                                'q': u'string[{}:{}]'.format(str(wd_property.replace('P', '')),
+                                'q': u'string[{}:{}]'.format(str(wd_property).replace('P', ''),
                                                              u'"{}"'.format(data_point)),
                             }
 
                             reply = requests.get(url, params=params)
 
-                            tmp_qids = json.loads(reply.text)['items']
+                            tmp_qids = json.loads(reply.text, encoding='utf-8')['items']
                             qid_list.append(tmp_qids)
 
                             # Protocol in what property the conflict arises
