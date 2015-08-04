@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 __author__ = 'Sebastian Burgstaller and Andra Waagmeester'
 __licence__ = 'GPLv3'
 
