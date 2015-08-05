@@ -107,11 +107,6 @@ class WDItemEngine(object):
     domain = ''
     create_new_item = False
     data = {}
-    append_value = []
-
-    # a list with all properties an item should have and/or modify
-    property_list = {}
-    wd_json_representation = {}
 
     def __init__(self, wd_item_id='', item_name='', domain='', data={}, server='www.wikidata.org',
                  append_value=[], references={}):
@@ -125,6 +120,7 @@ class WDItemEngine(object):
         :param append_value: a list of properties where potential existing values should not be overwritten by the data
         passed in the :parameter data.
         """
+        self.wd_json_representation = {}
         self.wd_item_id = wd_item_id
         self.item_name = item_name
         self.domain = domain
@@ -330,7 +326,7 @@ class WDItemEngine(object):
                     'rank': 'normal'
                 }
                 value_is_item = True
-                
+
                 self.data[wd_property] = [int(re.sub('[Qq]', '', x)) for x in self.data[wd_property]]
 
             elif wd_property_store.wd_properties[wd_property]['datatype'] == 'string':
@@ -590,8 +586,11 @@ class WDItemEngine(object):
         if len(claim_values) - data_match_count > 0:
             count = round((len(claim_values) - data_match_count) / 2)
 
+        # Two thirds of the provided values must match, otherwise, raise exception
+        majority_match = count_existing_ids - data_match_count > round(count_existing_ids * 0.66)
+
         # make decision if ManualInterventionReqException should be raised.
-        if data_match_count < count and self.item_name.lower() not in names:
+        if data_match_count < count and majority_match and self.item_name.lower() not in names:
             raise ManualInterventionReqException('Retrieved name does not match provided item name or core IDs. '
                                                  'Matching count {}, nonmatching count {}'
                                                  .format(data_match_count, count_existing_ids - data_match_count), '', '')
