@@ -721,7 +721,7 @@ class WDItemEngine(object):
             u'data': json.JSONEncoder(encoding='utf-8').encode(self.wd_json_representation),
             u'format': u'json',
             u'token': edit_token,
-            u'bot': 1
+            u'bot': ''
         }
 
         if self.create_new_item:
