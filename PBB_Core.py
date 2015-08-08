@@ -734,13 +734,63 @@ class WDItemEngine(object):
         try:
             reply = requests.post(base_url, headers=headers, data=payload, cookies=cookies)
 
-            json_data = json.loads(reply.text)
+            # if the server does not reply with a string which can be parsed into a json, an error will be raised.
+            json_data = reply.json()
+
             pprint.pprint(json_data)
+
             if 'error' in json_data.keys():
-                raise UserWarning("Wikidata api returns error: "+json_data['error']['info'])
-        except (requests.HTTPError, UserWarning) as e: 
+                if 'wikibase-validator-label-with-description-conflict' == json_data['error']['messages'][0]['name']:
+                    raise NonUniqueLabelDescriptorPairError(json_data)
+                else:
+                    raise WDApiError(json_data)
+
+        except requests.HTTPError as e:
             repr(e)
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+
+
+class WDApiError(Exception):
+    def __init__(self, wd_error_message):
+        """
+        Base class for Wikidata error handling
+        :param wd_error_message: The error message returned by the WD API
+        :type wd_error_message: A Python json representation dictionary of the error message
+        :return:
+        """
+        self.wd_error_msg = wd_error_message
+
+    def __str__(self):
+        return repr(self.wd_error_msg)
+
+
+class NonUniqueLabelDescriptorPairError(WDApiError):
+    def __init__(self, wd_error_message):
+        """
+        This class handles errors returned from the WD API due to an attempt to create an item which has the same
+         label and description as an existing item in a certain language.
+        :param wd_error_message: An WD API error mesage containing 'wikibase-validator-label-with-description-conflict'
+         as the message name.
+        :type wd_error_message: A Python json representation dictionary of the error message
+        :return:
+        """
+        self.wd_error_msg = wd_error_message
+
+    def get_language(self):
+        """
+        :return: Returns a 2 letter Wikidata language string, indicating the language which triggered the error
+        """
+        return self.wd_error_msg['error']['messages'][0]['parameters'][1]
+
+    def get_conflicting_item_qid(self):
+        """
+        :return: Returns the QID string of the item which has the same label and description as the one which should
+         be set.
+        """
+        qid_string = self.wd_error_msg['error']['messages'][0]['parameters'][1]
+        
+        return qid_string.split('|')[0][2:]
+
 
 class IDMissingError(Exception):
     def __init__(self, value):
