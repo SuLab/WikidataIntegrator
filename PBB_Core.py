@@ -737,11 +737,11 @@ class WDItemEngine(object):
             # if the server does not reply with a string which can be parsed into a json, an error will be raised.
             json_data = reply.json()
 
-            pprint.pprint(json_data)
+            # pprint.pprint(json_data)
 
             if 'error' in json_data.keys():
                 if 'wikibase-validator-label-with-description-conflict' == json_data['error']['messages'][0]['name']:
-                    raise NonUniqueLabelDescriptorPairError(json_data)
+                    raise NonUniqueLabelDescriptionPairError(json_data)
                 else:
                     raise WDApiError(json_data)
 
@@ -764,7 +764,7 @@ class WDApiError(Exception):
         return repr(self.wd_error_msg)
 
 
-class NonUniqueLabelDescriptorPairError(WDApiError):
+class NonUniqueLabelDescriptionPairError(WDApiError):
     def __init__(self, wd_error_message):
         """
         This class handles errors returned from the WD API due to an attempt to create an item which has the same
@@ -787,8 +787,8 @@ class NonUniqueLabelDescriptorPairError(WDApiError):
         :return: Returns the QID string of the item which has the same label and description as the one which should
          be set.
         """
-        qid_string = self.wd_error_msg['error']['messages'][0]['parameters'][1]
-        
+        qid_string = self.wd_error_msg['error']['messages'][0]['parameters'][2]
+
         return qid_string.split('|')[0][2:]
 
 
