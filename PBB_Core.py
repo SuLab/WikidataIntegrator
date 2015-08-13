@@ -671,6 +671,17 @@ class WDItemEngine(object):
                     'value': alias
                 })
 
+    def get_description(self, lang='en'):
+        """
+        Retrieve the description in a certain language
+        :param lang: The Wikidata language the description should be retrieved for
+        :return: Returns the description string
+        """
+        if 'descriptions' not in self.wd_json_representation or lang not in self.wd_json_representation['descriptions']:
+            return ''
+        else:
+            return self.wd_json_representation['descriptions'][lang]
+
     def set_description(self, description, lang='en'):
         """
         Set the description for a WD item in a certain language
