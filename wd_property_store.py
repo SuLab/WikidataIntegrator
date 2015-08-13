@@ -75,7 +75,7 @@ wd_properties = {
         'datatype': 'string',
         'name': 'CAS registry number',
         'domain': ['drugs'],
-        'core_id': 'True'
+        'core_id': 'False'
     },
     'P486': {
         'datatype': 'string',
