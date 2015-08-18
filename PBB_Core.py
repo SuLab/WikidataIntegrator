@@ -30,6 +30,8 @@ import datetime
 import itertools
 import requests
 import re
+import logging
+import os
 
 import PBB_Debug
 import PBB_settings
@@ -102,11 +104,8 @@ class WDItemList(object):
 
 class WDItemEngine(object):
 
-    wd_item_id = ''
-    item_name = ''
-    domain = ''
     create_new_item = False
-    data = {}
+    log_file_name = ''
 
     def __init__(self, wd_item_id='', item_name='', domain='', data={}, server='www.wikidata.org',
                  append_value=[], references={}):
@@ -659,7 +658,7 @@ class WDItemEngine(object):
         for alias in aliases:
             found = False
             for current_aliases in self.wd_json_representation['aliases'][lang]:
-                if alias != current_aliases['value']:
+                if alias.lower() != current_aliases['value'].lower():
                     continue
                 else:
                     found = True
@@ -680,7 +679,7 @@ class WDItemEngine(object):
         if 'descriptions' not in self.wd_json_representation or lang not in self.wd_json_representation['descriptions']:
             return ''
         else:
-            return self.wd_json_representation['descriptions'][lang]
+            return self.wd_json_representation['descriptions'][lang]['value']
 
     def set_description(self, description, lang='en'):
         """
@@ -759,6 +758,43 @@ class WDItemEngine(object):
         except requests.HTTPError as e:
             repr(e)
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+
+    @staticmethod
+    def log(level, message):
+        """
+        A static method which initiates log files compatible to .csv format, allowing for easy further analysis.
+        :param level: The log level as in the Python logging documentation, 5 different possible values with increasing
+         severity
+        :type level: String of value 'DEBUG', 'INFO', 'WARNING', 'ERROR' or 'CRITICAL'.
+        :param message: The logging data which should be written to the log file. In order to achieve a csv-file
+         compatible format, all fields must be separated by a colon. Furthermore, all strings which could contain colons,
+         spaces or other special characters must be enclosed in double-quotes.
+         e.g. '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=<main_id>,
+                        exception_type=<excpetion type>,
+                        message=<exception message>,
+                        wd_id=<wikidata id>,
+                        duration=<duration of action>
+        :type message: str
+        """
+        log_levels = {'DEBUG': logging.DEBUG, 'ERROR': logging.ERROR, 'INFO': logging.INFO, 'WARNING': logging.WARNING,
+                      'CRITICAL': logging.CRITICAL}
+
+        if not os.path.exists('./logs'):
+            os.makedirs('./logs')
+
+        logger = logging.getLogger('WD_logger')
+        if WDItemEngine.log_file_name == '':
+            WDItemEngine.log_file_name = './logs/WD_bot_run-{}.log'.format(time.strftime('%Y-%m-%d_%H:%M',
+                                                                                         time.localtime()))
+            logger.setLevel(logging.DEBUG)
+            file_handler = logging.FileHandler(WDItemEngine.log_file_name)
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(logging.Formatter(fmt='%(levelname)s, %(asctime)s, %(message)s',
+                                                        datefmt='%m/%d/%Y %H:%M:%S'))
+            logger.addHandler(file_handler)
+
+        logger.log(level=log_levels[level], msg=message)
 
 
 class WDApiError(Exception):
