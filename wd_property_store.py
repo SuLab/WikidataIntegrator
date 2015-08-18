@@ -185,6 +185,12 @@ wd_properties = {
         'domain': ['diseases'],
         'core_id': 'True'
     },
+    'P492': {
+        'datatype': 'string',
+        'name': 'OMIM',
+        'domain': ['diseases'],
+        'core_id': 'True'
+    },
     'P1395': {
         'datatype': 'string',
         'name': 'National Cancer Institute ID',
