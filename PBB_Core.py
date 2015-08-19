@@ -30,6 +30,8 @@ import datetime
 import itertools
 import requests
 import re
+import logging
+import os
 
 import PBB_Debug
 import PBB_settings
@@ -102,16 +104,8 @@ class WDItemList(object):
 
 class WDItemEngine(object):
 
-    wd_item_id = ''
-    item_name = ''
-    domain = ''
     create_new_item = False
-    data = {}
-    append_value = []
-
-    # a list with all properties an item should have and/or modify
-    property_list = {}
-    wd_json_representation = {}
+    log_file_name = ''
 
     def __init__(self, wd_item_id='', item_name='', domain='', data={}, server='www.wikidata.org',
                  append_value=[], references={}):
@@ -125,6 +119,7 @@ class WDItemEngine(object):
         :param append_value: a list of properties where potential existing values should not be overwritten by the data
         passed in the :parameter data.
         """
+        self.wd_json_representation = {}
         self.wd_item_id = wd_item_id
         self.item_name = item_name
         self.domain = domain
@@ -186,7 +181,7 @@ class WDItemEngine(object):
 
             reply = requests.get(url, params=params)
 
-            wd_reply = reply.json()['entities'][self.wd_item_id]
+            wd_reply = json.loads(reply.text, encoding='utf-8')['entities'][self.wd_item_id]
             wd_reply = {x: wd_reply[x] for x in (u'labels', u'descriptions', u'claims', u'aliases', u'sitelinks') if x in wd_reply}
 
             return(wd_reply)
@@ -259,13 +254,13 @@ class WDItemEngine(object):
                         for data_point in self.data[wd_property]:
                             url = 'http://wdq.wmflabs.org/api'
                             params = {
-                                'q': u'string[{}:{}]'.format(str(wd_property.replace('P', '')),
+                                'q': u'string[{}:{}]'.format(str(wd_property).replace('P', ''),
                                                              u'"{}"'.format(data_point)),
                             }
 
                             reply = requests.get(url, params=params)
 
-                            tmp_qids = json.loads(reply.text)['items']
+                            tmp_qids = json.loads(reply.text, encoding='utf-8')['items']
                             qid_list.append(tmp_qids)
 
                             # Protocol in what property the conflict arises
@@ -330,6 +325,7 @@ class WDItemEngine(object):
                     'rank': 'normal'
                 }
                 value_is_item = True
+
                 self.data[wd_property] = [int(re.sub('[Qq]', '', x)) for x in self.data[wd_property]]
 
             elif wd_property_store.wd_properties[wd_property]['datatype'] == 'string':
@@ -389,7 +385,7 @@ class WDItemEngine(object):
 
                     # Remove value if not in self.data.
                     # If the value list in self.data[property] has no values at all, remove the whole claim
-                    if value not in values_present or len(self.data[wd_property]) == 0:
+                    if value not in values_present or (len(self.data[wd_property]) == 0 and not self.create_new_item):
                         claims[wd_property][x].update({'remove': ''})
                     else:
                         values_present.remove(value)
@@ -424,8 +420,10 @@ class WDItemEngine(object):
                     ref['ref_properties'].pop(ref['ref_values'].index('TIMESTAMP'))
                     ref['ref_values'].remove('TIMESTAMP')
 
-                self.add_reference(wd_property=wd_property, value=self.data[wd_property][count], reference_types=ref['ref_properties'],
-                                   reference_items=ref['ref_values'], timestamp=timestamp, overwrite=True)
+                if len(self.data[wd_property]) > 0:
+                    self.add_reference(wd_property=wd_property, value=self.data[wd_property][count],
+                                       reference_types=ref['ref_properties'], reference_items=ref['ref_values'],
+                                       timestamp=timestamp, overwrite=True)
 
     # TODO: Is this method needed anymore? It seems completely dysfunctional!!
     def getClaims(self, claimProperty):
@@ -583,11 +581,49 @@ class WDItemEngine(object):
 
         names = [x.lower() for x in names]
 
+        count = 0
+        if len(claim_values) - data_match_count > 0:
+            count = round((len(claim_values) - data_match_count) / 2)
+
+        # Two thirds of the provided values must match, otherwise, raise exception
+        majority_match = count_existing_ids - data_match_count > round(count_existing_ids * 0.66)
+
         # make decision if ManualInterventionReqException should be raised.
-        if data_match_count < (count_existing_ids - data_match_count) and self.item_name.lower() not in names:
-            raise ManualInterventionReqException('Retrieved name does not match provided item name or core IDs')
+        if data_match_count < count and majority_match and self.item_name.lower() not in names:
+            raise ManualInterventionReqException('Retrieved name does not match provided item name or core IDs. '
+                                                 'Matching count {}, nonmatching count {}'
+                                                 .format(data_match_count, count_existing_ids - data_match_count), '', '')
         else:
-            return(True)
+            return True
+
+    def set_rank(self, prop, prop_value, rank):
+        """
+        sets the rank of a certain claim
+        :param prop: the property number
+        :type prop: str
+        :param prop_value: the value of the claim, so the rank can be set for the correct value
+        :type prop_value: str
+        :param rank: the rank
+        :type rank: str with one of three possible values: 'preferred', 'normal' or 'deprecated'
+        :return:
+        """
+        valid_ranks = ['preferred', 'normal', 'deprecated']
+
+        if rank not in valid_ranks:
+            raise ValueError('No valid rank provided')
+
+        if prop in self.wd_json_representation:
+            for claim in self.wd_json_representation[prop]:
+                dtype = claim['mainsnak']['datatype']
+                value = ''
+                if dtype == 'string':
+                    value = claim['mainsnak']['datavalue']['value']
+                elif dtype == 'wikibase-item':
+                    value = str(claim['mainsnak']['datavalue']['value']['numeric-id'])
+                    prop_value = prop_value.lstrip('Q')
+
+                if prop_value == value:
+                    claim['rank'] = rank
 
     def set_label(self, label, lang='en'):
         """
@@ -622,7 +658,7 @@ class WDItemEngine(object):
         for alias in aliases:
             found = False
             for current_aliases in self.wd_json_representation['aliases'][lang]:
-                if alias != current_aliases['value']:
+                if alias.lower() != current_aliases['value'].lower():
                     continue
                 else:
                     found = True
@@ -633,6 +669,17 @@ class WDItemEngine(object):
                     'language': lang,
                     'value': alias
                 })
+
+    def get_description(self, lang='en'):
+        """
+        Retrieve the description in a certain language
+        :param lang: The Wikidata language the description should be retrieved for
+        :return: Returns the description string
+        """
+        if 'descriptions' not in self.wd_json_representation or lang not in self.wd_json_representation['descriptions']:
+            return ''
+        else:
+            return self.wd_json_representation['descriptions'][lang]['value']
 
     def set_description(self, description, lang='en'):
         """
@@ -683,7 +730,8 @@ class WDItemEngine(object):
             # u'data': json.dumps(self.wd_json_representation, encoding='utf-8'),
             u'data': json.JSONEncoder(encoding='utf-8').encode(self.wd_json_representation),
             u'format': u'json',
-            u'token': edit_token
+            u'token': edit_token,
+            u'bot': ''
         }
 
         if self.create_new_item:
@@ -696,12 +744,99 @@ class WDItemEngine(object):
         try:
             reply = requests.post(base_url, headers=headers, data=payload, cookies=cookies)
 
-            json_data = json.loads(reply.text)
-            pprint.pprint(json_data)
+            # if the server does not reply with a string which can be parsed into a json, an error will be raised.
+            json_data = reply.json()
+
+            # pprint.pprint(json_data)
+
+            if 'error' in json_data.keys():
+                if 'wikibase-validator-label-with-description-conflict' == json_data['error']['messages'][0]['name']:
+                    raise NonUniqueLabelDescriptionPairError(json_data)
+                else:
+                    raise WDApiError(json_data)
 
         except requests.HTTPError as e:
-            print(e)
+            repr(e)
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+
+    @staticmethod
+    def log(level, message):
+        """
+        A static method which initiates log files compatible to .csv format, allowing for easy further analysis.
+        :param level: The log level as in the Python logging documentation, 5 different possible values with increasing
+         severity
+        :type level: String of value 'DEBUG', 'INFO', 'WARNING', 'ERROR' or 'CRITICAL'.
+        :param message: The logging data which should be written to the log file. In order to achieve a csv-file
+         compatible format, all fields must be separated by a colon. Furthermore, all strings which could contain colons,
+         spaces or other special characters must be enclosed in double-quotes.
+         e.g. '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=<main_id>,
+                        exception_type=<excpetion type>,
+                        message=<exception message>,
+                        wd_id=<wikidata id>,
+                        duration=<duration of action>
+        :type message: str
+        """
+        log_levels = {'DEBUG': logging.DEBUG, 'ERROR': logging.ERROR, 'INFO': logging.INFO, 'WARNING': logging.WARNING,
+                      'CRITICAL': logging.CRITICAL}
+
+        if not os.path.exists('./logs'):
+            os.makedirs('./logs')
+
+        logger = logging.getLogger('WD_logger')
+        if WDItemEngine.log_file_name == '':
+            WDItemEngine.log_file_name = './logs/WD_bot_run-{}.log'.format(time.strftime('%Y-%m-%d_%H:%M',
+                                                                                         time.localtime()))
+            logger.setLevel(logging.DEBUG)
+            file_handler = logging.FileHandler(WDItemEngine.log_file_name)
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(logging.Formatter(fmt='%(levelname)s, %(asctime)s, %(message)s',
+                                                        datefmt='%m/%d/%Y %H:%M:%S'))
+            logger.addHandler(file_handler)
+
+        logger.log(level=log_levels[level], msg=message)
+
+
+class WDApiError(Exception):
+    def __init__(self, wd_error_message):
+        """
+        Base class for Wikidata error handling
+        :param wd_error_message: The error message returned by the WD API
+        :type wd_error_message: A Python json representation dictionary of the error message
+        :return:
+        """
+        self.wd_error_msg = wd_error_message
+
+    def __str__(self):
+        return repr(self.wd_error_msg)
+
+
+class NonUniqueLabelDescriptionPairError(WDApiError):
+    def __init__(self, wd_error_message):
+        """
+        This class handles errors returned from the WD API due to an attempt to create an item which has the same
+         label and description as an existing item in a certain language.
+        :param wd_error_message: An WD API error mesage containing 'wikibase-validator-label-with-description-conflict'
+         as the message name.
+        :type wd_error_message: A Python json representation dictionary of the error message
+        :return:
+        """
+        self.wd_error_msg = wd_error_message
+
+    def get_language(self):
+        """
+        :return: Returns a 2 letter Wikidata language string, indicating the language which triggered the error
+        """
+        return self.wd_error_msg['error']['messages'][0]['parameters'][1]
+
+    def get_conflicting_item_qid(self):
+        """
+        :return: Returns the QID string of the item which has the same label and description as the one which should
+         be set.
+        """
+        qid_string = self.wd_error_msg['error']['messages'][0]['parameters'][2]
+
+        return qid_string.split('|')[0][2:]
 
 
 class WDBaseDataType(object):

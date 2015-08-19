@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 __author__ = 'Sebastian Burgstaller and Andra Waagmeester'
 __licence__ = 'GPLv3'
 
@@ -72,7 +75,7 @@ wd_properties = {
         'datatype': 'string',
         'name': 'CAS registry number',
         'domain': ['drugs'],
-        'core_id': 'True'
+        'core_id': 'False'
     },
     'P486': {
         'datatype': 'string',
@@ -179,6 +182,12 @@ wd_properties = {
     'P493': {
         'datatype': 'string',
         'name': 'ICD-9',
+        'domain': ['diseases'],
+        'core_id': 'True'
+    },
+    'P492': {
+        'datatype': 'string',
+        'name': 'OMIM',
         'domain': ['diseases'],
         'core_id': 'True'
     },
