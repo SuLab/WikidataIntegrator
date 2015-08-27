@@ -146,6 +146,7 @@ class WDItemEngine(object):
         :return: None
         """
         if item_name is not '' and self.domain is None and len(self.data) > 0:
+            self.create_new_item = True
             return
         if item_name is '' and item_id is '':
             raise IDMissingError('No item name or WD identifier was given')
