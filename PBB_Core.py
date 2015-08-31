@@ -135,7 +135,7 @@ class WDItemEngine(object):
         self.__construct_claim_json()
         self.__append_references()
 
-        if 'labels' not in self.wd_json_representation and item_name != '':
+        if ('labels' not in self.wd_json_representation or 'en' not in self.wd_json_representation['labels']) and item_name != '':
             self.set_label(label=item_name, lang='en')
 
     def get_item_data(self, item_name='', item_id=''):
