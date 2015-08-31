@@ -113,7 +113,8 @@ class WDItemEngine(object):
         constructor
         :param wd_item_id: Wikidata item id
         :param item_name: Label of the wikidata item
-        :param domain: string which tells the data domain the class should operate in
+        :param domain: The data domain the class should operate in. If None and item_name not '', create new item from scratch.
+        :type domain: str or None
         :param data: a dictionary with WD property strings as keys and the data which should be written to
         a WD item as the property values
         :param append_value: a list of properties where potential existing values should not be overwritten by the data
@@ -134,7 +135,7 @@ class WDItemEngine(object):
         self.__construct_claim_json()
         self.__append_references()
 
-        if 'labels' not in self.wd_json_representation and item_name != '':
+        if ('labels' not in self.wd_json_representation or 'en' not in self.wd_json_representation['labels']) and item_name != '':
             self.set_label(label=item_name, lang='en')
 
     def get_item_data(self, item_name='', item_id=''):
@@ -144,14 +145,19 @@ class WDItemEngine(object):
         :param item_id: Wikidata item ID which allows loading of a Wikidata item
         :return: None
         """
+        if item_name is not '' and self.domain is None and len(self.data) > 0:
+            self.create_new_item = True
+            return
         if item_name is '' and item_id is '':
             raise IDMissingError('No item name or WD identifier was given')
         elif item_id is not '':
             self.wd_json_representation = self.get_wd_entity(item_id)
         else:
+            if self.domain is None or self.domain == '':
+                raise ValueError('Domain parameter has not been set')
             try:
-                qids_by_string_search = self.get_wd_search_results(item_name)
-                qids_by_props = self.__select_wd_item(item_list=qids_by_string_search, item_labels=[])
+                # qids_by_string_search = self.get_wd_search_results(item_name)
+                qids_by_props = self.__select_wd_item(item_list=[], item_labels=[])
 
             except WDSearchError as e:
                 PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
