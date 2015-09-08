@@ -20,7 +20,7 @@ domain_incompatibilities = {
     ]
 }
 
-# a collection of values for the property 'instance of' (P31) which are valid for a certain domain.
+# a collection of values for the property 'subclass of' (P279) which are valid for a certain domain.
 valid_instances = {
     'drugs': [
         'Q11173',  # chemical compound (only one single, pure chemical compound)
@@ -33,7 +33,7 @@ valid_instances = {
         'Q7187'
     ],
     'proteins': [
-
+        'Q8054'
     ],
     'disease ontology': [
 
@@ -257,7 +257,24 @@ wd_properties = {
         'domain': ['genes'],
         'core_id': 'False'
     },
-
+    'P638': {
+        'datatype': 'string',
+        'name': 'PDB ID',
+        'domain': ['proteins'],
+        'core_id': 'False'
+    },
+    'P637': {
+        'datatype': 'string',
+        'name': 'Refseq Protein ID',
+        'domain': ['proteins'],
+        'core_id': 'False'
+    },
+    'P352': {
+        'datatype': 'string',
+        'name': 'Uniprot ID',
+        'domain': ['proteins'],
+        'core_id': 'False'
+    }
     #### for test.wikidata.org
     # 'P477': {
     #     'datatype': 'string',
