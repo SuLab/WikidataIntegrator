@@ -274,6 +274,18 @@ wd_properties = {
         'name': 'Uniprot ID',
         'domain': ['proteins'],
         'core_id': 'False'
+    },
+    'P591': {
+        'datatype': 'string',
+        'name': 'EC Number',
+        'domain': ['proteins'],
+        'core_id': 'False'
+    },
+    'P705': {
+        'datatype': 'string',
+        'name': 'Ensembl Protein ID',
+        'domain': ['proteins'],
+        'core_id': 'False'
     }
     #### for test.wikidata.org
     # 'P477': {
