@@ -286,6 +286,12 @@ wd_properties = {
         'name': 'Ensembl Protein ID',
         'domain': ['proteins'],
         'core_id': 'False'
+    },
+    'P702': {
+        'datatype': 'item',
+        'name': 'Encoded By',
+        'domain': ['proteins'],
+        'core_id': 'False'
     }
     #### for test.wikidata.org
     # 'P477': {
