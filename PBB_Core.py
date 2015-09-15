@@ -304,37 +304,44 @@ class WDItemEngine(object):
         if self.create_new_item:
             self.statements = copy.deepcopy(self.data)
 
-        insert_dict = collections.OrderedDict()
-        for count, stat in enumerate(self.statements):
-            prop_nr = stat.get_prop_nr()
-            if prop_nr not in self.append_value:
-                prop_data = [x.get_prop_nr() for x in self.data if x.get_prop_nr == prop_nr]
-                if len(prop_data) > 0:
-                    setattr(stat, 'remove', '')
-                for i in prop_data:
-                    if stat == i:
-                        delattr(stat, 'remove')
-                        if sum(map(lambda z: len(z), stat.get_references())) <= sum(map(lambda z: len(z), i.get_references())):
-                            stat.set_references(i.get_references())
-                    else:
-                        insert_dict.update({count + 1: i})
-            else:
-                for x in self.data:
-                    insert_dict.update({count + 1: x})
-                    continue
+        temp_data = copy.copy(self.data)
 
-        # insert new items at correct position in self.statements
-        while len(insert_dict) > 0:
-            curr_key = list(insert_dict.keys())[-1]
-            curr_value = insert_dict[curr_key]
-            self.statements.insert(curr_key, curr_value)
-            del insert_dict[curr_key]
+        for count, stat in enumerate(temp_data):
+            prop_nr = stat.get_prop_nr()
+            print(prop_nr)
+
+            prop_data = [x for x in self.statements if x.get_prop_nr() == prop_nr]
+            prop_pos = [True if x.get_prop_nr() == prop_nr else False for x in self.statements]
+            prop_pos.reverse()
+            insert_pos = len(prop_pos) - prop_pos.index(True)
+
+            if prop_nr in self.append_value:
+                self.statements.insert(insert_pos + 1, stat)
+                continue
+
+            for x in prop_data:
+                setattr(x, 'remove', '')
+
+            add_new = False
+            for i in prop_data:
+                if stat == i:
+                    delattr(i, 'remove')
+                    if sum(map(lambda z: len(z), stat.get_references())) <= sum(map(lambda z: len(z), i.get_references())):
+                        i.set_references(stat.get_references())
+                    # current setting is to replace existing qualifiers
+                    i.set_qualifiers(stat.get_qualifiers())
+
+                    break
+                add_new = True
+
+            if add_new:
+                self.statements.insert(insert_pos + 1, stat)
 
         # regenerate claim json
         self.wd_json_representation['claims'] = {}
         for stat in self.statements:
             prop_nr = stat.get_prop_nr()
-            if prop_nr not in self.wd_json_representation:
+            if prop_nr not in self.wd_json_representation['claims']:
                 self.wd_json_representation['claims'][prop_nr] = []
             self.wd_json_representation['claims'][prop_nr].append(stat.get_json_representation())
 
@@ -623,12 +630,13 @@ class JsonParser(object):
                     self.qualifiers.append(qual_class)
 
                 print(self.qualifiers)
-
+                
             mainsnak = self.get_class_representation(json_representation['mainsnak'])
             mainsnak.set_references(self.references)
             mainsnak.set_qualifiers(self.qualifiers)
             if 'id' in json_representation:
-                mainsnak.set_id = json_representation['id']
+
+                mainsnak.set_id(json_representation['id'])
             if 'rank' in json_representation:
                 mainsnak.set_rank = json_representation['rank']
             mainsnak.snak_type = json_representation['mainsnak']['snaktype']
@@ -784,6 +792,9 @@ class WDBaseDataType(object):
             tmp_json = {
                 self.prop_nr: [self.json_representation]
             }
+            if self.hash != '':
+                self.json_representation.update({'hash': self.hash})
+
             return tmp_json
         else:
             ref_json = []
@@ -815,6 +826,8 @@ class WDBaseDataType(object):
                 'qualifiers-order': qualifiers_order,
                 'references': ref_json
             }
+            if self.id != '':
+                statement.update({'id': self.id})
 
             if hasattr(self, 'remove'):
                 statement.update({'remove': ''})
