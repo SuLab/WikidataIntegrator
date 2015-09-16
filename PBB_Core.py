@@ -32,7 +32,6 @@ import requests
 import re
 import logging
 import os
-import collections
 
 import PBB_Debug
 import PBB_settings
@@ -108,7 +107,7 @@ class WDItemEngine(object):
     create_new_item = False
     log_file_name = ''
 
-    def __init__(self, wd_item_id='', item_name='', domain='', data={}, server='www.wikidata.org',
+    def __init__(self, wd_item_id='', item_name='', domain='', data=[], server='www.wikidata.org',
                  append_value=[], references={}):
         """
         constructor
@@ -301,40 +300,42 @@ class WDItemEngine(object):
         Writes the properties from self.data to a new or existing json in self.wd_json_representation
         :return: None
         """
+
+        # sort the incoming data according to the WD property number
+        self.data.sort(key=lambda z: z.get_prop_nr().lower())
         if self.create_new_item:
-            self.statements = copy.deepcopy(self.data)
 
-        temp_data = copy.copy(self.data)
+            self.statements = copy.copy(self.data)
 
-        for count, stat in enumerate(temp_data):
+        for stat in self.data:
             prop_nr = stat.get_prop_nr()
-            print(prop_nr)
 
             prop_data = [x for x in self.statements if x.get_prop_nr() == prop_nr]
             prop_pos = [True if x.get_prop_nr() == prop_nr else False for x in self.statements]
             prop_pos.reverse()
-            insert_pos = len(prop_pos) - prop_pos.index(True)
+            insert_pos = len(prop_pos) - (prop_pos.index(True) if True in prop_pos else 0)
 
             if prop_nr in self.append_value:
                 self.statements.insert(insert_pos + 1, stat)
                 continue
 
+            # set all existing values of a property for removal
             for x in prop_data:
                 setattr(x, 'remove', '')
 
-            add_new = False
+            match = []
             for i in prop_data:
                 if stat == i:
+                    match.append(True)
                     delattr(i, 'remove')
                     if sum(map(lambda z: len(z), stat.get_references())) <= sum(map(lambda z: len(z), i.get_references())):
                         i.set_references(stat.get_references())
                     # current setting is to replace existing qualifiers
                     i.set_qualifiers(stat.get_qualifiers())
+                else:
+                    match.append(False)
 
-                    break
-                add_new = True
-
-            if add_new:
+            if True not in match:
                 self.statements.insert(insert_pos + 1, stat)
 
         # regenerate claim json
@@ -630,7 +631,6 @@ class JsonParser(object):
                     self.qualifiers.append(qual_class)
 
                 print(self.qualifiers)
-                
             mainsnak = self.get_class_representation(json_representation['mainsnak'])
             mainsnak.set_references(self.references)
             mainsnak.set_qualifiers(self.qualifiers)
@@ -792,13 +792,13 @@ class WDBaseDataType(object):
             tmp_json = {
                 self.prop_nr: [self.json_representation]
             }
-            if self.hash != '':
+            if self.hash != '' and self.is_qualifier:
                 self.json_representation.update({'hash': self.hash})
 
             return tmp_json
         else:
             ref_json = []
-            for ref in self.references:
+            for count, ref in enumerate(self.references):
                 snaks_order = []
                 snaks = {}
                 ref_json.append({
@@ -807,6 +807,9 @@ class WDBaseDataType(object):
                 })
                 for sub_ref in ref:
                     prop_nr = sub_ref.get_prop_nr()
+                    # set the hash for the reference block
+                    if sub_ref.get_hash() != '':
+                        ref_json[count].update({'hash': sub_ref.get_hash()})
                     tmp_json = sub_ref.get_json_representation()
 
                     snaks.update(tmp_json)
