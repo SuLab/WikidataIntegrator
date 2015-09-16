@@ -257,6 +257,12 @@ wd_properties = {
         'domain': ['genes'],
         'core_id': 'False'
     },
+    'P684': {
+        'datatype': 'item',
+        'name': 'ortholog',
+        'domain': ['genes'],
+        'core_id': 'False'
+    },
     'P638': {
         'datatype': 'string',
         'name': 'PDB ID',
