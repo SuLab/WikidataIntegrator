@@ -509,7 +509,7 @@ class WDItemEngine(object):
         }
         payload = {
             u'action': u'wbeditentity',
-            u'data': json.JSONEncoder(encoding='utf-8').encode(self.wd_json_representation),
+            u'data': json.JSONEncoder().encode(self.wd_json_representation),
             u'format': u'json',
             u'token': edit_token,
             u'bot': ''
@@ -849,7 +849,7 @@ class WDString(WDBaseDataType):
     def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=[],
                  qualifiers=[], rank='normal'):
 
-        super().__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
+        super(WDString, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
                          is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
 
         self.json_representation['datavalue'] = {
