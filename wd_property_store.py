@@ -298,6 +298,12 @@ wd_properties = {
         'name': 'Encoded By',
         'domain': ['proteins'],
         'core_id': 'False'
+    },
+    'P18': {
+        'datatype': 'url',
+        'name': 'Protein Structure Image',
+        'domain': ['proteins'],
+        'core_id': 'True'
     }
     #### for test.wikidata.org
     # 'P477': {
