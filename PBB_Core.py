@@ -41,10 +41,7 @@ import getpass
 import copy
 import pprint
 import wd_property_store
-try:
-    import simplejson as json
-except ImportError as e:
-    import json
+import json
 
 
 class BotMainLog():
