@@ -36,12 +36,15 @@ import os
 
 import PBB_Debug
 import PBB_settings
-import mysql.connector
 import socket
 import getpass
 import copy
 import pprint
 import wd_property_store
+import json
+
+
+'''
 try:
     import simplejson as json
 except ImportError as e:
@@ -79,7 +82,7 @@ class BotMainLog():
         cursor.execute("SELECT * FROM PBB_History")
         for row in cursor.fetchall() :
             print(row[0])
-
+'''
 
 class WDItemList(object):
     def __init__(self, wdquery, wdprop=""):
