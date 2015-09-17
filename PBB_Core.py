@@ -24,6 +24,7 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = 'Sebastian Burgstaller, Andra Waagmeester'
 __license__ = 'GPL'
+__documentation__ = 'http://sulab.org/2015/09/a-simple-way-to-write-wikidata-bots/'
 
 import time
 import datetime
