@@ -161,6 +161,12 @@ wd_properties = {
         'domain': ['drugs'],
         'core_id': 'True'
     },
+    'P595': {
+        'datatype': 'string',
+        'name': 'IUPHAR ID',
+        'domain': ['drugs'],
+        'core_id': 'True'
+    },
     'P699': {
         'datatype': 'string',
         'name': 'Disease Ontology ID',
