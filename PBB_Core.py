@@ -994,7 +994,7 @@ class WDMonolingualText(WDBaseDataType):
 
         self.json_representation['datavalue'] = {
             'value': {
-                'text': value,
+                'text': value[0],
                 'language': language
             },
             'type': 'monolingualtext'
@@ -1005,7 +1005,6 @@ class WDMonolingualText(WDBaseDataType):
     def from_json(cls, jsn):
         value = jsn['datavalue']['value']
         return cls(value=value['text'], prop_nr=jsn['property'], language=value['text'])
-
 
 
 class WDQuantity(WDBaseDataType):
