@@ -318,7 +318,8 @@ class WDItemEngine(object):
 
             # set all existing values of a property for removal
             for x in prop_data:
-                setattr(x, 'remove', '')
+                if x.get_id() != '':
+                    setattr(x, 'remove', '')
 
             match = []
             for i in prop_data:
