@@ -528,6 +528,7 @@ class WDItemEngine(object):
             # pprint.pprint(json_data)
 
             if 'error' in json_data.keys():
+                PBB_Debug.prettyPrint(json_data)
                 if 'wikibase-validator-label-with-description-conflict' == json_data['error']['messages'][0]['name']:
                     raise NonUniqueLabelDescriptionPairError(json_data)
                 else:
