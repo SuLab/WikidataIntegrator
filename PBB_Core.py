@@ -312,8 +312,10 @@ class WDItemEngine(object):
             prop_pos.reverse()
             insert_pos = len(prop_pos) - (prop_pos.index(True) if True in prop_pos else 0)
 
+            # If value should be appended, check if values exists, if not, append
             if prop_nr in self.append_value:
-                self.statements.insert(insert_pos + 1, stat)
+                if True not in [True if stat == x else False for x in prop_data]:
+                    self.statements.insert(insert_pos + 1, stat)
                 continue
 
             # set all existing values of a property for removal
@@ -326,11 +328,14 @@ class WDItemEngine(object):
                 if stat == i:
                     match.append(True)
                     delattr(i, 'remove')
-                    if sum(map(lambda z: len(z), stat.get_references())) <= sum(map(lambda z: len(z), i.get_references())):
+                    # TODO: Improve how to handle references. At minimum, the date should be updated if a
+                    # value has been checked for validity.
+                    if sum(map(lambda z: len(z), stat.get_references())) >= sum(map(lambda z: len(z), i.get_references())):
                         i.set_references(stat.get_references())
                     # current setting is to replace existing qualifiers
                     i.set_qualifiers(stat.get_qualifiers())
-                else:
+                # if there is no value, do not add an element, this is also used to delete whole statements.
+                elif i.get_value() != '':
                     match.append(False)
 
             if True not in match:
@@ -718,6 +723,12 @@ class WDBaseDataType(object):
         else:
             return False
 
+    def __ne__(self, other):
+        if self.get_value() != other.get_value() or self.get_prop_nr() != other.get_prop_nr():
+            return True
+        else:
+            return False
+
     def get_value(self):
         return self.value
 
@@ -840,6 +851,18 @@ class WDBaseDataType(object):
     @JsonParser
     def from_json(cls, json_representation):
         pass
+
+    @classmethod
+    def delete_statement(cls, prop_nr):
+        """
+        This serves as an alternative constructor for WDBaseDataType with the only purpose of holding a WD property
+        number and an empty string value in order to indicate that the whole statement with this property number of a
+        WD item should be deleted.
+        :param prop_nr: A WD property number as string
+        :return: An instance of WDBaseDataType
+        """
+        return cls(value='', snak_type='value', data_type='', is_reference=False, is_qualifier=False, references=[],
+                   qualifiers=[], rank='', prop_nr=prop_nr)
 
 
 class WDString(WDBaseDataType):
@@ -1006,7 +1029,7 @@ class WDMonolingualText(WDBaseDataType):
     @JsonParser
     def from_json(cls, jsn):
         value = jsn['datavalue']['value']
-        return cls(value=value['text'], prop_nr=jsn['property'], language=value['text'])
+        return cls(value=value['text'], prop_nr=jsn['property'], language=value['language'])
 
 
 class WDQuantity(WDBaseDataType):
