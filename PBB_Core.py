@@ -301,45 +301,44 @@ class WDItemEngine(object):
         # sort the incoming data according to the WD property number
         self.data.sort(key=lambda z: z.get_prop_nr().lower())
         if self.create_new_item:
-
             self.statements = copy.copy(self.data)
+        else:
+            for stat in self.data:
+                prop_nr = stat.get_prop_nr()
 
-        for stat in self.data:
-            prop_nr = stat.get_prop_nr()
+                prop_data = [x for x in self.statements if x.get_prop_nr() == prop_nr]
+                prop_pos = [True if x.get_prop_nr() == prop_nr else False for x in self.statements]
+                prop_pos.reverse()
+                insert_pos = len(prop_pos) - (prop_pos.index(True) if True in prop_pos else 0)
 
-            prop_data = [x for x in self.statements if x.get_prop_nr() == prop_nr]
-            prop_pos = [True if x.get_prop_nr() == prop_nr else False for x in self.statements]
-            prop_pos.reverse()
-            insert_pos = len(prop_pos) - (prop_pos.index(True) if True in prop_pos else 0)
+                # If value should be appended, check if values exists, if not, append
+                if prop_nr in self.append_value:
+                    if True not in [True if stat == x else False for x in prop_data]:
+                        self.statements.insert(insert_pos + 1, stat)
+                    continue
 
-            # If value should be appended, check if values exists, if not, append
-            if prop_nr in self.append_value:
-                if True not in [True if stat == x else False for x in prop_data]:
+                # set all existing values of a property for removal
+                for x in prop_data:
+                    if x.get_id() != '':
+                        setattr(x, 'remove', '')
+
+                match = []
+                for i in prop_data:
+                    if stat == i:
+                        match.append(True)
+                        delattr(i, 'remove')
+                        # TODO: Improve how to handle references. At minimum, the date should be updated if a
+                        # value has been checked for validity.
+                        if sum(map(lambda z: len(z), stat.get_references())) >= sum(map(lambda z: len(z), i.get_references())):
+                            i.set_references(stat.get_references())
+                        # current setting is to replace existing qualifiers
+                        i.set_qualifiers(stat.get_qualifiers())
+                    # if there is no value, do not add an element, this is also used to delete whole statements.
+                    elif i.get_value() != '':
+                        match.append(False)
+
+                if True not in match:
                     self.statements.insert(insert_pos + 1, stat)
-                continue
-
-            # set all existing values of a property for removal
-            for x in prop_data:
-                if x.get_id() != '':
-                    setattr(x, 'remove', '')
-
-            match = []
-            for i in prop_data:
-                if stat == i:
-                    match.append(True)
-                    delattr(i, 'remove')
-                    # TODO: Improve how to handle references. At minimum, the date should be updated if a
-                    # value has been checked for validity.
-                    if sum(map(lambda z: len(z), stat.get_references())) >= sum(map(lambda z: len(z), i.get_references())):
-                        i.set_references(stat.get_references())
-                    # current setting is to replace existing qualifiers
-                    i.set_qualifiers(stat.get_qualifiers())
-                # if there is no value, do not add an element, this is also used to delete whole statements.
-                elif i.get_value() != '':
-                    match.append(False)
-
-            if True not in match:
-                self.statements.insert(insert_pos + 1, stat)
 
         # regenerate claim json
         self.wd_json_representation['claims'] = {}
