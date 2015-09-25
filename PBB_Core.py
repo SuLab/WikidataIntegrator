@@ -620,7 +620,7 @@ class JsonParser(object):
 
                         self.references[count].append(ref_class)
 
-                print(self.references)
+                # print(self.references)
             if 'qualifiers' in json_representation:
                 for prop in json_representation['qualifiers-order']:
                     qual = json_representation['qualifiers'][prop]
@@ -634,7 +634,7 @@ class JsonParser(object):
                     qual_class.set_hash(qual_hash)
                     self.qualifiers.append(qual_class)
 
-                print(self.qualifiers)
+                # print(self.qualifiers)
             mainsnak = self.get_class_representation(json_representation['mainsnak'])
             mainsnak.set_references(self.references)
             mainsnak.set_qualifiers(self.qualifiers)
@@ -1045,10 +1045,10 @@ class WDQuantity(WDBaseDataType):
         except ValueError as e:
             raise ValueError('Value, bounds and units must be integers')
 
-        if int(lower_bound) >= int(upper_bound) or int(lower_bound) >= int(value):
+        if int(lower_bound) > int(upper_bound) or int(lower_bound) > int(value):
             raise ValueError('Lower bound too large')
 
-        if int(upper_bound) <= int(value):
+        if int(upper_bound) < int(value):
             raise ValueError('Upper bound too small')
 
         value = (str(value), str(unit), str(upper_bound), str(lower_bound))
@@ -1058,7 +1058,7 @@ class WDQuantity(WDBaseDataType):
 
         self.json_representation['datavalue'] = {
             'value': {
-                'amount': str(value),
+                'amount': str(value[0]),
                 'unit': str(unit),
                 'upperBound': str(upper_bound),
                 'lowerBound': str(lower_bound)
