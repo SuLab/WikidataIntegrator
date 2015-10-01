@@ -491,26 +491,13 @@ class WDItemEngine(object):
         if 'sitelinks' not in self.wd_json_representation:
             self.wd_json_representation['sitelinks'] = {}
 
-        self.wd_json_representation['sitelinks'][site] = {
-            'site': site,
-            'title': title
-        }
-
-    def remove_sitelink(self, site):
-        """
-        Remove sitelinks to corresponding Wikipedia pages
-        :param site: The Wikipedia page a sitelink is directed to (e.g. 'enwiki')
-        :return:
-        """
-        if "sitelinks" in self.wd_json_representation.keys():
-            if site in self.wd_json_representation['sitelinks']:
-                returnvalue = self.wd_json_representation['sitelinks'][site]
-                try:
-                    del self.wd_json_representation['sitelinks'][site]
-                except KeyError:
-                    pass
-                return returnvalue
-        return None
+        if title == None:
+            del self.wd_json_representation['sitelinks'][site]
+        else:
+            self.wd_json_representation['sitelinks'][site] = {
+                'site': site,
+                'title': title
+            }
 
     def get_sitelink(self, site):
         """
