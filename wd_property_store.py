@@ -310,7 +310,38 @@ wd_properties = {
         'name': 'Protein Structure Image',
         'domain': ['proteins'],
         'core_id': 'True'
+    },
+    'P671': {
+        'datatype': 'url',
+        'name': 'MGI',
+        'domain': ['genes'],
+        'core_id': 'True'
+    },
+    'P1057': {
+        'datatype': 'item',
+        'name': 'Chromosome',
+        'domain': ['genes'],
+        'core_id': 'False'
+    },
+    'P644': {
+        'datatype': 'string',
+        'name': 'Genomic start position',
+        'domain': ['genes'],
+        'core_id': 'False'
+    },
+    'P645': {
+        'datatype': 'string',
+        'name': 'Genomic end position',
+        'domain': ['genes'],
+        'core_id': 'False'
+    },
+    'P688': {
+        'datatype': 'Item',
+        'name': 'encodes',
+        'domain': ['genes'],
+        'core_id': 'False'
     }
+    
     #### for test.wikidata.org
     # 'P477': {
     #     'datatype': 'string',
