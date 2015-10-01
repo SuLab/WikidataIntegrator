@@ -355,6 +355,40 @@ class WDItemEngine(object):
         """
         return self.wd_json_representation
 
+    def get_wd_sitelinks(self, site):
+        """
+        A method to access the interwiki links in the json.model
+        :return:
+        """
+        if "sitelinks" in self.wd_json_representation.keys():
+            if site in self.wd_json_representation['sitelinks']:
+                return self.wd_json_representation['sitelinks'][site]
+            else:
+                return None
+        else:
+            return None
+
+    def rm_wd_sitelinks(self, site):
+        if "sitelinks" in self.wd_json_representation.keys():
+            if site in self.wd_json_representation['sitelinks']:
+                returnvalue = self.wd_json_representation['sitelinks'][site]
+                try:
+                    del self.wd_json_representation['sitelinks'][site]
+                except KeyError:
+                    pass
+                return returnvalue
+        return None
+
+    def add_wd_sitelinks(self, site, value):
+        if value != None:
+            if not "sitelinks" in self.wd_json_representation.keys():
+                self.wd_json_representation['sitelinks']=dict()
+                self.wd_json_representation['sitelinks'][site]=value
+            if site in self.wd_json_representation['sitelinks'].keys():
+                raise ManualInterventionReqException('This entry already has a '+site+' link')
+            else:
+                self.wd_json_representation['sitelinks'][site]=value
+
     def __check_integrity(self):
         """
         A method to check if when invoking __select_wd_item() and the WD item does not exist yet, but another item
