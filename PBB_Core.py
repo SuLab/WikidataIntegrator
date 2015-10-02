@@ -43,6 +43,7 @@ import pprint
 import wd_property_store
 import json
 
+
 '''
 class BotMainLog():
     def __init__(self):
@@ -491,13 +492,11 @@ class WDItemEngine(object):
         if 'sitelinks' not in self.wd_json_representation:
             self.wd_json_representation['sitelinks'] = {}
 
-        if title == None:
-            del self.wd_json_representation['sitelinks'][site]
-        else:
-            self.wd_json_representation['sitelinks'][site] = {
-                'site': site,
-                'title': title
-            }
+
+        self.wd_json_representation['sitelinks'][site] = {
+            'site': site,
+            'title': title
+        }
 
     def get_sitelink(self, site):
         """
