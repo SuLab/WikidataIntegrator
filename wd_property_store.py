@@ -56,7 +56,7 @@ wd_properties = {
     'P31': {
         'datatype': 'item',
         'name': 'instance of',
-        'domain': ['generic'],
+        'domain': ['generic', 'genomes', 'drugs'],
         'core_id': 'False'
     },
     'P636': {
@@ -317,12 +317,6 @@ wd_properties = {
         'domain': ['genes'],
         'core_id': 'True'
     },
-    'P1057': {
-        'datatype': 'item',
-        'name': 'Chromosome',
-        'domain': ['genes'],
-        'core_id': 'False'
-    },
     'P644': {
         'datatype': 'string',
         'name': 'Genomic start position',
@@ -336,9 +330,27 @@ wd_properties = {
         'core_id': 'False'
     },
     'P688': {
-        'datatype': 'Item',
+        'datatype': 'item',
         'name': 'encodes',
         'domain': ['genes'],
+        'core_id': 'False'
+    },
+    'P225': {
+        'datatype': 'string',
+        'name': 'taxon name',
+        'domain': ['genomes'],
+        'core_id': 'False'
+    },
+    'P685': {
+        'datatype': 'string',
+        'name': 'NCBI Taxonomy ID',
+        'domain': ['genomes'],
+        'core_id': 'True'
+    },
+    'P171': {
+        'datatype': 'item',
+        'name': 'parent taxon',
+        'domain': ['genomes'],
         'core_id': 'False'
     }
     
