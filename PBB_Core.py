@@ -174,20 +174,29 @@ class WDItemEngine(object):
 
             reply = requests.get(url, params=params)
 
-            wd_reply = reply.json()['entities'][self.wd_item_id]
-            wd_reply = {x: wd_reply[x] for x in ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks') if x in wd_reply}
-
-            for prop in wd_reply['claims']:
-                for z in wd_reply['claims'][prop]:
-                    data_type = [x for x in WDBaseDataType.__subclasses__() if x.DTYPE == z['mainsnak']['datatype']][0]
-                    # pprint.pprint(z)
-                    statement = data_type.from_json(z)
-                    self.statements.append(statement)
-
-            return wd_reply
+            return self.parse_wd_json(wd_json=reply.json()['entities'][self.wd_item_id])
 
         except requests.HTTPError as e:
             self.log('ERROR', str(e))
+
+    def parse_wd_json(self, wd_json):
+        """
+        Parses a WD entity json and generates the datatype objects, sets self.wd_json_representation
+        :param wd_json: the json of a WD entity
+        :type wd_json: A Python Json representation of a WD item
+        :return: returns the json representation containing 'labels', 'descriptions', 'claims', 'aliases', 'sitelinks'.
+        """
+        wd_data = {x: wd_json[x] for x in ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks') if x in wd_json}
+
+        for prop in wd_data['claims']:
+            for z in wd_data['claims'][prop]:
+                data_type = [x for x in WDBaseDataType.__subclasses__() if x.DTYPE == z['mainsnak']['datatype']][0]
+                statement = data_type.from_json(z)
+                self.statements.append(statement)
+
+        self.wd_json_representation = wd_data
+
+        return wd_data
 
     def get_wd_search_results(self, search_string=''):
         """
@@ -513,9 +522,10 @@ class WDItemEngine(object):
 
     def write(self, login):
         """
-        function to initiate writing the item data in the instance to Wikidata
+        Writes the WD item Json to WD and after successful write, updates the object with new ids and hashes generated
+        by WD. For new items, also returns the new QIDs.
         :param login: a instance of the class PBB_login which provides edit-cookies and edit-tokens
-        :return: None
+        :return: the WD QID on sucessful write
         """
         cookies = login.get_edit_cookie()
         edit_token = login.get_edit_token()
@@ -545,7 +555,7 @@ class WDItemEngine(object):
             # if the server does not reply with a string which can be parsed into a json, an error will be raised.
             json_data = reply.json()
 
-            # pprint.pprint(json_data)
+            pprint.pprint(json_data)
 
             if 'error' in json_data.keys():
                 PBB_Debug.prettyPrint(json_data)
@@ -557,6 +567,13 @@ class WDItemEngine(object):
         except requests.HTTPError as e:
             repr(e)
             PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
+
+        # after successful write, update this object with latest json, QID and parsed data types.
+
+        self.wd_item_id = json_data['entity']['id']
+        self.parse_wd_json(wd_json=json_data['entity'])
+
+        return self.wd_item_id
 
     @staticmethod
     def log(level, message):
