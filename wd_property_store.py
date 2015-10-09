@@ -167,6 +167,12 @@ wd_properties = {
         'domain': ['drugs'],
         'core_id': 'True'
     },
+    'P2115': {
+        'datatype': 'string',
+        'name': 'NDF-RT NUI',
+        'domain': ['drugs'],
+        'core_id': 'True'
+    },
     'P699': {
         'datatype': 'string',
         'name': 'Disease Ontology ID',
