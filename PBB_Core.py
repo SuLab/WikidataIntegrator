@@ -188,6 +188,7 @@ class WDItemEngine(object):
         """
         wd_data = {x: wd_json[x] for x in ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks') if x in wd_json}
 
+        self.statements = []
         for prop in wd_data['claims']:
             for z in wd_data['claims'][prop]:
                 data_type = [x for x in WDBaseDataType.__subclasses__() if x.DTYPE == z['mainsnak']['datatype']][0]
@@ -308,6 +309,58 @@ class WDItemEngine(object):
         :return: None
         """
 
+        def handle_references(old_item, new_item):
+            """
+            Local function to handle updating of references. Has the following behavior: If overwrite_references in
+            a provided data type is set to TRUE or an existing item does not have references, just overwrite existing refs.
+            Else: Check if P248 exists and do not overwrite those refs. Only overwrite, if value of P248 and value of
+            the DB entry match. Overwrite all other refs without P248.
+            :param old_item: An item containing the data as currently in WD
+            :type old_item: A child of WDBaseDataType
+            :param new_item: An item containing the new data which should be written to WD
+            :type new_item: A child of WDBaseDataType
+            """
+            ref_properties = ['P248', 'P1476', 'P407', 'P813']
+            new_references = copy.deepcopy(new_item.get_references())
+            existing_references = copy.deepcopy(old_item.get_references())
+
+            if True in [x.overwrite_references for y in new_references for x in y] \
+                    or sum(map(lambda z: len(z), existing_references)) == 0:
+                old_item.set_references(new_item.get_references())
+
+            elif 'P248' in [x.get_prop_nr() for y in new_references for x in y]:
+                for count, ref_block in enumerate(old_item.get_references()):
+                    for new_ref_block in copy.copy(new_references):
+                        db_value_prop = ''
+                        match_dict = {}
+                        for ref in ref_block:
+                            for new_ref in new_ref_block:
+                                if ref == new_ref:
+                                    cur_prop = new_ref.get_prop_nr()
+                                    match_dict.update({cur_prop: True})
+                                    if cur_prop in wd_property_store.wd_properties and cur_prop not in ref_properties:
+                                        db_value_prop = cur_prop
+
+                        if db_value_prop in match_dict and 'P248' in match_dict:
+                            existing_references[count] = new_ref_block
+                            new_references.remove(new_ref_block)
+
+                # remove all references without 'stated in'
+                drop_refs = []
+                for ref in existing_references:
+                    prop_nr_list = [x.get_prop_nr() for x in ref]
+
+                    if 'P248' not in prop_nr_list:
+                        drop_refs.append(ref)
+
+                while len(drop_refs) > 0:
+                    existing_references.remove(drop_refs.pop())
+
+                if len(new_references) > 0:
+                    for uu in new_references:
+                        existing_references.append(uu)
+                old_item.set_references(existing_references)
+
         # sort the incoming data according to the WD property number
         self.data.sort(key=lambda z: z.get_prop_nr().lower())
         if self.create_new_item:
@@ -323,26 +376,31 @@ class WDItemEngine(object):
 
                 # If value should be appended, check if values exists, if not, append
                 if prop_nr in self.append_value:
-                    if True not in [True if stat == x else False for x in prop_data]:
+                    equal_items = [True if stat == x else False for x in prop_data]
+                    if True not in equal_items:
                         self.statements.insert(insert_pos + 1, stat)
+                    else:
+                        # if item exists, modify rank
+                        current_item = prop_data[equal_items.index(True)]
+                        current_item.set_rank(stat.get_rank())
+                        handle_references(old_item=current_item, new_item=stat)
                     continue
 
                 # set all existing values of a property for removal
                 for x in prop_data:
-                    if x.get_id() != '':
+                    if x.get_id() != '' and not hasattr(x, 'retain'):
                         setattr(x, 'remove', '')
 
                 match = []
                 for i in prop_data:
                     if stat == i:
                         match.append(True)
+                        setattr(i, 'retain', '')
                         delattr(i, 'remove')
-                        # TODO: Improve how to handle references. At minimum, the date should be updated if a
-                        # value has been checked for validity.
-                        if sum(map(lambda z: len(z), stat.get_references())) >= sum(map(lambda z: len(z), i.get_references())):
-                            i.set_references(stat.get_references())
-                        # current setting is to replace existing qualifiers
-                        i.set_qualifiers(stat.get_qualifiers())
+
+                        handle_references(old_item=i, new_item=stat)
+
+                        i.set_rank(rank=stat.get_rank())
                     # if there is no value, do not add an element, this is also used to delete whole statements.
                     elif i.get_value() != '':
                         match.append(False)
@@ -673,7 +731,7 @@ class JsonParser(object):
 
                 mainsnak.set_id(json_representation['id'])
             if 'rank' in json_representation:
-                mainsnak.set_rank = json_representation['rank']
+                mainsnak.set_rank(json_representation['rank'])
             mainsnak.snak_type = json_representation['mainsnak']['snaktype']
 
             return mainsnak
@@ -728,6 +786,9 @@ class WDBaseDataType(object):
         self.rank = rank
         self.prop_nr = prop_nr
 
+        # Flag to allow complete overwrite of existing references for a value
+        self.overwrite_references = False
+
         # WD internal ID and hash are issued by the WD servers
         self.id = ''
         self.hash = ''
@@ -749,7 +810,23 @@ class WDBaseDataType(object):
             raise ValueError('Qualifiers or references cannot have references')
 
     def __eq__(self, other):
-        if self.get_value() == other.get_value() and self.get_prop_nr() == other.get_prop_nr():
+        # check if the qualifiers are equal
+        equal_qualifiers = True
+        self_qualifiers = copy.deepcopy(self.get_qualifiers())
+        self_qualifiers.sort(key=lambda z: z.get_prop_nr().lower())
+
+        other_qualifiers = copy.deepcopy(other.get_qualifiers())
+        other_qualifiers.sort(key=lambda z: z.get_prop_nr().lower())
+
+        if len(self_qualifiers) != len(other_qualifiers):
+            equal_qualifiers = False
+
+        else:
+            for count, i in enumerate(self_qualifiers):
+                if not i == other_qualifiers[count]:
+                    equal_qualifiers = False
+
+        if self.get_value() == other.get_value() and self.get_prop_nr() == other.get_prop_nr() and equal_qualifiers:
             return True
         else:
             return False
@@ -779,6 +856,7 @@ class WDBaseDataType(object):
         return self.qualifiers
 
     def set_qualifiers(self, qualifiers):
+        # TODO: introduce a check to prevent duplicate qualifiers, those are not allowed in WD
         if len(qualifiers) > 0 and (self.is_qualifier or self.is_reference):
             raise ValueError('Qualifiers or references cannot have references')
 
