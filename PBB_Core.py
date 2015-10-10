@@ -320,7 +320,7 @@ class WDItemEngine(object):
             :param new_item: An item containing the new data which should be written to WD
             :type new_item: A child of WDBaseDataType
             """
-            ref_properties = ['P248', 'P1476', 'P407', 'P813']
+            ref_properties = ['P248', 'P1476', 'P407', 'P813', 'P143']
             new_references = copy.deepcopy(new_item.get_references())
             existing_references = copy.deepcopy(old_item.get_references())
 
@@ -341,7 +341,7 @@ class WDItemEngine(object):
                                     if cur_prop in wd_property_store.wd_properties and cur_prop not in ref_properties:
                                         db_value_prop = cur_prop
 
-                        if db_value_prop in match_dict and 'P248' in match_dict:
+                        if db_value_prop in match_dict or 'P143' in match_dict:
                             existing_references[count] = new_ref_block
                             new_references.remove(new_ref_block)
 
@@ -613,7 +613,7 @@ class WDItemEngine(object):
             # if the server does not reply with a string which can be parsed into a json, an error will be raised.
             json_data = reply.json()
 
-            pprint.pprint(json_data)
+            # pprint.pprint(json_data)
 
             if 'error' in json_data.keys():
                 PBB_Debug.prettyPrint(json_data)
@@ -1144,20 +1144,20 @@ class WDMonolingualText(WDBaseDataType):
 class WDQuantity(WDBaseDataType):
     DTYPE = 'quantity'
 
-    def __init__(self, value, prop_nr, upper_bound, lower_bound, unit='1', is_reference=False, is_qualifier=False,
+    def __init__(self, value, prop_nr, upper_bound, lower_bound, unit='', is_reference=False, is_qualifier=False,
                  snak_type='value', references=[], qualifiers=[], rank='normal'):
 
         # Integrity checks for value and bounds
         try:
-            for i in [value, upper_bound, lower_bound, unit]:
-                int(i)
+            for i in [value, upper_bound, lower_bound]:
+                float(i)
         except ValueError as e:
-            raise ValueError('Value, bounds and units must be integers')
+            raise ValueError('Value, bounds and units must parse as integers or float')
 
-        if int(lower_bound) > int(upper_bound) or int(lower_bound) > int(value):
+        if float(lower_bound) > float(upper_bound) or float(lower_bound) > float(value):
             raise ValueError('Lower bound too large')
 
-        if int(upper_bound) < int(value):
+        if float(upper_bound) < float(value):
             raise ValueError('Upper bound too small')
 
         value = (str(value), str(unit), str(upper_bound), str(lower_bound))
