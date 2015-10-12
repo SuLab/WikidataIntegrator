@@ -368,19 +368,19 @@ wd_properties = {
     'P680': {
         'datatype': 'item',
         'name': 'molecular function',
-        'domain': ['genes'],
+        'domain': ['proteins'],
         'core_id': 'False'
     },
     'P681': {
         'datatype': 'item',
         'name': 'cell component',
-        'domain': ['genes'],
+        'domain': ['proteins'],
         'core_id': 'False'
     },
     'P682': {
         'datatype': 'item',
         'name': 'biological process',
-        'domain': ['genes'],
+        'domain': ['proteins'],
         'core_id': 'False'
     },
     #### for test.wikidata.org
