@@ -249,7 +249,7 @@ wd_properties = {
         'datatype': 'string',
         'name': 'homologene id',
         'domain': ['genes'],
-        'core_id': 'True'
+        'core_id': 'False'
     },
     'P639': {
         'datatype': 'string',
