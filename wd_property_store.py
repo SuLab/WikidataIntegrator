@@ -255,7 +255,7 @@ wd_properties = {
         'datatype': 'string',
         'name': 'homologene id',
         'domain': ['genes'],
-        'core_id': 'True'
+        'core_id': 'False'
     },
     'P639': {
         'datatype': 'string',
@@ -358,8 +358,37 @@ wd_properties = {
         'name': 'parent taxon',
         'domain': ['genomes'],
         'core_id': 'False'
-    }
-    
+    },
+    'P1065': {
+        'datatype': 'url',
+        'name': 'Archive url',
+        'domain': ['genomes'],
+        'core_id': 'True'
+    },
+    'P856': {
+        'datatype': 'url',
+        'name': 'offical website',
+        'domain': ['genomes'],
+        'core_id': 'False'
+    },
+    'P680': {
+        'datatype': 'item',
+        'name': 'molecular function',
+        'domain': ['proteins'],
+        'core_id': 'False'
+    },
+    'P681': {
+        'datatype': 'item',
+        'name': 'cell component',
+        'domain': ['proteins'],
+        'core_id': 'False'
+    },
+    'P682': {
+        'datatype': 'item',
+        'name': 'biological process',
+        'domain': ['proteins'],
+        'core_id': 'False'
+    },
     #### for test.wikidata.org
     # 'P477': {
     #     'datatype': 'string',
