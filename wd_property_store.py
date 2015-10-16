@@ -189,13 +189,13 @@ wd_properties = {
         'datatype': 'string',
         'name': 'ICD-10',
         'domain': ['diseases'],
-        'core_id': 'True'
+        'core_id': 'False'
     },
     'P493': {
         'datatype': 'string',
         'name': 'ICD-9',
         'domain': ['diseases'],
-        'core_id': 'True'
+        'core_id': 'False'
     },
     'P492': {
         'datatype': 'string',
