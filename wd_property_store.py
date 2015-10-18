@@ -241,7 +241,7 @@ wd_properties = {
     },
     'P353': {
         'datatype': 'string',
-        'name': 'Gene symbol',
+        'name': 'Human Gene symbol',
         'domain': ['genes'],
         'core_id': 'True'
     },
