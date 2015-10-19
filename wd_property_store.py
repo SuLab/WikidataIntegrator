@@ -291,7 +291,7 @@ wd_properties = {
         'datatype': 'string',
         'name': 'Uniprot ID',
         'domain': ['proteins'],
-        'core_id': 'False'
+        'core_id': 'True'
     },
     'P591': {
         'datatype': 'string',
