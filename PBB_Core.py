@@ -1039,6 +1039,17 @@ class WDItemID(WDBaseDataType):
         self.set_value(value=value)
 
     def set_value(self, value):
+        if type(value) == int:
+            self.value = value
+        elif value[0] == 'Q':
+            pattern = re.compile('[0-9]*')
+            matches = pattern.match(value[1:])
+
+            if len(value[1:]) == len(matches.group(0)):
+                self.value = int(value[1:])
+            else:
+                raise ValueError('Invalid WD item ID, format must be "Q[0-9]*"')
+
         self.json_representation['datavalue'] = {
             'value': {
                 'entity-type': 'item',
@@ -1050,16 +1061,6 @@ class WDItemID(WDBaseDataType):
         super(WDItemID, self).set_value(value=value)
 
         # check if WD item or property ID is in valid format
-        if type(value) == int:
-            self.value = value
-        elif value[0] == 'Q':
-            pattern = re.compile('[0-9]*')
-            matches = pattern.match(value[1:])
-
-            if len(value[1:]) == len(matches.group(0)):
-                self.value = int(value[1:])
-            else:
-                raise ValueError('Invalid WD item ID, format must be "Q[0-9]*"')
 
     @classmethod
     @JsonParser
