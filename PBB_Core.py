@@ -364,7 +364,7 @@ class WDItemEngine(object):
         # collect all statements which should be deleted
         statements_for_deletion = []
         for item in self.data:
-            if item.get_value() == '':
+            if item.get_value() == '' and isinstance(item, WDBaseDataType):
                 statements_for_deletion.append(item.get_prop_nr())
 
         if self.create_new_item:
@@ -413,9 +413,11 @@ class WDItemEngine(object):
                     self.statements.insert(insert_pos + 1, stat)
 
         # add remove flag to all statements which should be deleted
-        for item in self.statements:
-            if item.get_prop_nr() in statements_for_deletion:
+        for item in copy.deepcopy(self.statements):
+            if item.get_prop_nr() in statements_for_deletion and item.get_id() != '':
                 setattr(item, 'remove', '')
+            elif item.get_prop_nr() in statements_for_deletion:
+                self.statements.remove(item)
 
         # regenerate claim json
         self.wd_json_representation['claims'] = {}
