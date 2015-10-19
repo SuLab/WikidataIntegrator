@@ -34,10 +34,7 @@ import logging
 import os
 
 import PBB_Debug
-import PBB_settings
 # import mysql.connector
-import socket
-import getpass
 import copy
 import pprint
 import wd_property_store
@@ -363,6 +360,13 @@ class WDItemEngine(object):
 
         # sort the incoming data according to the WD property number
         self.data.sort(key=lambda z: z.get_prop_nr().lower())
+
+        # collect all statements which should be deleted
+        statements_for_deletion = []
+        for item in self.data:
+            if item.get_value() == '':
+                statements_for_deletion.append(item.get_prop_nr())
+
         if self.create_new_item:
             self.statements = copy.copy(self.data)
         else:
@@ -407,6 +411,11 @@ class WDItemEngine(object):
 
                 if True not in match:
                     self.statements.insert(insert_pos + 1, stat)
+
+        # add remove flag to all statements which should be deleted
+        for item in self.statements:
+            if item.get_prop_nr() in statements_for_deletion:
+                setattr(item, 'remove', '')
 
         # regenerate claim json
         self.wd_json_representation['claims'] = {}
@@ -476,6 +485,18 @@ class WDItemEngine(object):
                                                  .format(data_match_count, count_existing_ids - data_match_count), '', '')
         else:
             return True
+
+    def get_label(self, lang='en'):
+        """
+        Retrurns the label for a certain language
+        :param lang:
+        :type lang: str
+        :return: returns the label in the specified language, an empty string if the label does not exist
+        """
+        try:
+            return self.wd_json_representation['labels'][lang]['value']
+        except KeyError:
+            return ''
 
     def set_label(self, label, lang='en'):
         """
@@ -558,7 +579,6 @@ class WDItemEngine(object):
         """
         if 'sitelinks' not in self.wd_json_representation:
             self.wd_json_representation['sitelinks'] = {}
-
 
         self.wd_json_representation['sitelinks'][site] = {
             'site': site,
@@ -714,8 +734,8 @@ class JsonParser(object):
                 for prop in json_representation['qualifiers-order']:
                     qual = json_representation['qualifiers'][prop]
                     qual_hash = ''
-                    if 'hash' in qual:
-                        qual_hash = qual['hash']
+                    if 'hash' in qual[0]:
+                        qual_hash = qual[0]['hash']
 
                     qual_class = self.get_class_representation(qual[0])
                     qual_class.is_qualifier = True
@@ -800,8 +820,8 @@ class WDBaseDataType(object):
             "datatype": self.data_type
         }
 
-        snak_types = ['value', 'novalue', 'somevalue']
-        if snak_type not in snak_types:
+        self.snak_types = ['value', 'novalue', 'somevalue']
+        if snak_type not in self.snak_types:
             raise ValueError('{} is not a valid snak type'.format(snak_type))
 
         if self.is_qualifier and self.is_reference:
@@ -841,7 +861,10 @@ class WDBaseDataType(object):
         return self.value
 
     def set_value(self, value):
-        self.value = value
+        if value is None or (self.snak_type == 'novalue' or self.snak_type == 'somevalue'):
+            del self.json_representation['datavalue']
+        elif 'datavalue' not in self.json_representation:
+            self.json_representation['datavalue'] = {}
 
     def get_references(self):
         return self.references
@@ -983,14 +1006,21 @@ class WDString(WDBaseDataType):
         super(WDString, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
                          is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
 
+        self.set_value(value=value)
+
+    def set_value(self, value):
         self.json_representation['datavalue'] = {
             'value': self.value,
             'type': 'string'
         }
 
+        super(WDString, self).set_value(value=value)
+
     @classmethod
     @JsonParser
     def from_json(cls, jsn):
+        if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
+            return cls(value=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
         return cls(value=jsn['datavalue']['value'], prop_nr=jsn['property'])
 
 
@@ -1000,26 +1030,13 @@ class WDItemID(WDBaseDataType):
     def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=[],
                  qualifiers=[], rank='normal', entity_type='item'):
 
-        # check if WD item or property ID is in valid format
-        if type(value) == int:
-            self.value = value
-        elif value[0] == 'Q' or value[0] == 'P':
-            pattern = re.compile('[0-9]*')
-            matches = pattern.match(value[1:])
+        super(WDItemID, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE,
+                                       is_reference=is_reference, is_qualifier=is_qualifier, references=references,
+                                       qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
 
-            if len(value[1:]) == len(matches.group(0)):
-                self.value = int(value[1:])
-            else:
-                raise ValueError('Invalid WD item ID, format must be "Q[0-9]*"')
+        self.set_value(value=value)
 
-        # check for valid entity type
-        entity_types = ['item', 'property']
-        if entity_type not in entity_types:
-            raise ValueError('Invalid entity type, "item" or "property" are allowed')
-
-        super().__init__(value=self.value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
-                         is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
-
+    def set_value(self, value):
         self.json_representation['datavalue'] = {
             'value': {
                 'entity-type': 'item',
@@ -1028,9 +1045,70 @@ class WDItemID(WDBaseDataType):
             'type': 'wikibase-entityid'
         }
 
+        super(WDItemID, self).set_value(value=value)
+
+        # check if WD item or property ID is in valid format
+        if type(value) == int:
+            self.value = value
+        elif value[0] == 'Q':
+            pattern = re.compile('[0-9]*')
+            matches = pattern.match(value[1:])
+
+            if len(value[1:]) == len(matches.group(0)):
+                self.value = int(value[1:])
+            else:
+                raise ValueError('Invalid WD item ID, format must be "Q[0-9]*"')
+
     @classmethod
     @JsonParser
     def from_json(cls, jsn):
+        if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
+            return cls(value=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
+        return cls(value=jsn['datavalue']['value']['numeric-id'], prop_nr=jsn['property'])
+
+
+class WDProperty(WDBaseDataType):
+    DTYPE = 'wikibase-property'
+
+    def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=[],
+                 qualifiers=[], rank='normal', entity_type='item'):
+
+        super(WDProperty, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE,
+                                       is_reference=is_reference, is_qualifier=is_qualifier, references=references,
+                                       qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+
+        self.set_value(value=value)
+
+    def set_value(self, value):
+        self.json_representation['datavalue'] = {
+            'value': {
+                'entity-type': 'property',
+                'numeric-id': self.value
+            },
+            'type': 'wikibase-entityid'
+        }
+
+        super(WDProperty, self).set_value(value=value)
+
+        # check if WD item or property ID is in valid format
+        if value is None:
+            self.value = None
+        elif type(value) == int:
+            self.value = value
+        elif value[0] == 'P':
+            pattern = re.compile('[0-9]*')
+            matches = pattern.match(value[1:])
+
+            if len(value[1:]) == len(matches.group(0)):
+                self.value = int(value[1:])
+            else:
+                raise ValueError('Invalid WD item ID, format must be "Q[0-9]*"')
+
+    @classmethod
+    @JsonParser
+    def from_json(cls, jsn):
+        if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
+            return cls(value=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
         return cls(value=jsn['datavalue']['value']['numeric-id'], prop_nr=jsn['property'])
 
 
@@ -1055,38 +1133,48 @@ class WDTime(WDBaseDataType):
         :param rank:
         :return:
         """
-        if precision < 0 or precision > 14:
-            raise ValueError('Invalid value for time precision, '
-                             'see https://www.mediawiki.org/wiki/Wikibase/DataModel/JSON#time')
-
-        try:
-            datetime.datetime.strptime(time, '+%Y-%m-%dT%H:%M:%SZ')
-        except ValueError as e:
-            raise ValueError('Wrong data format, date format must be +%Y-%m-%dT%H:%M:%SZ')
 
         # the value is composed of what is requried to define the WD time object
         value = (time, timezone, precision, calendarmodel)
 
-        super().__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
+        super(WDTime, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
                          is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
 
+        self.set_value(value=value)
+
+    def set_value(self, value):
+        self.time, self.timezone, self.precision, self.calendarmodel = value
         self.json_representation['datavalue'] = {
             'value': {
-                'time': time,
-                'timezone': timezone,
+                'time': self.time,
+                'timezone': self.timezone,
                 'before': 0,
                 'after': 0,
-                'precision': precision,
-                'calendarmodel': calendarmodel
+                'precision': self.precision,
+                'calendarmodel': self.calendarmodel
             },
             'type': 'time'
         }
 
+        super(WDTime, self).set_value(value=self.time)
+
+        if time is not None:
+            if self.precision < 0 or self.precision > 14:
+                raise ValueError('Invalid value for time precision, '
+                                 'see https://www.mediawiki.org/wiki/Wikibase/DataModel/JSON#time')
+
+            try:
+                datetime.datetime.strptime(self.time, '+%Y-%m-%dT%H:%M:%SZ')
+            except ValueError as e:
+                raise ValueError('Wrong data format, date format must be +%Y-%m-%dT%H:%M:%SZ')
+
     @classmethod
     @JsonParser
     def from_json(cls, jsn):
-        value = jsn['datavalue']['value']
+        if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
+            return cls(time=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
 
+        value = jsn['datavalue']['value']
         return cls(time=value['time'], prop_nr=jsn['property'], precision=value['precision'],
                    timezone=value['timezone'], calendarmodel=value['calendarmodel'])
 
@@ -1202,6 +1290,7 @@ class WDCommonsMedia(WDBaseDataType):
     @JsonParser
     def from_json(cls, jsn):
         return cls(value=jsn['datavalue']['value'], prop_nr=jsn['property'])
+
 
 class WDGlobeCoordinate(WDBaseDataType):
     DTYPE = 'globe-coordinate'
