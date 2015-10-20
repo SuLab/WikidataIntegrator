@@ -205,7 +205,7 @@ wd_properties = {
     },
     'P1395': {
         'datatype': 'string',
-        'name': 'National Cancer Institute ID',
+        'name': 'National Cancer Thesaurus ID',
         'domain': ['diseases'],
         'core_id': 'True'
     },
