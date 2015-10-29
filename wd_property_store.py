@@ -231,13 +231,13 @@ wd_properties = {
         'datatype': 'string',
         'name': 'Ensembl Gene ID',
         'domain': ['genes'],
-        'core_id': 'True'
+        'core_id': 'False'
     },
     'P704': {
         'datatype': 'string',
         'name': 'Ensembl Transcript ID',
         'domain': ['genes'],
-        'core_id': 'True'
+        'core_id': 'False'
     },
     'P353': {
         'datatype': 'string',
