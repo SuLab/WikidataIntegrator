@@ -338,7 +338,7 @@ wd_properties = {
     'P688': {
         'datatype': 'item',
         'name': 'encodes',
-        'domain': ['genes'],
+        'domain': ['genes', 'proteins'],
         'core_id': 'False'
     },
     'P225': {
