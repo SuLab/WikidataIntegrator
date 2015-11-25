@@ -40,6 +40,7 @@ import pprint
 import wd_property_store
 import json
 
+from SPARQLWrapper import SPARQLWrapper, JSON
 
 '''
 class BotMainLog():
@@ -103,7 +104,7 @@ class WDItemEngine(object):
     log_file_name = ''
 
     def __init__(self, wd_item_id='', item_name='', domain='', data=[], server='www.wikidata.org',
-                 append_value=[], references={}):
+                 append_value=[], use_sparql=False):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -122,7 +123,7 @@ class WDItemEngine(object):
         self.data = data
         self.server = server
         self.append_value = append_value
-        self.references = references
+        self.use_sparql = use_sparql
         self.statements = []
 
         self.property_list = self.get_property_list()
@@ -261,15 +262,28 @@ class WDItemEngine(object):
                 try:
                     # check if the property is a core_id and should be unique for every WD item
                     if wd_property_store.wd_properties[wd_property]['core_id'] == 'True':
-                        url = 'http://wdq.wmflabs.org/api'
-                        params = {
-                            'q': u'string[{}:{}]'.format(str(wd_property).replace('P', ''),
-                                                         u'"{}"'.format(data_point)),
-                        }
+                        tmp_qids = []
 
-                        reply = requests.get(url, params=params)
+                        if not self.use_sparql:
+                            url = 'http://wdq.wmflabs.org/api'
+                            params = {
+                                'q': u'string[{}:{}]'.format(str(wd_property).replace('P', ''),
+                                                             u'"{}"'.format(data_point)),
+                            }
 
-                        tmp_qids = reply.json()['items']
+                            reply = requests.get(url, params=params)
+
+                            tmp_qids = reply.json()['items']
+                        else:
+                            query = statement.sparql_query.format(wd_property, data_point)
+                            results = WDItemEngine.execute_sparql_query(query=query)
+
+                            for i in results['results']['bindings']:
+                                qid = i['item_id']['value'].split('/')[-1]
+                                # remove 'Q' prefix
+                                qid = qid[1:]
+                                tmp_qids.append(qid)
+
                         qid_list.append(tmp_qids)
 
                         # Protocol in what property the conflict arises
@@ -692,6 +706,39 @@ class WDItemEngine(object):
 
         logger.log(level=log_levels[level], msg=message)
 
+    @staticmethod
+    def execute_sparql_query(prefix='', query='', endpoint='https://query.wikidata.org/bigdata/namespace/wdq/sparql'):
+        """
+        Static method which can be used to execute any SPARQL query
+        :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
+        :param query: The actual SPARQL query string
+        :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
+        :return: The results of the query are returned in JSON format
+        """
+
+        # standard prefixes for the Wikidata SPARQL endpoint
+        # PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> has been removed for performance reasons
+        wd_standard_prefix = '''
+            PREFIX wd: <http://www.wikidata.org/entity/>
+            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+            PREFIX wikibase: <http://wikiba.se/ontology#>
+            PREFIX p: <http://www.wikidata.org/prop/>
+            PREFIX v: <http://www.wikidata.org/prop/statement/>
+            PREFIX q: <http://www.wikidata.org/prop/qualifier/>
+
+        '''
+
+        if prefix == '':
+            prefix = wd_standard_prefix
+
+        query_string = prefix + query
+
+        sparql = SPARQLWrapper(endpoint)
+        sparql.setQuery(query_string)
+        sparql.setReturnFormat(JSON)
+
+        return sparql.query().convert()
+
 
 class JsonParser(object):
     references = []
@@ -772,6 +819,13 @@ class WDBaseDataType(object):
     """
     The base class for all Wikidata data types, they inherit from it
     """
+
+    sparql_query = '''
+        SELECT * WHERE {{
+            ?item_id wdt:{0} '{1}' .
+        }}
+    '''
+
     def __init__(self, value, snak_type, data_type, is_reference, is_qualifier, references, qualifiers, rank, prop_nr):
         """
         Constructor, will be called by all data types.
@@ -1028,6 +1082,12 @@ class WDString(WDBaseDataType):
 
 class WDItemID(WDBaseDataType):
     DTYPE = 'wikibase-item'
+
+    sparql_query = '''
+        SELECT * WHERE {{
+            ?item_id wdt:{0} wd:{1} .
+        }}
+    '''
 
     def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=[],
                  qualifiers=[], rank='normal', entity_type='item'):
