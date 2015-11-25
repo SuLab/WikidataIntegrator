@@ -389,6 +389,18 @@ wd_properties = {
         'domain': ['proteins'],
         'core_id': 'False'
     },
+    'P1554': {
+        'datatype': 'item',
+        'name': 'uberon id',
+        'domain': ['anatomical_structure'],
+        'core_id': 'False'
+    },
+    'P1709': {
+        'datatype': 'item',
+        'name': 'equivalent class',
+        'domain': ['genes', 'proteins', 'diseases', 'drugs', 'anatomical_structure'],
+        'core_id': 'False'
+    },
     #### for test.wikidata.org
     # 'P477': {
     #     'datatype': 'string',
