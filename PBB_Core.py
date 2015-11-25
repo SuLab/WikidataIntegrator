@@ -849,7 +849,7 @@ class WDBaseDataType(object):
         :param rank: The rank of a WD mainsnak, should determine the status of a value
         :type rank: A string of one of three allowed values: 'normal', 'deprecated', 'preferred'
         :param prop_nr: The WD property number a WD snak belongs to
-        :type prop_nr: A string with a prefixed 'P' and several numbers e.g. 'P715' (Drugbank ID)
+        :type prop_nr: A string with a prefixed 'P' and several digits e.g. 'P715' (Drugbank ID)
         :return:
         """
         self.value = value
@@ -860,7 +860,13 @@ class WDBaseDataType(object):
         self.is_reference = is_reference
         self.is_qualifier = is_qualifier
         self.rank = rank
-        self.prop_nr = prop_nr
+
+        if type(prop_nr) == str:
+            self.prop_nr = 'P' + prop_nr
+        elif prop_nr.startswith('P'):
+            self.prop_nr = prop_nr
+        else:
+            self.prop_nr = 'P' + prop_nr
 
         # Flag to allow complete overwrite of existing references for a value
         self.overwrite_references = False
@@ -1054,10 +1060,32 @@ class WDBaseDataType(object):
 
 
 class WDString(WDBaseDataType):
+    """
+    Implements the Wikidata data type 'string'
+    """
     DTYPE = 'string'
 
     def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=[],
                  qualifiers=[], rank='normal'):
+        """
+        Constructor, calls the superclass WDBaseDataType
+        :param value: The string to be used as the value
+        :type value: str
+        :param prop_nr: The WD item ID for this claim
+        :type prop_nr: str with a 'P' prefix followed by digits
+        :param is_reference: Whether this snak is a reference
+        :type is_reference: boolean
+        :param is_qualifier: Whether this snak is a qualifier
+        :type is_qualifier: boolean
+        :param snak_type: The snak type, either 'value', 'somevalue' or 'novalue'
+        :type snak_type: str
+        :param references: List with reference objects
+        :type references: A WD data type with subclass of WDBaseDataType
+        :param qualifiers: List with qualifier objects
+        :type qualifiers: A WD data type with subclass of WDBaseDataType
+        :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
+        :type rank: str
+        """
 
         super(WDString, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
                          is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
@@ -1065,6 +1093,8 @@ class WDString(WDBaseDataType):
         self.set_value(value=value)
 
     def set_value(self, value):
+        self.value = value
+
         self.json_representation['datavalue'] = {
             'value': self.value,
             'type': 'string'
@@ -1081,16 +1111,37 @@ class WDString(WDBaseDataType):
 
 
 class WDItemID(WDBaseDataType):
+    """
+    Implements the Wikidata data type with a value being another WD item ID
+    """
     DTYPE = 'wikibase-item'
-
     sparql_query = '''
         SELECT * WHERE {{
-            ?item_id wdt:{0} wd:{1} .
+            ?item_id wdt:{0} wd:Q{1} .
         }}
     '''
 
     def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=[],
-                 qualifiers=[], rank='normal', entity_type='item'):
+                 qualifiers=[], rank='normal'):
+        """
+        Constructor, calls the superclass WDBaseDataType
+        :param value: The WD item ID to serve as the value
+        :type value: str with a 'Q' prefix, followed by several digits or only the digits without the 'Q' prefix
+        :param prop_nr: The WD item ID for this claim
+        :type prop_nr: str with a 'P' prefix followed by digits
+        :param is_reference: Whether this snak is a reference
+        :type is_reference: boolean
+        :param is_qualifier: Whether this snak is a qualifier
+        :type is_qualifier: boolean
+        :param snak_type: The snak type, either 'value', 'somevalue' or 'novalue'
+        :type snak_type: str
+        :param references: List with reference objects
+        :type references: A WD data type with subclass of WDBaseDataType
+        :param qualifiers: List with qualifier objects
+        :type qualifiers: A WD data type with subclass of WDBaseDataType
+        :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
+        :type rank: str
+        """
 
         super(WDItemID, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE,
                                        is_reference=is_reference, is_qualifier=is_qualifier, references=references,
@@ -1099,7 +1150,9 @@ class WDItemID(WDBaseDataType):
         self.set_value(value=value)
 
     def set_value(self, value):
-        if type(value) == int:
+        if value is None:
+            self.value = None
+        elif type(value) == int:
             self.value = value
         elif value[0] == 'Q':
             pattern = re.compile('[0-9]*')
@@ -1120,8 +1173,6 @@ class WDItemID(WDBaseDataType):
 
         super(WDItemID, self).set_value(value=value)
 
-        # check if WD item or property ID is in valid format
-
     @classmethod
     @JsonParser
     def from_json(cls, jsn):
@@ -1131,28 +1182,45 @@ class WDItemID(WDBaseDataType):
 
 
 class WDProperty(WDBaseDataType):
+    """
+    Implements the Wikidata data type with value 'property'
+    """
     DTYPE = 'wikibase-property'
+    sparql_query = '''
+        SELECT * WHERE {{
+            ?item_id wdt:{0} wd:P{1} .
+        }}
+    '''
 
     def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=[],
-                 qualifiers=[], rank='normal', entity_type='item'):
+                 qualifiers=[], rank='normal'):
+        """
+        Constructor, calls the superclass WDBaseDataType
+        :param value: The WD property number to serve as a value
+        :type value: str with a 'P' prefix, followed by several digits or only the digits without the 'P' prefix
+        :param prop_nr: The WD property number for this claim
+        :type prop_nr: str with a 'P' prefix followed by digits
+        :param is_reference: Whether this snak is a reference
+        :type is_reference: boolean
+        :param is_qualifier: Whether this snak is a qualifier
+        :type is_qualifier: boolean
+        :param snak_type: The snak type, either 'value', 'somevalue' or 'novalue'
+        :type snak_type: str
+        :param references: List with reference objects
+        :type references: A WD data type with subclass of WDBaseDataType
+        :param qualifiers: List with qualifier objects
+        :type qualifiers: A WD data type with subclass of WDBaseDataType
+        :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
+        :type rank: str
+        """
 
         super(WDProperty, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE,
-                                       is_reference=is_reference, is_qualifier=is_qualifier, references=references,
-                                       qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+                                         is_reference=is_reference, is_qualifier=is_qualifier, references=references,
+                                         qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
 
         self.set_value(value=value)
 
     def set_value(self, value):
-        self.json_representation['datavalue'] = {
-            'value': {
-                'entity-type': 'property',
-                'numeric-id': self.value
-            },
-            'type': 'wikibase-entityid'
-        }
-
-        super(WDProperty, self).set_value(value=value)
-
         # check if WD item or property ID is in valid format
         if value is None:
             self.value = None
@@ -1165,7 +1233,17 @@ class WDProperty(WDBaseDataType):
             if len(value[1:]) == len(matches.group(0)):
                 self.value = int(value[1:])
             else:
-                raise ValueError('Invalid WD item ID, format must be "Q[0-9]*"')
+                raise ValueError('Invalid WD property ID, format must be "P[0-9]*"')
+
+        self.json_representation['datavalue'] = {
+            'value': {
+                'entity-type': 'property',
+                'numeric-id': self.value
+            },
+            'type': 'wikibase-entityid'
+        }
+
+        super(WDProperty, self).set_value(value=value)
 
     @classmethod
     @JsonParser
@@ -1176,25 +1254,37 @@ class WDProperty(WDBaseDataType):
 
 
 class WDTime(WDBaseDataType):
+    """
+    Implements the Wikidata data type with date and time values
+    """
     DTYPE = 'time'
 
     def __init__(self, time, prop_nr, precision=11, timezone=0, calendarmodel='http://www.wikidata.org/entity/Q1985727',
                  is_reference=False, is_qualifier=False, snak_type='value', references=[], qualifiers=[], rank='normal'):
         """
-        Constructor
+        Constructor, calls the superclass WDBaseDataType
         :param time: A time representation string in the following format: '+%Y-%m-%dT%H:%M:%SZ'
         :type time: str in the format '+%Y-%m-%dT%H:%M:%SZ', e.g. '+2001-12-31T12:01:13Z'
-        :param prop_nr:
-        :param precision:
-        :param timezone:
-        :param calendarmodel:
-        :param is_reference:
-        :param is_qualifier:
-        :param snak_type:
-        :param references:
-        :param qualifiers:
-        :param rank:
-        :return:
+        :param prop_nr: The WD property number for this claim
+        :type prop_nr: str with a 'P' prefix followed by digits
+        :param precision: Precision value for dates and time as specified in the WD data model (https://www.mediawiki.org/wiki/Wikibase/DataModel#Dates_and_times)
+        :type precision: int
+        :param timezone: The timezone which applies to the date and time as specified in the WD data model
+        :type timezone: int
+        :param calendarmodel: The calendar model used for the date. URL to the WD calendar model item.
+        :type calendarmodel: str
+        :param is_reference: Whether this snak is a reference
+        :type is_reference: boolean
+        :param is_qualifier: Whether this snak is a qualifier
+        :type is_qualifier: boolean
+        :param snak_type: The snak type, either 'value', 'somevalue' or 'novalue'
+        :type snak_type: str
+        :param references: List with reference objects
+        :type references: A WD data type with subclass of WDBaseDataType
+        :param qualifiers: List with qualifier objects
+        :type qualifiers: A WD data type with subclass of WDBaseDataType
+        :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
+        :type rank: str
         """
 
         # the value is composed of what is requried to define the WD time object
@@ -1243,82 +1333,183 @@ class WDTime(WDBaseDataType):
 
 
 class WDUrl(WDBaseDataType):
+    """
+    Implements the Wikidata data type for URL strings
+    """
     DTYPE = 'url'
 
     def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=[],
                  qualifiers=[], rank='normal'):
+        """
+        Constructor, calls the superclass WDBaseDataType
+        :param value: The URL to be used as the value
+        :type value: str
+        :param prop_nr: The WD item ID for this claim
+        :type prop_nr: str with a 'P' prefix followed by digits
+        :param is_reference: Whether this snak is a reference
+        :type is_reference: boolean
+        :param is_qualifier: Whether this snak is a qualifier
+        :type is_qualifier: boolean
+        :param snak_type: The snak type, either 'value', 'somevalue' or 'novalue'
+        :type snak_type: str
+        :param references: List with reference objects
+        :type references: A WD data type with subclass of WDBaseDataType
+        :param qualifiers: List with qualifier objects
+        :type qualifiers: A WD data type with subclass of WDBaseDataType
+        :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
+        :type rank: str
+        """
 
-        protocols = ['http://', 'https://', 'ftp://', 'irc://']
-        if True not in [True for x in protocols if value.startswith(x)]:
-            raise ValueError('Invalid URL')
+        super(WDUrl, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
+                                    is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
 
-        super().__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
-                         is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+        self.set_value(value)
+
+    def set_value(self, value):
+        if value is None:
+            self.value = None
+        else:
+            protocols = ['http://', 'https://', 'ftp://', 'irc://']
+            if True not in [True for x in protocols if value.startswith(x)]:
+                raise ValueError('Invalid URL')
+
+            self.value = value
 
         self.json_representation['datavalue'] = {
             'value': self.value,
             'type': 'string'
         }
 
+        super(WDUrl, self).set_value(value=self.value)
+
     @classmethod
     @JsonParser
     def from_json(cls, jsn):
+        if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
+            return cls(value=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
+
         return cls(value=jsn['datavalue']['value'], prop_nr=jsn['property'])
 
 
 class WDMonolingualText(WDBaseDataType):
+    """
+    Implements the Wikidata data type for Monolingual Text strings
+    """
     DTYPE = 'monolingualtext'
 
     def __init__(self, value, prop_nr, language='en', is_reference=False, is_qualifier=False, snak_type='value', references=[],
                  qualifiers=[], rank='normal'):
+        """
+        Constructor, calls the superclass WDBaseDataType
+        :param value: The language specific string to be used as the value
+        :type value: str
+        :param prop_nr: The WD item ID for this claim
+        :type prop_nr: str with a 'P' prefix followed by digits
+        :param language: Specifies the WD language the value belongs to
+        :type language: str
+        :param is_reference: Whether this snak is a reference
+        :type is_reference: boolean
+        :param is_qualifier: Whether this snak is a qualifier
+        :type is_qualifier: boolean
+        :param snak_type: The snak type, either 'value', 'somevalue' or 'novalue'
+        :type snak_type: str
+        :param references: List with reference objects
+        :type references: A WD data type with subclass of WDBaseDataType
+        :param qualifiers: List with qualifier objects
+        :type qualifiers: A WD data type with subclass of WDBaseDataType
+        :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
+        :type rank: str
+        """
 
+        self.language = language
         value = (value, language)
 
-        super().__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
-                         is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+        super(WDMonolingualText, self)\
+            .__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
+                      is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+
+    def set_value(self, value):
 
         self.json_representation['datavalue'] = {
             'value': {
                 'text': value[0],
-                'language': language
+                'language': self.language
             },
             'type': 'monolingualtext'
         }
+
+        super(WDMonolingualText, self).set_value(value=value[0])
 
     @classmethod
     @JsonParser
     def from_json(cls, jsn):
         value = jsn['datavalue']['value']
+        if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
+            return cls(value=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
+
         return cls(value=value['text'], prop_nr=jsn['property'], language=value['language'])
 
 
 class WDQuantity(WDBaseDataType):
+    """
+    Implements the Wikidata data type for quantities
+    """
     DTYPE = 'quantity'
 
     def __init__(self, value, prop_nr, upper_bound, lower_bound, unit='', is_reference=False, is_qualifier=False,
                  snak_type='value', references=[], qualifiers=[], rank='normal'):
+        """
+        Constructor, calls the superclass WDBaseDataType
+        :param value: The quantity value
+        :type value: float
+        :param prop_nr: The WD item ID for this claim
+        :type prop_nr: str with a 'P' prefix followed by digits
+        :param upper_bound: Upper bound of the value if it exists, e.g. for standard deviations
+        :type upper_bound: float
+        :param lower_bound: Lower bound of the value if it exists, e.g. for standard deviations
+        :type lower_bound: float
+        :param unit: The WD unit item URL a certain quantity has been measured in (https://www.wikidata.org/wiki/Wikidata:Units)
+        :type unit: str
+        :type is_reference: boolean
+        :param is_qualifier: Whether this snak is a qualifier
+        :type is_qualifier: boolean
+        :param snak_type: The snak type, either 'value', 'somevalue' or 'novalue'
+        :type snak_type: str
+        :param references: List with reference objects
+        :type references: A WD data type with subclass of WDBaseDataType
+        :param qualifiers: List with qualifier objects
+        :type qualifiers: A WD data type with subclass of WDBaseDataType
+        :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
+        :type rank: str
+        """
 
-        # Integrity checks for value and bounds
-        try:
-            for i in [value, upper_bound, lower_bound]:
-                float(i)
-        except ValueError as e:
-            raise ValueError('Value, bounds and units must parse as integers or float')
+        value = (value, unit, upper_bound, lower_bound)
 
-        if float(lower_bound) > float(upper_bound) or float(lower_bound) > float(value):
-            raise ValueError('Lower bound too large')
+        super(WDQuantity, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
+                                         is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
 
-        if float(upper_bound) < float(value):
-            raise ValueError('Upper bound too small')
+        self.set_value(value)
 
-        value = (str(value), str(unit), str(upper_bound), str(lower_bound))
+    def set_value(self, value):
+        value, unit, upper_bound, lower_bound = value
 
-        super().__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
-                         is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+        if value is not None:
+            # Integrity checks for value and bounds
+            try:
+                for i in [value, upper_bound, lower_bound]:
+                    float(i)
+            except ValueError as e:
+                raise ValueError('Value, bounds and units must parse as integers or float')
+
+            if float(lower_bound) > float(upper_bound) or float(lower_bound) > float(value):
+                raise ValueError('Lower bound too large')
+
+            if float(upper_bound) < float(value):
+                raise ValueError('Upper bound too small')
 
         self.json_representation['datavalue'] = {
             'value': {
-                'amount': str(value[0]),
+                'amount': str(value),
                 'unit': str(unit),
                 'upperBound': str(upper_bound),
                 'lowerBound': str(lower_bound)
@@ -1326,65 +1517,134 @@ class WDQuantity(WDBaseDataType):
             'type': 'quantity'
         }
 
+        super(WDQuantity, self).set_value(value)
+
     @classmethod
     @JsonParser
     def from_json(cls, jsn):
         value = jsn['datavalue']['value']
+        if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
+            return cls(value=None, upper_bound=None, lower_bound=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
 
         return cls(value=value['amount'], prop_nr=jsn['property'], upper_bound=value['upperBound'],
                    lower_bound=value['lowerBound'], unit=value['unit'])
 
 
 class WDCommonsMedia(WDBaseDataType):
+    """
+    Implements the Wikidata data type for Wikimedia commons media files
+    """
     DTYPE = 'commonsMedia'
 
     def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=[],
                  qualifiers=[], rank='normal'):
+        """
+        Constructor, calls the superclass WDBaseDataType
+        :param value: The media file name from Wikimedia commons to be used as the value
+        :type value: str
+        :param prop_nr: The WD item ID for this claim
+        :type prop_nr: str with a 'P' prefix followed by digits
+        :param is_reference: Whether this snak is a reference
+        :type is_reference: boolean
+        :param is_qualifier: Whether this snak is a qualifier
+        :type is_qualifier: boolean
+        :param snak_type: The snak type, either 'value', 'somevalue' or 'novalue'
+        :type snak_type: str
+        :param references: List with reference objects
+        :type references: A WD data type with subclass of WDBaseDataType
+        :param qualifiers: List with qualifier objects
+        :type qualifiers: A WD data type with subclass of WDBaseDataType
+        :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
+        :type rank: str
+        """
 
-        super().__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
-                         is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+        super(WDCommonsMedia, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
+                                             is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
 
+        self.set_value(value)
+
+    def set_value(self, value):
         self.json_representation['datavalue'] = {
-            'value': self.value,
+            'value': value,
             'type': 'string'
         }
+
+        super(WDCommonsMedia, self).set_value(value)
 
     @classmethod
     @JsonParser
     def from_json(cls, jsn):
+        if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
+            return cls(value=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
         return cls(value=jsn['datavalue']['value'], prop_nr=jsn['property'])
 
 
 class WDGlobeCoordinate(WDBaseDataType):
+    """
+    Implements the Wikidata data type for globe coordinates
+    """
     DTYPE = 'globe-coordinate'
 
     def __init__(self, latitude, longitude, precision, prop_nr, is_reference=False, is_qualifier=False,
                  snak_type='value', references=[], qualifiers=[], rank='normal'):
+        """
+        Constructor, calls the superclass WDBaseDataType
+        :param latitude: Latitute in decimal format
+        :type latitude: float
+        :param longitude: Longitude in decimal format
+        :type longitude: float
+        :param precision: Precision of the position measurement
+        :type precision: float
+        :param prop_nr: The WD item ID for this claim
+        :type prop_nr: str with a 'P' prefix followed by digits
+        :param is_reference: Whether this snak is a reference
+        :type is_reference: boolean
+        :param is_qualifier: Whether this snak is a qualifier
+        :type is_qualifier: boolean
+        :param snak_type: The snak type, either 'value', 'somevalue' or 'novalue'
+        :type snak_type: str
+        :param references: List with reference objects
+        :type references: A WD data type with subclass of WDBaseDataType
+        :param qualifiers: List with qualifier objects
+        :type qualifiers: A WD data type with subclass of WDBaseDataType
+        :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
+        :type rank: str
+        """
+        # TODO: implement globe parameter, so it becomes clear which globe the coordinates are referring to
+        value = (latitude, longitude, precision)
+        self.latitude, self.longitude, self.precision = value
+
+        super(WDGlobeCoordinate, self)\
+            .__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
+                      is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+
+        self.set_value(value)
+
+    def set_value(self, value):
 
         # TODO: Introduce validity checks for coordinates
 
-        value = (latitude, longitude, precision)
+        self.latitude, self.longitude, self.precision = value
 
-        super().__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
-                         is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
-
-        self.latitude = latitude
-        self.longitude = longitude
-        self.precision = precision
         self.json_representation['datavalue'] = {
             'value': {
-                'latitude': latitude,
-                'longitude': longitude,
-                'precision': precision,
+                'latitude': self.latitude,
+                'longitude': self.longitude,
+                'precision': self.precision,
                 'globe': "http://www.wikidata.org/entity/Q2"
             },
             'type': 'globecoordinate'
         }
 
+        super(WDGlobeCoordinate, self).set_value(self.latitude)
+
     @classmethod
     @JsonParser
     def from_json(cls, jsn):
         value = jsn['datavalue']['value']
+        if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
+            return cls(latitude=None, longitude=None, precision=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
+
         return cls(latitude=value['latitude'], longitude=value['longitude'], precision=value['precision'],
                    prop_nr=jsn['property'])
 
