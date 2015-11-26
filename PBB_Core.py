@@ -861,7 +861,9 @@ class WDBaseDataType(object):
         self.is_qualifier = is_qualifier
         self.rank = rank
 
-        if prop_nr.startswith('P'):
+        if type(prop_nr) is int:
+            self.prop_nr = 'P' + str(prop_nr)
+        elif prop_nr.startswith('P'):
             self.prop_nr = prop_nr
         else:
             self.prop_nr = 'P' + prop_nr
