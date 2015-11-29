@@ -94,8 +94,10 @@ class WDItemList(object):
         }
 
         reply = requests.get(url, params=params)
-
-        return reply.json()
+        if "json" in vars(reply):
+            return reply.json()
+        else:
+            return None
 
 
 class WDItemEngine(object):
