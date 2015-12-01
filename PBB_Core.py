@@ -552,7 +552,7 @@ class WDItemEngine(object):
             'value': description
         }
 
-    def set_sitelink(self, site, title):
+    def set_sitelink(self, site, title, badges):
         """
         Set sitelinks to corresponding Wikipedia pages
         :param site: The Wikipedia page a sitelink is directed to (e.g. 'enwiki')
@@ -564,7 +564,8 @@ class WDItemEngine(object):
 
         self.wd_json_representation['sitelinks'][site] = {
             'site': site,
-            'title': title
+            'title': title,
+            'badges': badges
         }
 
     def get_sitelink(self, site):
