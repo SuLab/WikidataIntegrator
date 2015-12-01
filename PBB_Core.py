@@ -552,7 +552,7 @@ class WDItemEngine(object):
             'value': description
         }
 
-    def set_sitelink(self, site, title, badges):
+    def set_sitelink(self, site, title, badges=[]):
         """
         Set sitelinks to corresponding Wikipedia pages
         :param site: The Wikipedia page a sitelink is directed to (e.g. 'enwiki')
