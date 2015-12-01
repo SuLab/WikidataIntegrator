@@ -76,6 +76,7 @@ class BotMainLog():
             print(row[0])
 '''
 
+
 class WDItemList(object):
     def __init__(self, wdquery, wdprop=""):
         self.wdquery = wdquery
@@ -94,9 +95,10 @@ class WDItemList(object):
         }
 
         reply = requests.get(url, params=params)
-        if "json" in vars(reply):
+
+        try:
             return reply.json()
-        else:
+        except ValueError as e:
             return None
 
 
@@ -127,8 +129,6 @@ class WDItemEngine(object):
         self.append_value = append_value
         self.use_sparql = use_sparql
         self.statements = []
-
-        self.property_list = self.get_property_list()
 
         if self.item_name is not '' and self.domain is None and len(self.data) > 0:
             self.create_new_item = True
@@ -235,15 +235,14 @@ class WDItemEngine(object):
 
     def get_property_list(self):
         """
-        extract the properties which belong to the domain of the WD item
-        :return: a dict with WD property strings as keys and empty strings as values
+        List of properties on the current item
+        :return: a list of WD property ID strings (Pxxxx).
         """
-        property_list = []
-        for x in wd_property_store.wd_properties:
-            if self.domain in wd_property_store.wd_properties[x]['domain']:
-                property_list.append(x)
+        property_list = set()
+        for x in self.statements:
+            property_list.add(x.get_prop_nr())
 
-        return property_list
+        return list(property_list)
 
     def __select_wd_item(self):
         """
