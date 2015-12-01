@@ -42,39 +42,6 @@ import json
 
 from SPARQLWrapper import SPARQLWrapper, JSON
 
-'''
-class BotMainLog():
-    def __init__(self):
-        self.bot = ''
-        self.start_date = ''
-        self.finish_date = ''
-        self.bot_ip = socket.gethostbyname(socket.gethostname())
-        self.bot_user = getpass.getuser()
-            
-    def connectDb(self):
-        return mysql.connector.connect(user=PBB_settings.getMySQLUser(), password=PBB_settings.getMySQLPW(),
-                                      host=PBB_settings.getMySQLHost(),
-                                      database='ProteinBoxBot')
-    
-    def addTuple(self):
-        cnx = self.connectDb()
-        cursor = cnx.cursor()
-        sql_tuple = ("INSERT INTO PBB_History "
-                    "(bot, start_date, finish_date, bot_ip, bot_user) "
-                    "VALUES (%s, %s, %s, %s, %s)")
-        data_tuple = (self.bot, self.start_date, self.finish_date, self.bot_ip, self.bot_user)
-        print(self.bot)
-        print(self.start_date)
-        print(self.finish_date)
-        print(cursor.execute(sql_tuple, data_tuple))
-        cnx.commit()
-        
-        # print all the first cell of all the rows
-        # Use all the SQL you like
-        cursor.execute("SELECT * FROM PBB_History")
-        for row in cursor.fetchall() :
-            print(row[0])
-'''
 
 
 class WDItemList(object):
@@ -96,10 +63,8 @@ class WDItemList(object):
 
         reply = requests.get(url, params=params)
 
-        try:
-            return reply.json()
-        except ValueError as e:
-            return None
+        return reply.json()
+
 
 
 class WDItemEngine(object):
