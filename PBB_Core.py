@@ -1583,7 +1583,8 @@ class WDGlobeCoordinate(WDBaseDataType):
 
         super(WDGlobeCoordinate, self)\
             .__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
-                      is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+                      is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank,
+                      prop_nr=prop_nr)
 
         self.set_value(value)
 
@@ -1610,7 +1611,8 @@ class WDGlobeCoordinate(WDBaseDataType):
     def from_json(cls, jsn):
         value = jsn['datavalue']['value']
         if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
-            return cls(latitude=None, longitude=None, precision=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
+            return cls(latitude=None, longitude=None, precision=None, prop_nr=jsn['property'],
+                       snak_type=jsn['snaktype'])
 
         return cls(latitude=value['latitude'], longitude=value['longitude'], precision=value['precision'],
                    prop_nr=jsn['property'])
