@@ -43,16 +43,38 @@ for the existence of the appropriate item in Wikidata autonomously. Currently, i
 
 ![Scheme of item selection process](https://bytebucket.org/sulab/wikidatabots/raw/04e6e8a514fa2c7a189e60c466774434ed48b023/ProteinBoxBot_Core/doc/item_selection_overview.svg)
 
-Examples below will illustrate the usage of WDItemEngine.
+Examples below illustrate the usage of WDItemEngine.
 
-### login ###
-This function enables login on WikiData's API
+## PBB_login.WDLogin ##
+In order to write bots for Wikidata, a bot account is required and each script needs to go through a Oauth login procedure. In order to obtain a bot account for Wikidata,
+a specific task needs to be determined and then proposed to the Wikidata community. If the result of the community discussion is that your bot is useful for Wikidata, 
+the bot account will be approved and you can use it.
 
-Descriptions to be added soon.....
+PBB_login.WDLogin provides the login functionality and also stores the cookies and edit tokens required (For security reasons, every Wikidata edit requires an edit token).
+The constructor takes two essential parameters, username and password. Additionally, the server (default www.wikidata.org) and the the token renewal periods can be specified. 
 
 
 ```Python
         
-
-        
+    login_instance = PBB_login.WDLogin(user='<bot user name>', pwd='<bot password>')     
 ```
+
+## Wikidata Data Types ##
+Currently, Wikidata supports 9 different data types. The data types are represented as their own classes in PBB_core. Each data type has its specialties, which means that some of them
+require special parameters (e.g. Globe Coordinates).
+
+The data types currently implemented:
+
+* PBB_core.WDString
+* PBB_core.WDItemID
+* PBB_core.WDMonolingualText
+* PBB_core.WDProperty
+* PBB_core.WDQuantity
+* PBB_core.WDTime
+* PBB_core.WDUrl
+* PBB_core.WDGlobeCoordinate
+* PBB_core.WDCommonsMedia
+
+For details of how to create values (=instances) with these data types, please (for now) consult the docstrings. Of note, these data type instances hold the values and, if specified,
+data type instances for references and qualifiers. Furthermore, calling the get_value() method of an instance returns either an integer, a string or a tuple, depending on the complexity of the data type.
+
