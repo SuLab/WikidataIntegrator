@@ -78,3 +78,50 @@ The data types currently implemented:
 For details of how to create values (=instances) with these data types, please (for now) consult the docstrings. Of note, these data type instances hold the values and, if specified,
 data type instances for references and qualifiers. Furthermore, calling the get_value() method of an instance returns either an integer, a string or a tuple, depending on the complexity of the data type.
 
+# Examples #
+
+## A Minimal Bot ##
+In order to create a minimal bot based on PBB_core, three things are required:
+
+* A login object, as described above.
+* A data type object containing a value.
+* A WDItemEngine object which takes the data, does the checks and performs the write.
+
+```Python
+
+    import PBB_core
+    import PBB_login
+        
+    # login object
+    login_instance = PBB_login.WDLogin(user='<bot user name>', pwd='<bot password>')
+         
+    # data type object
+    entrez_gene_id = PBB_core.WDString(value='<some_entrez_id>', prop_nr='P351')
+    
+    # Search for and then edit/create new item
+    wd_item = PBB_core.WDItemEngine(item_name='<your_item_name>', domain='genes', data=[entrez_gene_id])
+    wd_item.write(login_instance)
+```
+
+## A Minimal Bot for Mass Import ##
+An enhanced example of the previous bot just puts two of the three things into a for loop and so allows mass creation, or modification of WD items.
+
+```Python
+
+    import PBB_core
+    import PBB_login
+        
+    # login object
+    login_instance = PBB_login.WDLogin(user='<bot user name>', pwd='<bot password>')
+    
+    # A list of identifiers, can also be loaded from any other data sources
+    entrez_id_list = ['<some_entrez_id>', '<some_entrez_id_1>, '<some_entrez_id_2>', '<some_entrez_id_3>', ...]
+    
+    for entrez_id_string in entrez_id_list:
+        # data type object
+        entrez_gene_id = PBB_core.WDString(value='entrez_id_string, prop_nr='P351')
+        
+        # Search for and then edit/create new item
+        wd_item = PBB_core.WDItemEngine(item_name='<your_item_name>', domain='genes', data=[entrez_gene_id])
+        wd_item.write(login_instance)
+```
