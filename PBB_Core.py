@@ -43,7 +43,6 @@ import json
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 
-
 class WDItemList(object):
     def __init__(self, wdquery, wdprop=""):
         self.wdquery = wdquery
@@ -64,7 +63,6 @@ class WDItemList(object):
         reply = requests.get(url, params=params)
 
         return reply.json()
-
 
 
 class WDItemEngine(object):
@@ -705,6 +703,44 @@ class WDItemEngine(object):
         sparql.setReturnFormat(JSON)
 
         return sparql.query().convert()
+
+    @staticmethod
+    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org'):
+        """
+        A static method to merge two Wikidata items
+        :param from_id: The QID which should be merged into another item
+        :type from_id: string with 'Q' prefix
+        :param to_id: The QID into which another item should be merged
+        :type to_id: string with 'Q' prefix
+        :param login_obj: The object containing the login credentials and cookies
+        :type login_obj: instance of PBB_login.WDLogin
+        :param server: The MediaWiki server which should be used, default: 'https://www.wikidata.org'
+        :type server: str
+        """
+        url = server + '/w/api.php'
+
+        headers = {
+            'content-type': 'application/x-www-form-urlencoded',
+            'charset': 'utf-8'
+        }
+
+        params = {
+            'action': 'wbmergeitems',
+            'fromid': from_id,
+            'toid': to_id,
+            'token': login_obj.get_edit_token(),
+            'format': 'json',
+            'bot': ''
+        }
+
+        try:
+            merge_reply = requests.post(url=url, data=params, headers=headers, cookies=login_obj.get_edit_cookie())
+
+            if 'error' in merge_reply.json():
+                raise MergeError(merge_reply.json())
+
+        except requests.HTTPError as e:
+            print(e)
 
 
 class JsonParser(object):
@@ -1683,3 +1719,11 @@ class ManualInterventionReqException(Exception):
     def __str__(self):
         return repr(self.value)
 
+
+class MergeError(Exception):
+    def __init__(self, value):
+        self.value = value
+
+
+    def __str__(self):
+        return repr(self.value)
