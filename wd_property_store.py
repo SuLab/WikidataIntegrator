@@ -401,6 +401,12 @@ wd_properties = {
         'domain': ['genes', 'proteins', 'diseases', 'drugs', 'anatomical_structure'],
         'core_id': 'False'
     },
+    'P686': {
+        'datatype': 'item',
+        'name': 'Gene Ontology ID',
+        'domain': ['genes', 'proteins'],
+        'core_id': 'True'
+    },
     #### for test.wikidata.org
     # 'P477': {
     #     'datatype': 'string',
