@@ -1327,13 +1327,13 @@ class WDTime(WDBaseDataType):
 
         super(WDTime, self).set_value(value=self.time)
 
-        if time is not None:
+        if self.time is not None:
             if self.precision < 0 or self.precision > 14:
                 raise ValueError('Invalid value for time precision, '
                                  'see https://www.mediawiki.org/wiki/Wikibase/DataModel/JSON#time')
 
             try:
-                if self.time[6:8] != '00' or self.time[9:11] != '00':
+                if self.time[6:8] != '00' and self.time[9:11] != '00':
                     datetime.datetime.strptime(self.time, '+%Y-%m-%dT%H:%M:%SZ')
             except ValueError as e:
                 raise ValueError('Wrong data format, date format must be +%Y-%m-%dT%H:%M:%SZ')
