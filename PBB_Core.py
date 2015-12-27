@@ -494,6 +494,17 @@ class WDItemEngine(object):
             'value': label
         }
 
+    def get_aliases(self, lang='en'):
+        """
+        Retrieve the aliases in a certain language
+        :param lang: The Wikidata language the description should be retrieved for
+        :return: Returns a list of aliases
+        """
+        if 'aliases' not in self.wd_json_representation or lang not in self.wd_json_representation['aliases']:
+            return ''
+        else:
+            return self.wd_json_representation['aliases'][lang]
+
     def set_aliases(self, aliases, lang='en', append=True):
         """
         set the aliases for a WD item
