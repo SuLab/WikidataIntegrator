@@ -498,12 +498,16 @@ class WDItemEngine(object):
         """
         Retrieve the aliases in a certain language
         :param lang: The Wikidata language the description should be retrieved for
-        :return: Returns a list of aliases
+        :return: Returns a list of aliases, an empty list if none exist for the specified language
         """
+        alias_list = []
         if 'aliases' not in self.wd_json_representation or lang not in self.wd_json_representation['aliases']:
-            return ''
+            return alias_list
         else:
-            return self.wd_json_representation['aliases'][lang]
+            for alias in self.wd_json_representation['aliases'][lang]:
+                alias_list.append(alias['value'])
+
+            return alias_list
 
     def set_aliases(self, aliases, lang='en', append=True):
         """
