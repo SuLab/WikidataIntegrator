@@ -1431,6 +1431,8 @@ class WDMonolingualText(WDBaseDataType):
             .__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
                       is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
 
+        self.set_value(value)
+
     def set_value(self, value):
 
         self.json_representation['datavalue'] = {
