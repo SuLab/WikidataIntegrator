@@ -501,13 +501,11 @@ class WDItemEngine(object):
         :return: Returns a list of aliases, an empty list if none exist for the specified language
         """
         alias_list = []
-        if 'aliases' not in self.wd_json_representation or lang not in self.wd_json_representation['aliases']:
-            return alias_list
-        else:
+        if 'aliases' in self.wd_json_representation and lang in self.wd_json_representation['aliases']:
             for alias in self.wd_json_representation['aliases'][lang]:
                 alias_list.append(alias['value'])
 
-            return alias_list
+        return alias_list
 
     def set_aliases(self, aliases, lang='en', append=True):
         """
@@ -1335,7 +1333,8 @@ class WDTime(WDBaseDataType):
                                  'see https://www.mediawiki.org/wiki/Wikibase/DataModel/JSON#time')
 
             try:
-                datetime.datetime.strptime(self.time, '+%Y-%m-%dT%H:%M:%SZ')
+                if self.time[6:8] != '00' or self.time[9:11] != '00':
+                    datetime.datetime.strptime(self.time, '+%Y-%m-%dT%H:%M:%SZ')
             except ValueError as e:
                 raise ValueError('Wrong data format, date format must be +%Y-%m-%dT%H:%M:%SZ')
 
