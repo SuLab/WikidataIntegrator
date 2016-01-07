@@ -370,12 +370,18 @@ class WDItemEngine(object):
 
                 # set all existing values of a property for removal
                 for x in prop_data:
-                    if x.get_id() != '' and not hasattr(x, 'retain'):
+                    # for deletion of single statements, do not set all others to delete
+                    if hasattr(stat, 'remove'):
+                        break
+                    elif x.get_id() != '' and not hasattr(x, 'retain'):
                         setattr(x, 'remove', '')
 
                 match = []
                 for i in prop_data:
-                    if stat == i:
+                    if stat == i and hasattr(stat, 'remove'):
+                        match.append(True)
+                        setattr(i, 'remove', '')
+                    elif stat == i:
                         match.append(True)
                         setattr(i, 'retain', '')
                         delattr(i, 'remove')
@@ -383,14 +389,14 @@ class WDItemEngine(object):
                         handle_references(old_item=i, new_item=stat)
 
                         i.set_rank(rank=stat.get_rank())
-                    # if there is no value, do not add an element, this is also used to delete whole statements.
+                    # if there is no value, do not add an element, this is also used to delete whole properties.
                     elif i.get_value() != '':
                         match.append(False)
 
-                if True not in match:
+                if True not in match and not hasattr(stat, 'remove'):
                     self.statements.insert(insert_pos + 1, stat)
 
-        # add remove flag to all statements which should be deleted
+        # For whole property deletions, add remove flag to all statements which should be deleted
         for item in copy.deepcopy(self.statements):
             if item.get_prop_nr() in statements_for_deletion and item.get_id() != '':
                 setattr(item, 'remove', '')
@@ -607,11 +613,11 @@ class WDItemEngine(object):
             'charset': 'utf-8'
         }
         payload = {
-            u'action': u'wbeditentity',
-            u'data': json.JSONEncoder().encode(self.wd_json_representation),
-            u'format': u'json',
-            u'token': edit_token,
-            u'bot': ''
+            'action': 'wbeditentity',
+            'data': json.JSONEncoder().encode(self.wd_json_representation),
+            'format': 'json',
+            'token': edit_token,
+            'bot': ''
         }
 
         if self.create_new_item:
