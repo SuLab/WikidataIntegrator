@@ -724,7 +724,7 @@ class WDItemEngine(object):
         return sparql.query().convert()
 
     @staticmethod
-    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org'):
+    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts=''):
         """
         A static method to merge two Wikidata items
         :param from_id: The QID which should be merged into another item
@@ -735,6 +735,9 @@ class WDItemEngine(object):
         :type login_obj: instance of PBB_login.WDLogin
         :param server: The MediaWiki server which should be used, default: 'https://www.wikidata.org'
         :type server: str
+        :param ignore_conflicts: A string with the values 'description', 'statement' or 'sitelink', separated
+                by a pipe ('|') if using more than one of those.
+        :type ignore_conficts: str
         """
         url = server + '/w/api.php'
 
@@ -749,7 +752,8 @@ class WDItemEngine(object):
             'toid': to_id,
             'token': login_obj.get_edit_token(),
             'format': 'json',
-            'bot': ''
+            'bot': '',
+            'ignoreconflicts': ignore_conflicts
         }
 
         try:
@@ -760,6 +764,9 @@ class WDItemEngine(object):
 
         except requests.HTTPError as e:
             print(e)
+            return {'error': 'HTTPError'}
+
+        return merge_reply.json()
 
 
 class JsonParser(object):
