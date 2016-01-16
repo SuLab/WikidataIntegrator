@@ -1,6 +1,21 @@
 #!usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import time
+import datetime
+import itertools
+import requests
+import re
+import logging
+import os
+
+import copy
+import pprint
+import wd_property_store
+import json
+
+from SPARQLWrapper import SPARQLWrapper, JSON
+
 """
 Authors: 
   Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
@@ -24,23 +39,6 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = 'Sebastian Burgstaller, Andra Waagmeester'
 __license__ = 'GPL'
-
-import time
-import datetime
-import itertools
-import requests
-import re
-import logging
-import os
-
-import PBB_Debug
-# import mysql.connector
-import copy
-import pprint
-import wd_property_store
-import json
-
-from SPARQLWrapper import SPARQLWrapper, JSON
 
 
 class WDItemList(object):
@@ -92,6 +90,7 @@ class WDItemEngine(object):
         self.append_value = append_value
         self.use_sparql = use_sparql
         self.statements = []
+        self.entity_metadata = {}
 
         if self.item_name is not '' and self.domain is None and len(self.data) > 0:
             self.create_new_item = True
@@ -149,6 +148,8 @@ class WDItemEngine(object):
         :return: returns the json representation containing 'labels', 'descriptions', 'claims', 'aliases', 'sitelinks'.
         """
         wd_data = {x: wd_json[x] for x in ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks') if x in wd_json}
+        self.entity_metadata = {x: wd_json[x] for x in wd_json if x not in
+                                ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks')}
 
         self.statements = []
         for prop in wd_data['claims']:
@@ -464,10 +465,11 @@ class WDItemEngine(object):
         majority_match = count_existing_ids - data_match_count > round(count_existing_ids * 0.66)
 
         # make decision if ManualInterventionReqException should be raised.
-        if data_match_count < count and majority_match and self.item_name.lower() not in names:
-            raise ManualInterventionReqException('Retrieved name does not match provided item name or core IDs. '
+        if data_match_count < count and majority_match:
+            raise ManualInterventionReqException('Retrieved item ({}) does not match provided core IDs. '
                                                  'Matching count {}, nonmatching count {}'
-                                                 .format(data_match_count, count_existing_ids - data_match_count), '', '')
+                                                 .format(self.wd_item_id, data_match_count,
+                                                         count_existing_ids - data_match_count), '', '')
         else:
             return True
 
@@ -635,7 +637,6 @@ class WDItemEngine(object):
             # pprint.pprint(json_data)
 
             if 'error' in json_data.keys():
-                PBB_Debug.prettyPrint(json_data)
                 if 'wikibase-validator-label-with-description-conflict' == json_data['error']['messages'][0]['name']:
                     raise NonUniqueLabelDescriptionPairError(json_data)
                 else:
@@ -643,7 +644,6 @@ class WDItemEngine(object):
 
         except requests.HTTPError as e:
             repr(e)
-            PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
 
         # after successful write, update this object with latest json, QID and parsed data types.
 
@@ -995,11 +995,11 @@ class WDBaseDataType(object):
     def get_id(self):
         return self.id
 
-    def set_id(self, id):
-        self.id = id
+    def set_id(self, claim_id):
+        self.id = claim_id
 
-    def set_hash(self, hash):
-        self.hash = hash
+    def set_hash(self, wd_hash):
+        self.hash = wd_hash
 
     def get_hash(self):
         return self.hash
@@ -1115,8 +1115,9 @@ class WDString(WDBaseDataType):
         :type rank: str
         """
 
-        super(WDString, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
-                         is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+        super(WDString, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE,
+                                       is_reference=is_reference, is_qualifier=is_qualifier, references=references,
+                                       qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
 
         self.set_value(value=value)
 
