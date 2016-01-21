@@ -65,7 +65,6 @@ class WDItemList(object):
 
 class WDItemEngine(object):
 
-    create_new_item = False
     log_file_name = ''
 
     def __init__(self, wd_item_id='', item_name='', domain='', data=[], server='www.wikidata.org',
@@ -84,6 +83,7 @@ class WDItemEngine(object):
         self.wd_json_representation = {}
         self.wd_item_id = wd_item_id
         self.item_name = item_name
+        self.create_new_item = False
         self.domain = domain
         self.data = data
         self.server = server
