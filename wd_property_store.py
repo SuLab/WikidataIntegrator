@@ -37,6 +37,9 @@ valid_instances = {
     ],
     'disease ontology': [
 
+    ],
+    'obo': [
+
     ]
 }
 
@@ -135,7 +138,7 @@ wd_properties = {
         'datatype': 'string',
         'name': 'SMILES',
         'domain': ['drugs'],
-        'core_id': 'True'
+        'core_id': 'False'
     },
     'P234': {
         'datatype': 'string',
@@ -392,7 +395,7 @@ wd_properties = {
     'P1554': {
         'datatype': 'item',
         'name': 'uberon id',
-        'domain': ['anatomical_structure'],
+        'domain': ['anatomical_structure', 'obo'],
         'core_id': 'False'
     },
     'P1709': {
@@ -404,31 +407,9 @@ wd_properties = {
     'P686': {
         'datatype': 'item',
         'name': 'Gene Ontology ID',
-        'domain': ['genes', 'proteins'],
+        'domain': ['obo'],
         'core_id': 'True'
     },
-    #### for test.wikidata.org
-    # 'P477': {
-    #     'datatype': 'string',
-    #     'name': 'Alt_Symbol',
-    #     'domain': ['genes'],
-    #     'core_id': 'False'
-    # },
-    # 'P480': {
-    #     'datatype': 'string',
-    #     'name': 'Ensembl',
-    #     'domain': ['genes'],
-    #     'core_id': 'False'
-    # },
-    # 'P7': {
-    #     'datatype': 'item',
-    #     'name': 'instance of duplicate',
-    #     'domain': ['genes'],
-    #     'core_id': 'False'
-    # }
-    ###########################
-
-    # ,
     # '': {
     #     'datatype': 'string',
     #     'name': '',
