@@ -67,8 +67,8 @@ class WDItemEngine(object):
 
     log_file_name = ''
 
-    def __init__(self, wd_item_id='', item_name='', domain='', data=[], server='www.wikidata.org',
-                 append_value=[], use_sparql=False):
+    def __init__(self, wd_item_id='', item_name='', domain='', data=None, server='www.wikidata.org',
+                 append_value=None, use_sparql=True):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -85,12 +85,20 @@ class WDItemEngine(object):
         self.item_name = item_name
         self.create_new_item = False
         self.domain = domain
-        self.data = data
         self.server = server
-        self.append_value = append_value
         self.use_sparql = use_sparql
         self.statements = []
         self.entity_metadata = {}
+
+        if data is None:
+            self.data = []
+        else:
+            self.data = data
+
+        if append_value is None:
+            self.append_value = []
+        else:
+            self.append_value = append_value
 
         if self.item_name is not '' and self.domain is None and len(self.data) > 0:
             self.create_new_item = True
@@ -116,12 +124,14 @@ class WDItemEngine(object):
 
         self.__construct_claim_json()
 
-        if ('labels' not in self.wd_json_representation or 'en' not in self.wd_json_representation['labels']) and item_name != '':
+        if ('labels' not in self.wd_json_representation or 'en' not in self.wd_json_representation['labels']) \
+                and item_name != '':
             self.set_label(label=item_name, lang='en')
 
     def get_wd_entity(self):
         """
         retrieve a WD item in json representation from Wikidata
+        :rtype: dict
         :return: python complex dictionary represenation of a json
         """
         try:
@@ -287,9 +297,9 @@ class WDItemEngine(object):
         def handle_references(old_item, new_item):
             """
             Local function to handle updating of references. Has the following behavior: If overwrite_references in
-            a provided data type is set to TRUE or an existing item does not have references, just overwrite existing refs.
-            Else: Check if P248 exists and do not overwrite those refs. Only overwrite, if value of P248 and value of
-            the DB entry match. Overwrite all other refs without P248.
+            a provided data type is set to TRUE or an existing item does not have references, just overwrite existing
+            refs. Else: Check if P248 exists and do not overwrite those refs. Only overwrite, if value of P248 and
+            value of the DB entry match. Overwrite all other refs without P248.
             :param old_item: An item containing the data as currently in WD
             :type old_item: A child of WDBaseDataType
             :param new_item: An item containing the new data which should be written to WD
@@ -299,11 +309,11 @@ class WDItemEngine(object):
             new_references = copy.deepcopy(new_item.get_references())
             existing_references = copy.deepcopy(old_item.get_references())
 
-            if True in [x.overwrite_references for y in new_references for x in y] \
+            if True in [z.overwrite_references for y in new_references for z in y] \
                     or sum(map(lambda z: len(z), existing_references)) == 0:
                 old_item.set_references(new_item.get_references())
 
-            elif 'P248' in [x.get_prop_nr() for y in new_references for x in y]:
+            elif 'P248' in [z.get_prop_nr() for y in new_references for z in y]:
                 for count, ref_block in enumerate(old_item.get_references()):
                     for new_ref_block in copy.copy(new_references):
                         db_value_prop = ''
@@ -323,7 +333,7 @@ class WDItemEngine(object):
                 # remove all references without 'stated in'
                 drop_refs = []
                 for ref in existing_references:
-                    prop_nr_list = [x.get_prop_nr() for x in ref]
+                    prop_nr_list = [z.get_prop_nr() for z in ref]
 
                     if 'P248' not in prop_nr_list:
                         drop_refs.append(ref)
@@ -422,54 +432,44 @@ class WDItemEngine(object):
         """
         A method to check if when invoking __select_wd_item() and the WD item does not exist yet, but another item
         has a property of the current domain with a value like submitted in the data dict, this item does not get
-        selected but a ManualInterventionReqException() is raised.
+        selected but a ManualInterventionReqException() is raised. This check is dependent on the core identifiers
+        of a certain domain.
         :return: boolean True if test passed
         """
         # generate a set containing all property number of the item currently loaded
-        current_props_list = set([x.get_prop_nr() for x in self.statements])
+        core_props_list = set([
+            x.get_prop_nr()
+            for x in self.statements if x.get_prop_nr() in wd_property_store.wd_properties and
+            wd_property_store.wd_properties[x.get_prop_nr()]['core_id'] == 'True'
+        ])
 
         # compare the claim values of the currently loaded QIDs to the data provided in self.data
         count_existing_ids = 0
         for i in self.data:
             prop_nr = i.get_prop_nr()
-            if prop_nr in wd_property_store.wd_properties:  # TODO: might want to restrict to self.domain only
+            if prop_nr in core_props_list:
                 count_existing_ids += 1
 
-        data_match_count = 0
+        match_count_per_prop = dict()
         for new_stat in self.data:
             for stat in self.statements:
-                if new_stat == stat:
-                    data_match_count += 1
+                pn = new_stat.get_prop_nr()
+                if new_stat == stat and pn in core_props_list:
+                    if pn in match_count_per_prop:
+                        match_count_per_prop[pn] += 1
+                    else:
+                        match_count_per_prop[pn] = 1
 
-        # collect all names and aliases in English and German
-        names = list()
+        core_prop_match_count = 0
+        for x in match_count_per_prop:
+            if match_count_per_prop[x] > 0:
+                core_prop_match_count += 1
 
-        if 'labels' in self.wd_json_representation:
-            for lang in self.wd_json_representation['labels']:
-                if lang == 'en' or lang == 'de':
-                    names.append(self.wd_json_representation['labels'][lang]['value'])
-
-        if 'aliases' in self.wd_json_representation:
-            for lang in self.wd_json_representation['aliases']:
-                if lang == 'en' or lang == 'de':
-                    for alias in self.wd_json_representation['aliases'][lang]:
-                        names.append(alias['value'])
-
-        names = [x.lower() for x in names]
-
-        count = 0
-        if len(current_props_list) - data_match_count > 0:
-            count = round((len(current_props_list) - data_match_count) / 2)
-
-        # Two thirds of the provided values must match, otherwise, raise exception
-        majority_match = count_existing_ids - data_match_count > round(count_existing_ids * 0.66)
-
-        # make decision if ManualInterventionReqException should be raised.
-        if data_match_count < count and majority_match:
+        if core_prop_match_count < count_existing_ids * 0.66:
             raise ManualInterventionReqException('Retrieved item ({}) does not match provided core IDs. '
-                                                 'Matching count {}, nonmatching count {}'
-                                                 .format(self.wd_item_id, data_match_count,
-                                                         count_existing_ids - data_match_count), '', '')
+                                                 'Matching count {}, non-matching count {}'
+                                                 .format(self.wd_item_id, core_prop_match_count,
+                                                         count_existing_ids - core_prop_match_count), '', '')
         else:
             return True
 
@@ -570,11 +570,12 @@ class WDItemEngine(object):
             'value': description
         }
 
-    def set_sitelink(self, site, title, badges=[]):
+    def set_sitelink(self, site, title, badges=()):
         """
         Set sitelinks to corresponding Wikipedia pages
         :param site: The Wikipedia page a sitelink is directed to (e.g. 'enwiki')
         :param title: The title of the Wikipedia page the sitelink is directed to
+        :param badges: An iterable containing Wikipedia badge strings.
         :return:
         """
         if 'sitelinks' not in self.wd_json_representation:
@@ -589,7 +590,8 @@ class WDItemEngine(object):
     def get_sitelink(self, site):
         """
         A method to access the interwiki links in the json.model
-        :return:
+        :param site: The Wikipedia site the interwiki/sitelink should be returned for
+        :return: The interwiki/sitelink string for the specified Wikipedia will be returned.
         """
         if "sitelinks" in self.wd_json_representation.keys():
             if site in self.wd_json_representation['sitelinks']:
@@ -636,17 +638,26 @@ class WDItemEngine(object):
 
             # pprint.pprint(json_data)
 
-            if 'error' in json_data.keys():
+            if 'error' in json_data.keys() and 'code' in json_data['error'] \
+                    and json_data['error']['code'] == 'readonly':
+                print('Wikidata currently is in readonly mode, waiting for 60 seconds')
+                time.sleep(60)
+                return self.write(login=login)
+
+            if 'error' in json_data.keys() and 'messages' in json_data['error']:
                 if 'wikibase-validator-label-with-description-conflict' == json_data['error']['messages'][0]['name']:
                     raise NonUniqueLabelDescriptionPairError(json_data)
                 else:
                     raise WDApiError(json_data)
+            elif 'error' in json_data.keys():
+                raise WDApiError(json_data)
 
-        except requests.HTTPError as e:
-            repr(e)
+        except Exception as e:
+            print('Error while writing to Wikidata')
+            raise e
 
         # after successful write, update this object with latest json, QID and parsed data types.
-
+        self.create_new_item = False
         self.wd_item_id = json_data['entity']['id']
         self.parse_wd_json(wd_json=json_data['entity'])
 
@@ -660,8 +671,8 @@ class WDItemEngine(object):
          severity
         :type level: String of value 'DEBUG', 'INFO', 'WARNING', 'ERROR' or 'CRITICAL'.
         :param message: The logging data which should be written to the log file. In order to achieve a csv-file
-         compatible format, all fields must be separated by a colon. Furthermore, all strings which could contain colons,
-         spaces or other special characters must be enclosed in double-quotes.
+         compatible format, all fields must be separated by a colon. Furthermore, all strings which could contain
+         colons, spaces or other special characters must be enclosed in double-quotes.
          e.g. '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
                         main_data_id=<main_id>,
                         exception_type=<excpetion type>,
@@ -736,7 +747,7 @@ class WDItemEngine(object):
         :type server: str
         :param ignore_conflicts: A string with the values 'description', 'statement' or 'sitelink', separated
                 by a pipe ('|') if using more than one of those.
-        :type ignore_conficts: str
+        :type ignore_conflicts: str
         """
         url = server + '/w/api.php'
 
