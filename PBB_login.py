@@ -1,25 +1,18 @@
-__author__ = 'Andra Waagmeester and Sebastian Burgstaller'
-__license__ = 'GPLv3'
-
-"""
-login routine for Wikidata
-"""
 import requests
 import time
+
+__author__ = 'Andra Waagmeester and Sebastian Burgstaller'
+__license__ = 'AGPLv3'
+
+"""
+Login class for Wikidata. Takes username and password and stores the session cookies and edit tokens.
+"""
 
 
 class WDLogin(object):
     """
     A class which handles the login to Wikidata and the generation of edit-tokens
     """
-    user = ''
-    pwd = ''
-    server = 'www.wikidata.org'
-    cookie_jar = {}
-    edit_token = ''
-    baseurl = ''
-    instantiation_time = time.time()
-    token_renew_period = 1800
 
     def __init__(self, user, pwd, server='www.wikidata.org', token_renew_period=1800):
         """
@@ -39,7 +32,7 @@ class WDLogin(object):
         self.instantiation_time = time.time()
         self.token_renew_period = token_renew_period
 
-        self.baseurl = 'https://' + self.server + '/w/api.php'
+        self.base_url = 'https://{}/w/api.php'.format(self.server)
 
         # Get login token and cookie
         params = {
@@ -49,17 +42,24 @@ class WDLogin(object):
             'format': 'json'
         }
 
-        response1 = requests.post(self.baseurl, params=params)
-        cookies = response1.cookies
-        login_token = response1.json()['login']['token']
+        r1 = requests.post(self.base_url, params=params)
+        cookies = r1.cookies
+        login_token = r1.json()['login']['token']
         self.token = login_token
-        
+
         # do the login using the login token
         params.update({'lgtoken': login_token})
-        response2 = requests.post(self.baseurl, params=params, cookies=cookies)
-        self.cookie_jar = response2.cookies.copy()
+        r2 = requests.post(self.base_url, params=params, cookies=cookies)
+        self.cookie_jar = r2.cookies.copy()
 
         self.generate_edit_credentials()
+
+        login_reply = r2.json()
+        if 'NotExists' in login_reply['login']['result']:
+            raise ValueError('Wrong username!')
+
+        if 'WrongPass' in login_reply['login']['result']:
+            raise ValueError('Wrong password!')
 
     def generate_edit_credentials(self):
         """
@@ -71,7 +71,7 @@ class WDLogin(object):
             'meta': 'tokens',
             'format': 'json'
         }
-        response = requests.get(self.baseurl, params=params, cookies=self.cookie_jar)
+        response = requests.get(self.base_url, params=params, cookies=self.cookie_jar)
         self.edit_token = response.json()['query']['tokens']['csrftoken']
 
         self.cookie_jar.update(response.cookies)
