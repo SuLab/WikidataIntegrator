@@ -719,6 +719,7 @@ class WDItemEngine(object):
             PREFIX p: <http://www.wikidata.org/prop/>
             PREFIX v: <http://www.wikidata.org/prop/statement/>
             PREFIX q: <http://www.wikidata.org/prop/qualifier/>
+            PREFIX ps: <http://www.wikidata.org/prop/statement/>
 
         '''
 
@@ -861,7 +862,7 @@ class WDBaseDataType(object):
 
     sparql_query = '''
         SELECT * WHERE {{
-            ?item_id wdt:{0} '{1}' .
+            ?item_id p:{0}/ps:{0} '{1}' .
         }}
     '''
 
