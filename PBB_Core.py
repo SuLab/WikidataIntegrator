@@ -462,8 +462,7 @@ class WDItemEngine(object):
 
         core_prop_match_count = 0
         for x in match_count_per_prop:
-            if match_count_per_prop[x] > 0:
-                core_prop_match_count += 1
+            core_prop_match_count += match_count_per_prop[x]
 
         if core_prop_match_count < count_existing_ids * 0.66:
             raise ManualInterventionReqException('Retrieved item ({}) does not match provided core IDs. '
