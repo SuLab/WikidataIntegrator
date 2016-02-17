@@ -810,26 +810,29 @@ class JsonParser(object):
                     for prop in ref_block['snaks-order']:
                         jsn = ref_block['snaks'][prop]
 
-                        ref_class = self.get_class_representation(jsn[0])
-                        ref_class.is_reference = True
-                        ref_class.snak_type = jsn[0]['snaktype']
-                        ref_class.set_hash(ref_hash)
+                        for prop_ref in jsn:
+                            pprint.pprint(prop_ref)
 
-                        self.references[count].append(ref_class)
+                            ref_class = self.get_class_representation(prop_ref)
+                            ref_class.is_reference = True
+                            ref_class.snak_type = prop_ref['snaktype']
+                            ref_class.set_hash(ref_hash)
+
+                            self.references[count].append(copy.deepcopy(ref_class))
 
                 # print(self.references)
             if 'qualifiers' in json_representation:
                 for prop in json_representation['qualifiers-order']:
-                    qual = json_representation['qualifiers'][prop]
-                    qual_hash = ''
-                    if 'hash' in qual[0]:
-                        qual_hash = qual[0]['hash']
+                    for qual in json_representation['qualifiers'][prop]:
+                        qual_hash = ''
+                        if 'hash' in qual:
+                            qual_hash = qual['hash']
 
-                    qual_class = self.get_class_representation(qual[0])
-                    qual_class.is_qualifier = True
-                    qual_class.snak_type = qual[0]['snaktype']
-                    qual_class.set_hash(qual_hash)
-                    self.qualifiers.append(qual_class)
+                        qual_class = self.get_class_representation(qual)
+                        qual_class.is_qualifier = True
+                        qual_class.snak_type = qual['snaktype']
+                        qual_class.set_hash(qual_hash)
+                        self.qualifiers.append(qual_class)
 
                 # print(self.qualifiers)
             mainsnak = self.get_class_representation(json_representation['mainsnak'])
@@ -1055,13 +1058,21 @@ class WDBaseDataType(object):
                         ref_json[count].update({'hash': sub_ref.get_hash()})
                     tmp_json = sub_ref.get_json_representation()
 
-                    snaks.update(tmp_json)
+                    # if more reference values with the same property number, append to its specific property list.
+                    if prop_nr in snaks:
+                        snaks[prop_nr].append(tmp_json[prop_nr][0])
+                    else:
+                        snaks.update(tmp_json)
                     snaks_order.append(prop_nr)
 
             qual_json = {}
             qualifiers_order = []
             for qual in self.qualifiers:
-                qual_json.update(qual.get_json_representation())
+                prop_nr = qual.get_prop_nr()
+                if prop_nr in qual_json:
+                    qual_json[prop_nr].append(qual.get_json_representation()[prop_nr][0])
+                else:
+                    qual_json.update(qual.get_json_representation())
                 qualifiers_order.append(qual.get_prop_nr())
 
             statement = {
@@ -1141,6 +1152,110 @@ class WDString(WDBaseDataType):
         }
 
         super(WDString, self).set_value(value=value)
+
+    @classmethod
+    @JsonParser
+    def from_json(cls, jsn):
+        if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
+            return cls(value=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
+        return cls(value=jsn['datavalue']['value'], prop_nr=jsn['property'])
+
+
+class WDMath(WDBaseDataType):
+    """
+    Implements the Wikidata data type 'math' for mathematical formular in TEX format
+    """
+    DTYPE = 'math'
+
+    def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=[],
+                 qualifiers=[], rank='normal'):
+        """
+        Constructor, calls the superclass WDBaseDataType
+        :param value: The string to be used as the value
+        :type value: str
+        :param prop_nr: The WD item ID for this claim
+        :type prop_nr: str with a 'P' prefix followed by digits
+        :param is_reference: Whether this snak is a reference
+        :type is_reference: boolean
+        :param is_qualifier: Whether this snak is a qualifier
+        :type is_qualifier: boolean
+        :param snak_type: The snak type, either 'value', 'somevalue' or 'novalue'
+        :type snak_type: str
+        :param references: List with reference objects
+        :type references: A WD data type with subclass of WDBaseDataType
+        :param qualifiers: List with qualifier objects
+        :type qualifiers: A WD data type with subclass of WDBaseDataType
+        :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
+        :type rank: str
+        """
+
+        super(WDMath, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
+                                     is_qualifier=is_qualifier, references=references, qualifiers=qualifiers,
+                                     rank=rank, prop_nr=prop_nr)
+
+        self.set_value(value=value)
+
+    def set_value(self, value):
+        self.value = value
+
+        self.json_representation['datavalue'] = {
+            'value': self.value,
+            'type': 'string'
+        }
+
+        super(WDMath, self).set_value(value=value)
+
+    @classmethod
+    @JsonParser
+    def from_json(cls, jsn):
+        if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
+            return cls(value=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
+        return cls(value=jsn['datavalue']['value'], prop_nr=jsn['property'])
+
+
+class WDExternalID(WDBaseDataType):
+    """
+    Implements the Wikidata data type 'external-id'
+    """
+    DTYPE = 'external-id'
+
+    def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=[],
+                 qualifiers=[], rank='normal'):
+        """
+        Constructor, calls the superclass WDBaseDataType
+        :param value: The string to be used as the value
+        :type value: str
+        :param prop_nr: The WD item ID for this claim
+        :type prop_nr: str with a 'P' prefix followed by digits
+        :param is_reference: Whether this snak is a reference
+        :type is_reference: boolean
+        :param is_qualifier: Whether this snak is a qualifier
+        :type is_qualifier: boolean
+        :param snak_type: The snak type, either 'value', 'somevalue' or 'novalue'
+        :type snak_type: str
+        :param references: List with reference objects
+        :type references: A WD data type with subclass of WDBaseDataType
+        :param qualifiers: List with qualifier objects
+        :type qualifiers: A WD data type with subclass of WDBaseDataType
+        :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
+        :type rank: str
+        """
+
+        super(WDExternalID, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE,
+                                           is_reference=is_reference, is_qualifier=is_qualifier, references=references,
+                                           qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+
+        self.set_value(value=value)
+
+    def set_value(self, value):
+        self.value = value
+
+        self.json_representation['datavalue'] = {
+            'value': self.value,
+            'type': 'string'
+        }
+
+        super(WDExternalID, self).set_value(value=value)
 
     @classmethod
     @JsonParser
