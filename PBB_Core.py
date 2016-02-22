@@ -811,7 +811,7 @@ class JsonParser(object):
                         jsn = ref_block['snaks'][prop]
 
                         for prop_ref in jsn:
-                            pprint.pprint(prop_ref)
+                            #pprint.pprint(prop_ref)
 
                             ref_class = self.get_class_representation(prop_ref)
                             ref_class.is_reference = True
