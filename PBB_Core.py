@@ -1850,6 +1850,9 @@ class NonUniqueLabelDescriptionPairError(WDApiError):
 
         return qid_string.split('|')[0][2:]
 
+    def __str__(self):
+        return repr(self.wd_error_msg)
+
 
 class IDMissingError(Exception):
     def __init__(self, value):
@@ -1878,7 +1881,6 @@ class ManualInterventionReqException(Exception):
 class MergeError(Exception):
     def __init__(self, value):
         self.value = value
-
 
     def __str__(self):
         return repr(self.value)
