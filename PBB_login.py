@@ -29,6 +29,7 @@ class WDLogin(object):
         if server is not None:
             self.server = server
 
+        self.edit_token = ''
         self.instantiation_time = time.time()
         self.token_renew_period = token_renew_period
 
@@ -83,7 +84,7 @@ class WDLogin(object):
         Can be called in order to retrieve the cookies from an instance of WDLogin
         :return: Returns a json with all relevant cookies, aka cookie jar
         """
-        if self.cookie_jar is {} or (time.time() - self.instantiation_time) > self.token_renew_period:
+        if not self.cookie_jar or (time.time() - self.instantiation_time) > self.token_renew_period:
             self.generate_edit_credentials()
             self.instantiation_time = time.time()
 
@@ -94,7 +95,7 @@ class WDLogin(object):
         Can be called in order to retrieve the edit token from an instance of WDLogin
         :return: returns the edit token
         """
-        if self.edit_token is '' or (time.time() - self.instantiation_time) > self.token_renew_period:
+        if not self.edit_token or (time.time() - self.instantiation_time) > self.token_renew_period:
             self.generate_edit_credentials()
             self.instantiation_time = time.time()
 
