@@ -394,7 +394,8 @@ class WDItemEngine(object):
                     elif stat == i:
                         match.append(True)
                         setattr(i, 'retain', '')
-                        delattr(i, 'remove')
+                        if hasattr(i, 'remove'):
+                            delattr(i, 'remove')
 
                         handle_references(old_item=i, new_item=stat)
 
