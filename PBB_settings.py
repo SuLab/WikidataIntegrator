@@ -28,10 +28,10 @@ def getSentryKey():
     return '<Sentry key to be obtained from https://getsentry.com/welcome/>'
     
 def getWikiDataUser():
-    return 'ProteinBoxBot'
+    return 'juleong'
     
 def getWikiDataPassword():
-    return '<WikiData Password>'
+    return ''
     
 def getMySQLHost():
     return '127.0.0.1'
