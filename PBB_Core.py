@@ -14,8 +14,6 @@ import pprint
 import wd_property_store
 import json
 
-from SPARQLWrapper import SPARQLWrapper, JSON
-
 """
 Authors: 
   Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
@@ -710,7 +708,7 @@ class WDItemEngine(object):
         logger.log(level=log_levels[level], msg=message)
 
     @staticmethod
-    def execute_sparql_query(prefix='', query='', endpoint='https://query.wikidata.org/bigdata/namespace/wdq/sparql'):
+    def execute_sparql_query(prefix='', query='', endpoint='https://query.wikidata.org/sparql'):
         """
         Static method which can be used to execute any SPARQL query
         :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
@@ -735,13 +733,16 @@ class WDItemEngine(object):
         if prefix == '':
             prefix = wd_standard_prefix
 
-        query_string = prefix + query
+        params = {
+            'query': prefix + query,
+            'format': 'json'
+        }
 
-        sparql = SPARQLWrapper(endpoint)
-        sparql.setQuery(query_string)
-        sparql.setReturnFormat(JSON)
+        headers = {
+            'Accept': 'application/sparql-results+json'
+        }
 
-        return sparql.query().convert()
+        return requests.get(endpoint, params=params, headers=headers).json()
 
     @staticmethod
     def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts=''):
