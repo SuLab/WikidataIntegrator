@@ -1136,7 +1136,7 @@ class WDBaseDataType(object):
         :return: An instance of WDBaseDataType
         """
         return cls(value='', snak_type='value', data_type='', is_reference=False, is_qualifier=False, references=[],
-                   qualifiers=[], rank='', prop_nr=prop_nr)
+                   qualifiers=[], rank='', prop_nr=prop_nr, check_qualifier_equality=True)
 
 
 class WDString(WDBaseDataType):
