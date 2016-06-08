@@ -14,6 +14,8 @@ import pprint
 import wd_property_store
 import json
 
+import PBB_fastrun
+
 """
 Authors: 
   Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
@@ -64,9 +66,10 @@ class WDItemList(object):
 class WDItemEngine(object):
 
     log_file_name = ''
+    fast_run_store = []
 
     def __init__(self, wd_item_id='', item_name='', domain='', data=None, server='www.wikidata.org',
-                 append_value=None, use_sparql=True):
+                 append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -88,6 +91,25 @@ class WDItemEngine(object):
         self.statements = []
         self.entity_metadata = {}
 
+        self.fast_run = fast_run
+        self.fast_run_base_filter = fast_run_base_filter
+        self.fast_run_container = None
+        self.require_write = True
+
+        if self.fast_run:
+            for c in self.fast_run_store:
+                if c.base_filter == self.fast_run_base_filter:
+                    self.fast_run_container = c
+
+            if not self.fast_run_container:
+                self.fast_run_container = PBB_fastrun.FastRunContainer(base_filter=self.fast_run_base_filter)
+                self.require_write = self.fast_run_container.check_data(self.data)
+                self.fast_run_store.append(self.fast_run_container)
+
+                # set item id based on fast run data
+                if not self.require_write and not self.wd_item_id:
+                    self.wd_item_id = self.fast_run_container.current_qid
+
         if data is None:
             self.data = []
         else:
@@ -98,33 +120,35 @@ class WDItemEngine(object):
         else:
             self.append_value = append_value
 
-        if self.item_name is not '' and self.domain is None and len(self.data) > 0:
+        if self.item_name and self.domain is None and len(self.data) > 0:
             self.create_new_item = True
         elif self.item_name is '' and self.wd_item_id is '':
             raise IDMissingError('No item name or WD identifier was given')
-        elif self.wd_item_id is not '':
+        elif self.wd_item_id and self.require_write:
+            self.init_data_load()
+        elif self.require_write:
+            # make sure that a domain is set when using data to find correct item
+            if not self.domain:
+                raise ValueError('Domain parameter has not been set')
+            self.init_data_load()
+
+    def init_data_load(self):
+        if self.wd_item_id:
             self.wd_json_representation = self.get_wd_entity()
         else:
-            if self.domain is None or self.domain == '':
-                raise ValueError('Domain parameter has not been set')
+            qids_by_props = ''
             try:
-                # qids_by_string_search = self.get_wd_search_results(item_name)
                 qids_by_props = self.__select_wd_item()
 
             except WDSearchError as e:
                 self.log('ERROR', str(e))
-                qids_by_props = self.__select_wd_item()
 
-            if qids_by_props is not '':
+            if qids_by_props:
                 self.wd_item_id = 'Q{}'.format(qids_by_props)
                 self.wd_json_representation = self.get_wd_entity()
                 self.__check_integrity()
 
         self.__construct_claim_json()
-
-        if ('labels' not in self.wd_json_representation or 'en' not in self.wd_json_representation['labels']) \
-                and item_name != '':
-            self.set_label(label=item_name, lang='en')
 
     def get_wd_entity(self):
         """
@@ -570,6 +594,13 @@ class WDItemEngine(object):
         :type lang: str
         :return: None
         """
+        if self.fast_run and not self.require_write:
+            self.require_write = self.fast_run_container.check_language_data(qid=self.wd_item_id,
+                                                                             lang_data=[description], lang=lang,
+                                                                             lang_data_type='description')
+        if not self.require_write:
+            return
+
         if 'descriptions' not in self.wd_json_representation:
             self.wd_json_representation['descriptions'] = {}
         self.wd_json_representation['descriptions'][lang] = {
