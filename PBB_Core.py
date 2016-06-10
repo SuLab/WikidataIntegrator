@@ -96,6 +96,11 @@ class WDItemEngine(object):
         self.fast_run_container = None
         self.require_write = True
 
+        if data is None:
+            self.data = []
+        else:
+            self.data = data
+
         if self.fast_run:
             for c in self.fast_run_store:
                 if c.base_filter == self.fast_run_base_filter:
@@ -103,17 +108,18 @@ class WDItemEngine(object):
 
             if not self.fast_run_container:
                 self.fast_run_container = PBB_fastrun.FastRunContainer(base_filter=self.fast_run_base_filter)
-                self.require_write = self.fast_run_container.check_data(self.data)
-                self.fast_run_store.append(self.fast_run_container)
 
-                # set item id based on fast run data
-                if not self.require_write and not self.wd_item_id:
-                    self.wd_item_id = self.fast_run_container.current_qid
+            self.require_write = self.fast_run_container.check_data(self.data)
+            self.fast_run_store.append(self.fast_run_container)
 
-        if data is None:
-            self.data = []
-        else:
-            self.data = data
+            # set item id based on fast run data
+            if not self.require_write and not self.wd_item_id:
+                self.wd_item_id = self.fast_run_container.current_qid
+
+        if self.require_write and self.fast_run:
+            print('fastrun failed')
+        elif not self.require_write and self.fast_run:
+            print('successful fastrun')
 
         if append_value is None:
             self.append_value = []
@@ -335,7 +341,7 @@ class WDItemEngine(object):
             new_references = copy.deepcopy(new_item.get_references())
             existing_references = copy.deepcopy(old_item.get_references())
 
-            if True in [z.overwrite_references for y in new_references for z in y] \
+            if any([z.overwrite_references for y in new_references for z in y]) \
                     or sum(map(lambda z: len(z), existing_references)) == 0:
                 old_item.set_references(new_item.get_references())
 
@@ -525,6 +531,15 @@ class WDItemEngine(object):
         :type lang: str
         :return: None
         """
+        if self.fast_run and not self.require_write:
+            self.require_write = self.fast_run_container.check_language_data(qid=self.wd_item_id,
+                                                                             lang_data=[label], lang=lang,
+                                                                             lang_data_type='label')
+            if self.require_write:
+                self.init_data_load()
+            else:
+                return
+
         if 'labels' not in self.wd_json_representation:
             self.wd_json_representation['labels'] = {}
         self.wd_json_representation['labels'][lang] = {
@@ -553,6 +568,15 @@ class WDItemEngine(object):
         :param append: If true, append a new alias to the list of existing aliases, else, overwrite. Default: True
         :return: None
         """
+        if self.fast_run and not self.require_write:
+            self.require_write = self.fast_run_container.check_language_data(qid=self.wd_item_id,
+                                                                             lang_data=aliases, lang=lang,
+                                                                             lang_data_type='aliases')
+            if self.require_write:
+                self.init_data_load()
+            else:
+                return
+
         if 'aliases' not in self.wd_json_representation:
             self.wd_json_representation['aliases'] = {}
 
@@ -598,8 +622,10 @@ class WDItemEngine(object):
             self.require_write = self.fast_run_container.check_language_data(qid=self.wd_item_id,
                                                                              lang_data=[description], lang=lang,
                                                                              lang_data_type='description')
-        if not self.require_write:
-            return
+            if self.require_write:
+                self.init_data_load()
+            else:
+                return
 
         if 'descriptions' not in self.wd_json_representation:
             self.wd_json_representation['descriptions'] = {}
@@ -646,6 +672,9 @@ class WDItemEngine(object):
         :param login: a instance of the class PBB_login which provides edit-cookies and edit-tokens
         :return: the WD QID on sucessful write
         """
+        if not self.require_write:
+            return self.wd_item_id
+
         cookies = login.get_edit_cookie()
         edit_token = login.get_edit_token()
 
@@ -1335,7 +1364,7 @@ class WDItemID(WDBaseDataType):
     DTYPE = 'wikibase-item'
     sparql_query = '''
         SELECT * WHERE {{
-            ?item_id wdt:{0} wd:Q{1} .
+            ?item_id p:{0}/ps:{0} wd:Q{1} .
         }}
     '''
 
@@ -1407,7 +1436,7 @@ class WDProperty(WDBaseDataType):
     DTYPE = 'wikibase-property'
     sparql_query = '''
         SELECT * WHERE {{
-            ?item_id wdt:{0} wd:P{1} .
+            ?item_id p:{0}/ps:{0} wd:P{1} .
         }}
     '''
 
@@ -1560,6 +1589,11 @@ class WDUrl(WDBaseDataType):
     Implements the Wikidata data type for URL strings
     """
     DTYPE = 'url'
+    sparql_query = '''
+        SELECT * WHERE {{
+            ?item_id p:{0}/ps:{0} <{1}> .
+        }}
+    '''
 
     def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=None,
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
