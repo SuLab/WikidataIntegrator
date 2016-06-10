@@ -2,6 +2,9 @@ import PBB_Core
 import pprint
 import copy
 
+__author__ = 'Sebastian Burgstaller-Muehlbacher'
+__license__ = 'AGPLv3'
+
 prefix = '''
     PREFIX wd: <http://www.wikidata.org/entity/>
     PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -33,10 +36,10 @@ class FastRunContainer(object):
                 else:
                     self.base_filter_string += '?p p:{0}/ps:{0} ?zz . \n'.format(i)
 
-        # self.write_required = self.check_data(data=self.data)
-        # print(self.write_required)
-
     def check_data(self, data):
+        data_props = set()
+        for x in data:
+            data_props.add(x.get_prop_nr())
         write_required = False
         match_sets = []
         for date in data:
@@ -51,9 +54,11 @@ class FastRunContainer(object):
             current_value = date.get_value()
 
             # more sophisticated data types like dates and globe coordinates need special treatment here
-            if self.prop_data[prop_nr] == 'time':
+            if self.prop_dt_map[prop_nr] == 'time':
                 current_value = current_value[0]
-            elif self.prop_data[prop_nr] == 'globe-coordinate':
+            elif self.prop_dt_map[prop_nr] == 'wikibase-item':
+                current_value = 'Q{}'.format(current_value)
+            elif self.prop_dt_map[prop_nr] == 'globe-coordinate':
                 write_required = True  # temporary workaround for handling globe coordinates
 
             temp_set = set()
@@ -73,6 +78,7 @@ class FastRunContainer(object):
         matching_qids = match_sets[0].intersection(*match_sets[1:])
 
         if not matching_qids or len(matching_qids) > 2:
+            print('no matches')
             return True
 
         qid = matching_qids.pop()
@@ -109,6 +115,10 @@ class FastRunContainer(object):
 
                         wd_dtype = [x for x in PBB_Core.WDBaseDataType.__subclasses__() if x.DTYPE == q_datatype][0]
                         qualifiers.append(wd_dtype(value=q_value, prop_nr=q_prop, is_qualifier=True))
+
+            # only deal with property value pairs which have been provided, ignore the rest.
+            if current_prop_nr not in data_props:
+                continue
 
             v_datatype = self.prop_dt_map[current_prop_nr]
             wd_dtype = [x for x in PBB_Core.WDBaseDataType.__subclasses__() if x.DTYPE == v_datatype][0]
@@ -147,10 +157,12 @@ class FastRunContainer(object):
         all_lang_strings = []
         for sresult in current_lang_data:
             if sresult['p']['value'].split('/')[-1] == qid:
-                all_lang_strings.append(sresult['label']['value'])
+                if 'label' in sresult:
+                    all_lang_strings.append(sresult['label']['value'])
 
         for s in lang_data:
             if s not in all_lang_strings:
+                print('fastrun failed at label', lang_data_type)
                 return True
 
         return False
@@ -188,7 +200,7 @@ class FastRunContainer(object):
 
         lang_data_type_dict = {
             'label': 'rdfs:label',
-            'description': 'rdfs:description',
+            'description': 'schema:description',
             'aliases': 'skos:altLabel'
         }
 
