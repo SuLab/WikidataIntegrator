@@ -101,6 +101,11 @@ class WDItemEngine(object):
         else:
             self.data = data
 
+        if append_value is None:
+            self.append_value = []
+        else:
+            self.append_value = append_value
+
         if self.fast_run:
             for c in self.fast_run_store:
                 if c.base_filter == self.fast_run_base_filter:
@@ -109,7 +114,7 @@ class WDItemEngine(object):
             if not self.fast_run_container:
                 self.fast_run_container = PBB_fastrun.FastRunContainer(base_filter=self.fast_run_base_filter)
 
-            self.require_write = self.fast_run_container.check_data(self.data)
+            self.require_write = self.fast_run_container.check_data(self.data, append_props=self.append_value)
             self.fast_run_store.append(self.fast_run_container)
 
             # set item id based on fast run data
@@ -120,11 +125,6 @@ class WDItemEngine(object):
             print('fastrun failed')
         elif not self.require_write and self.fast_run:
             print('successful fastrun')
-
-        if append_value is None:
-            self.append_value = []
-        else:
-            self.append_value = append_value
 
         if self.item_name and self.domain is None and len(self.data) > 0:
             self.create_new_item = True
@@ -1012,20 +1012,21 @@ class WDBaseDataType(object):
             raise ValueError('Qualifiers or references cannot have references')
 
     def has_equal_qualifiers(self, other):
-        # check if the qualifiers are equal with the other object
+        # check if the qualifiers are equal with the 'other' object
         equal_qualifiers = True
         self_qualifiers = copy.deepcopy(self.get_qualifiers())
-        self_qualifiers.sort(key=lambda z: z.get_prop_nr().lower())
-
         other_qualifiers = copy.deepcopy(other.get_qualifiers())
-        other_qualifiers.sort(key=lambda z: z.get_prop_nr().lower())
 
         if len(self_qualifiers) != len(other_qualifiers):
             equal_qualifiers = False
         else:
+            flg = [False for x in range(len(self_qualifiers))]
             for count, i in enumerate(self_qualifiers):
-                if not i == other_qualifiers[count]:
-                    equal_qualifiers = False
+                for q in other_qualifiers:
+                    if i == q:
+                        flg[count] = True
+            if not all(flg):
+                equal_qualifiers = False
 
         return equal_qualifiers
 
@@ -1414,7 +1415,8 @@ class WDItemID(WDBaseDataType):
         self.json_representation['datavalue'] = {
             'value': {
                 'entity-type': 'item',
-                'numeric-id': self.value
+                'numeric-id': self.value,
+                'id': 'Q{}'.format(self.value)
             },
             'type': 'wikibase-entityid'
         }
