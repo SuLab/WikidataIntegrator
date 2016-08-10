@@ -1,5 +1,4 @@
 import PBB_Core
-import pprint
 import copy
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
@@ -26,32 +25,40 @@ class FastRunContainer(object):
         self.base_filter_string = ''
         self.prop_dt_map = {}
         self.current_qid = ''
+        self.rev_lookup = {}
 
         if base_filter and any(base_filter):
             self.base_filter = base_filter
 
-            for i in self.base_filter:
-                if self.base_filter[i]:
-                    self.base_filter_string += '?p p:{0}/ps:{0} wd:{1} . \n'.format(i, self.base_filter[i])
+            for k, v in self.base_filter.items():
+                if v:
+                    self.base_filter_string += '?p p:{0}/ps:{0} wd:{1} . \n'.format(k, v)
                 else:
-                    self.base_filter_string += '?p p:{0}/ps:{0} ?zz . \n'.format(i)
+                    self.base_filter_string += '?p p:{0}/ps:{0} ?zz . \n'.format(k)
 
-    def check_data(self, data):
+    def check_data(self, data, append_props=None):
+        del_props = set()
         data_props = set()
+        if not append_props:
+            append_props = []
+
         for x in data:
-            data_props.add(x.get_prop_nr())
+            if x.value and x.data_type:
+                data_props.add(x.get_prop_nr())
         write_required = False
         match_sets = []
         for date in data:
+            # skip to next if statement has no value or no data type defined, e.g. for deletion objects
+            current_value = date.get_value()
+            if not current_value and not date.data_type:
+                del_props.add(date.get_prop_nr())
+                continue
+
             prop_nr = date.get_prop_nr()
 
             if prop_nr not in self.prop_dt_map:
                 self.prop_dt_map.update({prop_nr: FastRunContainer.get_prop_datatype(prop_nr=prop_nr)})
-
-            if prop_nr not in self.prop_data:
-                self.prop_data.update({prop_nr: self.__query_data(prop_nr=prop_nr)['results']['bindings']})
-
-            current_value = date.get_value()
+                self.__query_data(prop_nr=prop_nr)
 
             # more sophisticated data types like dates and globe coordinates need special treatment here
             if self.prop_dt_map[prop_nr] == 'time':
@@ -61,79 +68,101 @@ class FastRunContainer(object):
             elif self.prop_dt_map[prop_nr] == 'globe-coordinate':
                 write_required = True  # temporary workaround for handling globe coordinates
 
-            temp_set = set()
-            for value in self.prop_data[prop_nr]:
-                sresult_value = ''
-                if value['v']['type'] == 'literal':
-                    sresult_value = value['v']['value']
-                elif value['v']['type'] == 'uri':
-                    sresult_value = value['v']['value'].split('/')[-1]
-
-                current_qid = value['p']['value'].split('/')[-1]
-                if current_value == sresult_value:
-                    temp_set.add(current_qid)
+            try:
+                temp_set = set(self.rev_lookup[current_value])
+            except KeyError:
+                if not __debug__:
+                    print('no matches')
+                return True
 
             match_sets.append(temp_set)
 
         matching_qids = match_sets[0].intersection(*match_sets[1:])
 
-        if not matching_qids or len(matching_qids) > 2:
-            print('no matches')
+        if not len(matching_qids) == 1:
+            if not __debug__:
+                print('no matches')
             return True
 
         qid = matching_qids.pop()
         self.current_qid = qid
         reconstructed_statements = []
-        all_qid_results = []
-        all_prop_nrs = []
-        all_stat_uids = set()
-        for prop_nr, prop_data in self.prop_data.items():
-            for sresult in prop_data:
-                current_qid = sresult['p']['value'].split('/')[-1]
-                current_stat_uid = sresult['s2']['value']
-                if current_qid == qid:
-                    all_qid_results.append(sresult)
-                    all_prop_nrs.append(prop_nr)
-                    all_stat_uids.add(current_stat_uid)
 
-        for uid in all_stat_uids:
-            current_prop_nr = ''
-            current_value = ''
-            qualifiers = []
-            for count, prop_nr in enumerate(all_prop_nrs):
-                if all_qid_results[count]['s2']['value'] == uid:
-                    current_prop_nr = prop_nr
-                    if all_qid_results[count]['v']['type'] == 'literal':
-                        current_value = all_qid_results[count]['v']['value']
-                    elif all_qid_results[count]['v']['type'] == 'uri':
-                        current_value = all_qid_results[count]['v']['value'].split('/')[-1]
+        for prop_nr, dt in self.prop_data[qid].items():
+            all_uids = set([x['s2'] for x in dt])
+            q_props = set([x['pr'] for x in dt if 'pr' in x])
+            for q_prop in q_props:
+                if q_prop not in self.prop_dt_map:
+                    self.prop_dt_map.update({q_prop: FastRunContainer.get_prop_datatype(prop_nr=q_prop)})
+            for uid in all_uids:
 
-                    if 'pr' in all_qid_results[count]:
-                        q_prop = all_qid_results[count]['pr']['value'].split('/')[-1]
-                        q_value = all_qid_results[count]['q']['value'].split('/')[-1]
-                        q_datatype = self.prop_dt_map[q_prop]
+                qualifiers = [[x for x in PBB_Core.WDBaseDataType.__subclasses__() if x.DTYPE ==
+                               self.prop_dt_map[y['pr']]][0](value=y['q'], prop_nr=y['pr'], is_qualifier=True)
+                              for y in dt if y['s2'] == uid and 'q' in y]
 
-                        wd_dtype = [x for x in PBB_Core.WDBaseDataType.__subclasses__() if x.DTYPE == q_datatype][0]
-                        qualifiers.append(wd_dtype(value=q_value, prop_nr=q_prop, is_qualifier=True))
+                stmts = [[x for x in PBB_Core.WDBaseDataType.__subclasses__() if x.DTYPE ==
+                          self.prop_dt_map[prop_nr]][0](value=y['v'], prop_nr=prop_nr, qualifiers=qualifiers)
+                         for y in dt if y['s2'] == uid][0]
 
-            # only deal with property value pairs which have been provided, ignore the rest.
-            if current_prop_nr not in data_props:
-                continue
-
-            v_datatype = self.prop_dt_map[current_prop_nr]
-            wd_dtype = [x for x in PBB_Core.WDBaseDataType.__subclasses__() if x.DTYPE == v_datatype][0]
-            statement = wd_dtype(value=current_value, prop_nr=current_prop_nr, qualifiers=qualifiers)
-            reconstructed_statements.append(statement)
+                reconstructed_statements.append(stmts)
 
         tmp_rs = copy.deepcopy(reconstructed_statements)
+
+        # handle append properties
+        for p in append_props:
+            app_data = [x for x in data if x.get_prop_nr() == p]
+            rec_app_data = [x for x in tmp_rs if x.get_prop_nr() == p]
+            comp = [True for x in app_data for y in rec_app_data if x == y]
+            if len(comp) != len(app_data):
+                return True
+
+        tmp_rs = [x for x in tmp_rs if x.get_prop_nr() not in append_props and x.get_prop_nr() in data_props]
+
         for date in data:
-            bool_vec = [True if date == x else False for x in tmp_rs]
+            # ensure that statements meant for deletion get handled properly
+            reconst_props = set([x.get_prop_nr() for x in tmp_rs])
+            if (not date.value or not date.data_type) and date.get_prop_nr() in reconst_props:
+                if not __debug__:
+                    print('returned from delete prop handling')
+                return True
+            elif not date.value or not date.data_type:
+                # Ignore the deletion statements which are not in the reconstituted statements.
+                continue
+
+            if date.get_prop_nr() in append_props:
+                continue
+            bool_vec = [True if date == x and x.get_prop_nr() not in del_props else False for x in tmp_rs]
+
+            if not __debug__:
+                bool_vec = []
+
+                print('-----------------------------------')
+                for x in tmp_rs:
+
+                    if date == x and x.get_prop_nr() not in del_props:
+                        bool_vec.append(True)
+                        print(x.get_prop_nr(), x.get_value(), [z.get_value() for z in x.get_qualifiers()])
+                        print(date.get_prop_nr(), date.get_value(), [z.get_value() for z in date.get_qualifiers()])
+                    else:
+                        if x.get_prop_nr() == date.get_prop_nr():
+                            print(x.get_prop_nr(), x.get_value(), [z.get_value() for z in x.get_qualifiers()])
+                            print(date.get_prop_nr(), date.get_value(), [z.get_value() for z in date.get_qualifiers()])
+                        bool_vec.append(False)
+
             if not any(bool_vec):
+                if not __debug__:
+                    print(len(bool_vec))
+                    print('fast run failed at ', date.get_prop_nr())
                 write_required = True
             else:
                 tmp_rs.pop(bool_vec.index(True))
 
         if len(tmp_rs) > 0:
+            if not __debug__:
+                print('failed because not zero')
+                for x in tmp_rs:
+                    print('xxx', x.get_prop_nr(), x.get_value(), [z.get_value() for z in x.get_qualifiers()])
+                print('failed because not zero--END')
             write_required = True
 
         return write_required
@@ -186,9 +215,45 @@ class FastRunContainer(object):
             }}
         '''.format(self.base_filter_string, prop_nr)
 
-        print(query)
+        if __debug__:
+            print(query)
 
-        return PBB_Core.WDItemEngine.execute_sparql_query(query=query, prefix=prefix)
+        r = PBB_Core.WDItemEngine.execute_sparql_query(query=query, prefix=prefix)
+
+        for i in r['results']['bindings']:
+            i['p'] = i['p']['value'].split('/')[-1]
+            if 's2' in i:
+                i['s2'] = i['s2']['value'].split('/')[-1]
+            if 'q' in i:
+                i['q'] = i['q']['value'].split('/')[-1]
+            if 'pr' in i:
+                i['pr'] = i['pr']['value'].split('/')[-1]
+
+            if 'v' in i:
+                if i['v']['type'] == 'literal':
+                    i['v'] = i['v']['value']
+                elif i['v']['type'] == 'uri':
+                    i['v'] = i['v']['value'].split('/')[-1]
+
+                if i['v'] in self.rev_lookup:
+                    self.rev_lookup[i['v']].append(i['p'])
+                else:
+                    self.rev_lookup[i['v']] = [i['p']]
+
+        print(len(self.rev_lookup))
+
+        for i in r['results']['bindings']:
+            qid = i['p']
+            if qid not in self.prop_data:
+                self.prop_data[qid] = {prop_nr: []}
+            if prop_nr not in self.prop_data[qid]:
+                self.prop_data[qid].update({prop_nr: []})
+
+            t = copy.deepcopy(i)
+            del t['p']
+            self.prop_data[qid][prop_nr].append(t)
+
+        del r
 
     def __query_lang(self, lang, lang_data_type):
         """
