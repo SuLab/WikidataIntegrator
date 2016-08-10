@@ -215,7 +215,7 @@ class FastRunContainer(object):
             }}
         '''.format(self.base_filter_string, prop_nr)
 
-        if __debug__:
+        if not __debug__:
             print(query)
 
         r = PBB_Core.WDItemEngine.execute_sparql_query(query=query, prefix=prefix)
@@ -240,7 +240,8 @@ class FastRunContainer(object):
                 else:
                     self.rev_lookup[i['v']] = [i['p']]
 
-        print(len(self.rev_lookup))
+        if not __debug__:
+            print('Length of reverse lookup table:', len(self.rev_lookup))
 
         for i in r['results']['bindings']:
             qid = i['p']
