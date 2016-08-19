@@ -17,6 +17,9 @@ domain_incompatibilities = {
     ],
     'disease ontology': [
 
+    ],
+    'interpro': [
+
     ]
 }
 
@@ -40,6 +43,13 @@ valid_instances = {
     ],
     'obo': [
 
+    ],
+    'interpro':[
+        'Q423026',  # active site
+        'Q616005',  # binding site
+        'Q898273',  # domain
+        'Q417841',  # family
+        'Q898362',  # ptm
     ]
 }
 
@@ -408,6 +418,12 @@ wd_properties = {
         'datatype': 'item',
         'name': 'Gene Ontology ID',
         'domain': ['obo'],
+        'core_id': 'True'
+    },
+    'P2926': {
+        'datatype': 'string',
+        'name': 'InterPro ID',
+        'domain': ['interpro'],
         'core_id': 'True'
     },
     # '': {
