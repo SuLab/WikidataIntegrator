@@ -69,10 +69,11 @@ class FastRunContainer(object):
                 write_required = True  # temporary workaround for handling globe coordinates
 
             try:
+                print(current_value)
                 temp_set = set(self.rev_lookup[current_value])
             except KeyError:
                 if not __debug__:
-                    print('no matches')
+                    print('no matches for rev lookup')
                 return True
 
             match_sets.append(temp_set)
@@ -233,7 +234,10 @@ class FastRunContainer(object):
                 if i['v']['type'] == 'literal':
                     i['v'] = i['v']['value']
                 elif i['v']['type'] == 'uri':
-                    i['v'] = i['v']['value'].split('/')[-1]
+                    if 'www.wikidata.org/entity/' in i['v']['value']:
+                        i['v'] = i['v']['value'].split('/')[-1]
+                    else:
+                        i['v'] = i['v']['value']
 
                 if i['v'] in self.rev_lookup:
                     self.rev_lookup[i['v']].append(i['p'])
@@ -279,7 +283,9 @@ class FastRunContainer(object):
             }}
         }}
         '''.format(self.base_filter_string, lang_data_type_dict[lang_data_type], lang)
-        print(query)
+
+        if not __debug__:
+            print(query)
 
         return PBB_Core.WDItemEngine.execute_sparql_query(query=query, prefix=prefix)
 
