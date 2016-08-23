@@ -675,9 +675,6 @@ class WDItemEngine(object):
         if not self.require_write:
             return self.wd_item_id
 
-        cookies = login.get_edit_cookie()
-        edit_token = login.get_edit_token()
-
         headers = {
             'content-type': 'application/x-www-form-urlencoded',
             'charset': 'utf-8'
@@ -686,7 +683,7 @@ class WDItemEngine(object):
             'action': 'wbeditentity',
             'data': json.JSONEncoder().encode(self.wd_json_representation),
             'format': 'json',
-            'token': edit_token,
+            'token': login.get_edit_token(),
             'bot': ''
         }
 
@@ -698,7 +695,7 @@ class WDItemEngine(object):
         base_url = 'https://' + self.server + '/w/api.php'
 
         try:
-            reply = requests.post(base_url, headers=headers, data=payload, cookies=cookies)
+            reply = login.get_session().post(base_url, headers=headers, data=payload)
 
             # if the server does not reply with a string which can be parsed into a json, an error will be raised.
             json_data = reply.json()
