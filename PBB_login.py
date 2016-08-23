@@ -24,43 +24,50 @@ class WDLogin(object):
         :type token_renew_period: int
         :return: None
         """
-        self.user = user
-        self.pwd = pwd
         if server is not None:
             self.server = server
+        self.base_url = 'https://{}/w/api.php'.format(self.server)
+        self.s = requests.Session()
 
         self.edit_token = ''
         self.instantiation_time = time.time()
         self.token_renew_period = token_renew_period
 
-        self.base_url = 'https://{}/w/api.php'.format(self.server)
-
-        # Get login token and cookie
         params = {
-            'action': 'login',
-            'lgname': self.user,
-            'lgpassword': self.pwd,
-            'format': 'json'
+            'action': 'query',
+            'format': 'json',
+            'meta': 'authmanagerinfo',
+            'amisecuritysensitiveoperation': '',
+            'amirequestsfor': 'login'
         }
 
-        r1 = requests.post(self.base_url, params=params)
-        cookies = r1.cookies
-        login_token = r1.json()['login']['token']
-        self.token = login_token
+        self.s.get(self.base_url, params=params)
 
-        # do the login using the login token
-        params.update({'lgtoken': login_token})
-        r2 = requests.post(self.base_url, params=params, cookies=cookies)
-        self.cookie_jar = r2.cookies.copy()
+        params2 = {
+            'action': 'query',
+            'format': 'json',
+            'meta': 'tokens',
+            'type': 'login'
+        }
+        login_token = self.s.get(self.base_url, params=params2).json()['query']['tokens']['logintoken']
 
+        data = {
+            'action': 'clientlogin',
+            'format': 'json',
+            'username': user,
+            'password': pwd,
+            'logintoken': login_token,
+            'loginreturnurl': 'http://example.org/'
+        }
+
+        login_result = self.s.post(self.base_url, data=data).json()
+        print(login_result)
+
+        if login_result['clientlogin']['status'] == 'FAIL':
+            raise ValueError('Login FAILED')
+
+        # get login token
         self.generate_edit_credentials()
-
-        login_reply = r2.json()
-        if 'NotExists' in login_reply['login']['result']:
-            raise ValueError('Wrong username!')
-
-        if 'WrongPass' in login_reply['login']['result']:
-            raise ValueError('Wrong password!')
 
     def generate_edit_credentials(self):
         """
@@ -72,23 +79,21 @@ class WDLogin(object):
             'meta': 'tokens',
             'format': 'json'
         }
-        response = requests.get(self.base_url, params=params, cookies=self.cookie_jar)
+        response = self.s.get(self.base_url, params=params)
         self.edit_token = response.json()['query']['tokens']['csrftoken']
 
-        self.cookie_jar.update(response.cookies)
-
-        return self.cookie_jar
+        return self.s.cookies
 
     def get_edit_cookie(self):
         """
         Can be called in order to retrieve the cookies from an instance of WDLogin
         :return: Returns a json with all relevant cookies, aka cookie jar
         """
-        if not self.cookie_jar or (time.time() - self.instantiation_time) > self.token_renew_period:
+        if (time.time() - self.instantiation_time) > self.token_renew_period:
             self.generate_edit_credentials()
             self.instantiation_time = time.time()
 
-        return self.cookie_jar
+        return self.s.cookies
 
     def get_edit_token(self):
         """
@@ -100,3 +105,10 @@ class WDLogin(object):
             self.instantiation_time = time.time()
 
         return self.edit_token
+
+    def get_session(self):
+        """
+        returns the requests session object used for the login.
+        :return: Object of type requests.Session()
+        """
+        return self.s
