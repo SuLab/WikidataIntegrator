@@ -14,7 +14,7 @@ class WDLogin(object):
     A class which handles the login to Wikidata and the generation of edit-tokens
     """
 
-    def __init__(self, user, pwd, server='www.wikidata.org', token_renew_period=1800):
+    def __init__(self, user, pwd, server='www.wikidata.org', token_renew_period=1800, use_clientlogin=False):
         """
         constructor
         :param user: the username which should be used for the login
@@ -22,6 +22,9 @@ class WDLogin(object):
         :param server: the wikimedia server the login should be made to
         :param token_renew_period: Seconds after which a new token should be requested from the Wikidata server
         :type token_renew_period: int
+        :param use_clientlogin: use authmanager based login method instead of standard login.
+            For 3rd party data consumer, e.g. web clients
+        :type bool
         :return: None
         """
         if server is not None:
@@ -33,40 +36,60 @@ class WDLogin(object):
         self.instantiation_time = time.time()
         self.token_renew_period = token_renew_period
 
-        params = {
-            'action': 'query',
-            'format': 'json',
-            'meta': 'authmanagerinfo',
-            'amisecuritysensitiveoperation': '',
-            'amirequestsfor': 'login'
-        }
+        if use_clientlogin:
+            params = {
+                'action': 'query',
+                'format': 'json',
+                'meta': 'authmanagerinfo',
+                'amisecuritysensitiveoperation': '',
+                'amirequestsfor': 'login'
+            }
 
-        self.s.get(self.base_url, params=params)
+            self.s.get(self.base_url, params=params)
 
-        params2 = {
-            'action': 'query',
-            'format': 'json',
-            'meta': 'tokens',
-            'type': 'login'
-        }
-        login_token = self.s.get(self.base_url, params=params2).json()['query']['tokens']['logintoken']
+            params2 = {
+                'action': 'query',
+                'format': 'json',
+                'meta': 'tokens',
+                'type': 'login'
+            }
+            login_token = self.s.get(self.base_url, params=params2).json()['query']['tokens']['logintoken']
 
-        data = {
-            'action': 'clientlogin',
-            'format': 'json',
-            'username': user,
-            'password': pwd,
-            'logintoken': login_token,
-            'loginreturnurl': 'http://example.org/'
-        }
+            data = {
+                'action': 'clientlogin',
+                'format': 'json',
+                'username': user,
+                'password': pwd,
+                'logintoken': login_token,
+                'loginreturnurl': 'http://example.org/'
+            }
 
-        login_result = self.s.post(self.base_url, data=data).json()
-        print(login_result)
+            login_result = self.s.post(self.base_url, data=data).json()
+            print(login_result)
 
-        if login_result['clientlogin']['status'] == 'FAIL':
-            raise ValueError('Login FAILED')
+            if login_result['clientlogin']['status'] == 'FAIL':
+                raise ValueError('Login FAILED')
+        else:
+            params = {
+                'action': 'login',
+                'lgname': user,
+                'lgpassword': pwd,
+                'format': 'json'
+            }
 
-        # get login token
+            # get login token
+            login_token = self.s.post(self.base_url, params=params).json()['login']['token']
+
+            # do the login using the login token
+            params.update({'lgtoken': login_token})
+            r = self.s.post(self.base_url, data=params).json()
+
+            if r['login']['result'] != 'Success':
+                print('login failed:', r['login']['reason'])
+                raise ValueError('login FAILED!!')
+            else:
+                print('Successully logged id as', r['login']['lgusername'])
+
         self.generate_edit_credentials()
 
     def generate_edit_credentials(self):
