@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 __author__ = 'Sebastian Burgstaller and Andra Waagmeester'
-__licence__ = 'GPLv3'
+__licence__ = 'AGPLv3'
 
 
 domain_incompatibilities = {
@@ -147,6 +147,12 @@ wd_properties = {
     'P233': {
         'datatype': 'string',
         'name': 'SMILES',
+        'domain': ['drugs'],
+        'core_id': 'False'
+    },
+    'P2017': {
+        'datatype': 'string',
+        'name': 'Isomeric SMILES',
         'domain': ['drugs'],
         'core_id': 'False'
     },
