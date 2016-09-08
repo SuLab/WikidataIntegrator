@@ -42,6 +42,7 @@ __license__ = 'GPL'
 
 
 class WDItemList(object):
+    """DEPRECATED"""
     def __init__(self, wdquery, wdprop=""):
         self.wdquery = wdquery
         self.wditems = self.getItemsByProperty(wdquery, wdprop)
@@ -69,17 +70,34 @@ class WDItemEngine(object):
     fast_run_store = []
 
     def __init__(self, wd_item_id='', item_name='', domain='', data=None, server='www.wikidata.org',
-                 append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None):
+                 append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None,
+                 global_ref_mode='KEEP_GOOD'):
         """
         constructor
         :param wd_item_id: Wikidata item id
         :param item_name: Label of the wikidata item
-        :param domain: The data domain the class should operate in. If None and item_name not '', create new item from scratch.
+        :param domain: The data domain the class should operate in. If None and item_name not '', create new item
+            from scratch.
         :type domain: str or None
         :param data: a dictionary with WD property strings as keys and the data which should be written to
-        a WD item as the property values
+            a WD item as the property values
         :param append_value: a list of properties where potential existing values should not be overwritten by the data
-        passed in the :parameter data.
+            passed in the :parameter data.
+        :type append_value: list of property number strings
+        :param use_sparql: OBSOLETE
+        :type use_sparql: bool
+        :param fast_run: True if this item should be run in fastrun mode, otherwise False. User setting this to True
+            should also specify the fast_run_base_filter for these item types
+        :type fast_run: bool
+        :param fast_run_base_filter: A property value dict determining the Wikidata property and the corresonding value
+            which should be used as a filter for this item type. Several filter criteria can be specified. The values
+            can be either Wikidata item QIDs, strings or empty strings if the value should be a variable in SPARQL.
+            Example: {'P352': '', 'P703': 'Q5'} if the base comman type of things this bot runs on is human proteins
+            (specified by Uniprot IDs (P352) and 'found in taxon' human 'Q5').
+        :type fast_run_base_filter: dict
+        :param global_ref_mode: sets the reference handling mode for an item. Three modes are possible, 'STRICT_KEEP'
+            keeps all references and appends new one. 'STRICT_OVERWRITE' overwrites all existing references for given
+        :type ref_mode: str of value 'STRICT_KEEP', 'STRICT_OVERWRITE', 'KEEP_GOOD'
         """
         self.wd_json_representation = {}
         self.wd_item_id = wd_item_id
@@ -95,6 +113,8 @@ class WDItemEngine(object):
         self.fast_run_base_filter = fast_run_base_filter
         self.fast_run_container = None
         self.require_write = True
+
+        self.global_ref_mode = global_ref_mode
 
         if data is None:
             self.data = []
@@ -973,6 +993,8 @@ class WDBaseDataType(object):
         self.rank = rank
         self.check_qualifier_equality = check_qualifier_equality
 
+        self._statement_ref_mode = 'KEEP_GOOD'
+
         if not references:
             self.references = list()
         if not self.qualifiers:
@@ -1048,6 +1070,18 @@ class WDBaseDataType(object):
             return True
         else:
             return False
+
+    @property
+    def statement_ref_mode(self):
+        return self._statement_ref_mode
+
+    @statement_ref_mode.setter
+    def statement_ref_mode(self, value):
+        valid_values = ['STRICT_KEEP', 'STRICT_OVERWRITE', 'KEEP_GOOD']
+        if value not in valid_values:
+            raise ValueError('Not an allowed reference mode, allowed values {}'.format(' '.join(valid_values)))
+
+        self._statement_ref_mode = value
 
     def get_value(self):
         return self.value
