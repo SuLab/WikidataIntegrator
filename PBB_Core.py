@@ -1805,10 +1805,10 @@ class WDQuantity(WDBaseDataType):
 
         self.json_representation['datavalue'] = {
             'value': {
-                'amount': str(value),
+                'amount': str('+' + value) if float(value) > 0 else str(value),
                 'unit': str(unit),
-                'upperBound': str(upper_bound),
-                'lowerBound': str(lower_bound)
+                'upperBound': str('+' + upper_bound) if float(upper_bound) > 0 else str(upper_bound),
+                'lowerBound': str('+' + lower_bound) if float(lower_bound) > 0 else str(lower_bound)
             },
             'type': 'quantity'
         }
