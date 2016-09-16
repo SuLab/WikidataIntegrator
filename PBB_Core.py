@@ -99,6 +99,26 @@ class WDItemEngine(object):
             keeps all references as they are, 'STRICT_KEEP_APPEND' keeps the references as they are and appends and
             appends new ones. 'STRICT_OVERWRITE' overwrites all existing references for given.
         :type ref_mode: str of value 'STRICT_KEEP', 'STRICT_KEEP_APPEND', 'STRICT_OVERWRITE', 'KEEP_GOOD'
+        :param good_refs: This parameter lets the user define blocks of good references. It is a list of dictionaries.
+            One block is a dictionary with  Wikidata properties as keys and potential values as the required value for
+            a property. There can be arbitrarily many key: value pairs in one reference block.
+            Example: [{'P248': 'Q905695', 'P352': None, 'P407': None, 'P1476': None, 'P813': None}]
+            This example contains one good reference block, stated in: Uniprot, Uniprot ID, title of Uniprot entry,
+            language of work and date when the information has been retrieved. A None type indicates that the value
+            varies from reference to reference. In this case, only the value for the Wikidata item for the
+            Uniprot database stays stable over all of these references. Key value pairs work here, as Wikidata
+            references can hold only one value for one property. The number of good reference blocks is not limited.
+            This parameter OVERRIDES any other refernce mode set!!
+        :type good_refs: list containing dictionaries.
+        :param keep_good_ref_statements: Do not delete any statement which has a good reference, either definded in the
+            good_refs list or by any other referencing mode.
+        :type keep_good_ref_statements: bool
+        :param search_only: If this flag is set to True, the data provided will only be used to search for the
+            corresponding Wikidata item, but no actual data updates will performed. This is useful, if certain states or
+            values on the target item need to be checked before certain data is written to it. In order to write new
+            data to the item, the method update() will take data, modify the Wikidata item and a write() call will
+            then perform the actual write to Wikidata.
+        :type search_only: bool
         """
         self.wd_json_representation = {}
         self.wd_item_id = wd_item_id
@@ -569,6 +589,18 @@ class WDItemEngine(object):
             self.wd_json_representation['claims'][prop_nr].append(stat.get_json_representation())
 
     def update(self, data, append_value=None):
+        """
+        This method takes data, and modifies the Wikidata item. This works together with the data already provided via
+        the constructor or if the constructor is being instantiated with search_only=True. In the latter case, this
+        allows for checking the item data before deciding which new data should be written to the Wikidata item.
+        The actual write to Wikidata only happens on calling of the write() method. If data has been provided already
+        via the constructor, data provided via the update() method will be appended to these data.
+        :param data: A list of Wikidata statment items inheriting from WDBaseDataType
+        :type data: list
+        :param append_value: list with Wikidata property strings where the values should only be appended,
+            not overwritten.
+        :type: list
+        """
         assert type(data) == list
 
         if append_value:
@@ -1893,10 +1925,10 @@ class WDMonolingualText(WDBaseDataType):
     @classmethod
     @JsonParser
     def from_json(cls, jsn):
-        value = jsn['datavalue']['value']
         if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
             return cls(value=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
 
+        value = jsn['datavalue']['value']
         return cls(value=value['text'], prop_nr=jsn['property'], language=value['language'])
 
 
@@ -1933,14 +1965,7 @@ class WDQuantity(WDBaseDataType):
         :type rank: str
         """
 
-        value = str('+{}'.format(value)) if not str(value).startswith('+') and float(value) > 0 else str(value)
-        u = str(unit)
-        ub = str('+{}'.format(upper_bound)) if not str(upper_bound).startswith('+') \
-                                               and float(upper_bound) > 0 else str(upper_bound)
-        lb = str('+{}'.format(lower_bound)) if not str(lower_bound).startswith('+') \
-                                               and float(lower_bound) > 0 else str(lower_bound)
-
-        v = (value, u, ub, lb)
+        v = (value, unit, upper_bound, lower_bound)
 
         super(WDQuantity, self).__init__(value=v, snak_type=snak_type, data_type=self.DTYPE,
                                          is_reference=is_reference, is_qualifier=is_qualifier, references=references,
@@ -1953,6 +1978,13 @@ class WDQuantity(WDBaseDataType):
         value, unit, upper_bound, lower_bound = v
 
         if value is not None:
+            value = str('+{}'.format(value)) if not str(value).startswith('+') and float(value) > 0 else str(value)
+            unit = str(unit)
+            upper_bound = str('+{}'.format(upper_bound)) if not str(upper_bound).startswith('+')\
+                                                            and float(upper_bound) > 0 else str(upper_bound)
+            lower_bound = str('+{}'.format(lower_bound)) if not str(lower_bound).startswith('+') \
+                                                            and float(lower_bound) > 0 else str(lower_bound)
+
             # Integrity checks for value and bounds
             try:
                 for i in [value, upper_bound, lower_bound]:
@@ -1981,11 +2013,11 @@ class WDQuantity(WDBaseDataType):
     @classmethod
     @JsonParser
     def from_json(cls, jsn):
-        value = jsn['datavalue']['value']
         if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
             return cls(value=None, upper_bound=None, lower_bound=None, prop_nr=jsn['property'],
                        snak_type=jsn['snaktype'])
 
+        value = jsn['datavalue']['value']
         return cls(value=value['amount'], prop_nr=jsn['property'], upper_bound=value['upperBound'],
                    lower_bound=value['lowerBound'], unit=value['unit'])
 
@@ -2104,11 +2136,11 @@ class WDGlobeCoordinate(WDBaseDataType):
     @classmethod
     @JsonParser
     def from_json(cls, jsn):
-        value = jsn['datavalue']['value']
         if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
             return cls(latitude=None, longitude=None, precision=None, prop_nr=jsn['property'],
                        snak_type=jsn['snaktype'])
 
+        value = jsn['datavalue']['value']
         return cls(latitude=value['latitude'], longitude=value['longitude'], precision=value['precision'],
                    prop_nr=jsn['property'])
 
