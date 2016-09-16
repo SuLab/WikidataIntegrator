@@ -364,11 +364,29 @@ class WDItemEngine(object):
                 old_item.set_qualifiers(new_item.get_qualifiers())
 
         def is_good_ref(ref_block):
-            # stated in, title, retrieved
-            ref_properties = ['P248', 'P1476', 'P813']  # 'P407' language of work,
-            good_ref = True
             prop_nrs = [x.get_prop_nr() for x in ref_block]
             values = [x.get_value() for x in ref_block]
+            good_ref = True
+            prop_value_map = dict(zip(prop_nrs, values))
+
+            # if self.good_refs has content, use these to determine good references
+            if self.good_refs and len(self.good_refs) > 0:
+                found_good = True
+                for rblock in self.good_refs:
+
+                    if not all([k in prop_value_map for k, v in rblock.items()]):
+                        found_good = False
+
+                    if not all([v in prop_value_map[k] for k, v in rblock.items() if v]):
+                        found_good = False
+
+                    if found_good:
+                        return True
+
+                return False
+
+            # stated in, title, retrieved
+            ref_properties = ['P248', 'P1476', 'P813']  # 'P407' language of work,
 
             for v in values:
                 if prop_nrs[values.index(v)] == 'P248' and v in WDItemEngine.pmids:
@@ -508,9 +526,8 @@ class WDItemEngine(object):
                     elif x.get_id() and not hasattr(x, 'retain'):
                         # keep statements with good references if keep_good_ref_statements is True
                         if self.keep_good_ref_statements:
-                            refs = x.get_references()
-                            
-                            pass
+                            if any([is_good_ref(r) for r in x.get_references()]):
+                                setattr(x, 'retain', '')
                         else:
                             setattr(x, 'remove', '')
 
