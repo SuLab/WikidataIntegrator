@@ -471,40 +471,6 @@ class WDItemEngine(object):
                 refs.extend(new_references)
                 old_item.set_references(refs)
 
-
-            # elif 'P248' in [z.get_prop_nr() for y in new_references for z in y]:
-            #     for count, ref_block in enumerate(old_item.get_references()):
-            #         for new_ref_block in copy.copy(new_references):
-            #             db_value_prop = ''
-            #             match_dict = {}
-            #             for ref in ref_block:
-            #                 for new_ref in new_ref_block:
-            #                     if ref == new_ref:
-            #                         cur_prop = new_ref.get_prop_nr()
-            #                         match_dict.update({cur_prop: True})
-            #                         if cur_prop in wd_property_store.wd_properties and cur_prop not in ref_properties:
-            #                             db_value_prop = cur_prop
-            #
-            #             if db_value_prop in match_dict or 'P143' in match_dict:
-            #                 existing_references[count] = new_ref_block
-            #                 new_references.remove(new_ref_block)
-            #
-            #     # remove all references without 'stated in'
-            #     drop_refs = []
-            #     for ref in existing_references:
-            #         prop_nr_list = [z.get_prop_nr() for z in ref]
-            #
-            #         if 'P248' not in prop_nr_list:
-            #             drop_refs.append(ref)
-            #
-            #     while len(drop_refs) > 0:
-            #         existing_references.remove(drop_refs.pop())
-            #
-            #     if len(new_references) > 0:
-            #         for uu in new_references:
-            #             existing_references.append(uu)
-            #     old_item.set_references(existing_references)
-
         # sort the incoming data according to the WD property number
         self.data.sort(key=lambda z: z.get_prop_nr().lower())
 
