@@ -137,13 +137,13 @@ An enhanced example of the previous bot just puts two of the three things into a
 # Examples (fast run mode) #
 In order to use the fast run mode, you need to know the property/value combination which determines the data corpus you would like to operate on.
 E.g. for operating on human genes, you need to know that [P351](http://www.wikidata.org/entity/P351) is the NCBI entrez gene ID and you also need to know that you are dealing with humans, 
-best represented by the [found in taxon property (P703)](http://www.wikidata.org/entity/P703) with the value [Q5](http://www.wikidata.org/entity/Q5) for human. 
+best represented by the [found in taxon property (P703)](http://www.wikidata.org/entity/P703) with the value [Q15978631](http://www.wikidata.org/entity/Q15978631) for human. 
 
 Here, the above example from normal mode with the small modifications required for running in fastrun mode. To enable it, WDItemEngine requires two parameters, fast_run=True/False and fast_run_base_filter which 
  is a dictionary holding the properties to filter for as keys and the item QIDs as dict values. If the value is not a QID but a literal, just provide an empty string. For the above example, the dictionary looks like this:
  
 ```Python
-    fast_run_base_filter = {'P351': '', 'P704': 'Q5'}
+    fast_run_base_filter = {'P351': '', 'P703': 'Q15978631'}
 ```
  
 
@@ -155,7 +155,7 @@ Here, the above example from normal mode with the small modifications required f
     # login object
     login_instance = PBB_login.WDLogin(user='<bot user name>', pwd='<bot password>')
     
-    fast_run_base_filter = {'P351': '', 'P704': 'Q5'}
+    fast_run_base_filter = {'P351': '', 'P703': 'Q15978631'}
     fast_run = True
     
     # We have raw data, which should be written to Wikidata, namely two human NCBI entrez gene IDs mapped to two Ensembl Gene IDs
