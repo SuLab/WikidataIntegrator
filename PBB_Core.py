@@ -160,9 +160,9 @@ class WDItemEngine(object):
             self.init_fastrun()
 
         if self.require_write and self.fast_run:
-            print('fastrun failed')
+            print('fastrun skipped, because no full data match, updating item...')
         elif not self.require_write and self.fast_run:
-            print('successful fastrun')
+            print('successful fastrun, no write to Wikidata required')
 
         if self.item_name and self.domain is None and len(self.data) > 0:
             self.create_new_item = True
