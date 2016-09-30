@@ -895,12 +895,15 @@ class WDItemEngine(object):
         logger.log(level=log_levels[level], msg=message)
 
     @staticmethod
-    def execute_sparql_query(prefix='', query='', endpoint='https://query.wikidata.org/sparql'):
+    def execute_sparql_query(prefix='', query='', endpoint='https://query.wikidata.org/sparql',
+                             user_agent='PBB_core: bitbucket.org/sulab/wikidatabots/'):
         """
         Static method which can be used to execute any SPARQL query
         :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
         :param query: The actual SPARQL query string
         :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
+        :param user_agent: Set a user agent string for the HTTP header to let the WDQS know who you are.
+        :type user_agent: str
         :return: The results of the query are returned in JSON format
         """
 
@@ -926,7 +929,8 @@ class WDItemEngine(object):
         }
 
         headers = {
-            'Accept': 'application/sparql-results+json'
+            'Accept': 'application/sparql-results+json',
+            'User-Agent': user_agent
         }
 
         return requests.get(endpoint, params=params, headers=headers).json()
