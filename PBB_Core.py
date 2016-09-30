@@ -921,7 +921,7 @@ class WDItemEngine(object):
             prefix = wd_standard_prefix
 
         params = {
-            'query': prefix + query,
+            'query': prefix + '\n#Tool: PBB_core fastrun\n' + query,
             'format': 'json'
         }
 
