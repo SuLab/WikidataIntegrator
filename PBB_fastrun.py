@@ -68,6 +68,7 @@ class FastRunContainer(object):
             elif self.prop_dt_map[prop_nr] == 'globe-coordinate':
                 write_required = True  # temporary workaround for handling globe coordinates
 
+            print(current_value)
             try:
                 print(current_value)
                 temp_set = set(self.rev_lookup[current_value])
@@ -202,6 +203,7 @@ class FastRunContainer(object):
 
     def __query_data(self, prop_nr):
         query = '''
+            #Tool: PBB_core fastrun
             select ?p ?q ?pr ?s2 ?v where {{
               {0}
 
@@ -215,6 +217,51 @@ class FastRunContainer(object):
 
             }}
         '''.format(self.base_filter_string, prop_nr)
+
+        # query for amount
+        '''
+        PREFIX wikibase: <http://wikiba.se/ontology#>
+        SELECT ?p ?q ?pr ?s2 ?v ?psv ?amount ?upper_bound ?lower_bound ?unit WHERE {
+            ?p p:P31/ps:P31 wd:Q11173 .
+
+            ?p p:P2067 ?s2 .
+
+            ?s2 ps:P2067 ?v .
+            ?s2 <http://www.wikidata.org/prop/statement/value/P2067> ?psv .
+            ?psv wikibase:quantityAmount ?amount .
+            ?psv wikibase:quantityUpperBound ?upper_bound .
+            ?psv wikibase:quantityLowerBound ?lower_bound .
+            ?psv wikibase:quantityUnit ?unit .
+
+            OPTIONAL {
+                ?s2 ?pr ?q .
+                FILTER(STRSTARTS(STR(?pr), "http://www.wikidata.org/prop/qualifier/"))
+              }
+
+            }
+        '''
+
+        # query for globe coordinate
+        '''
+        PREFIX wikibase: <http://wikiba.se/ontology#>
+        SELECT ?p ?q ?pr ?s2 ?v ?psv ?geoLatitude ?geoLongitude ?geoGlobe ?geoPrecision WHERE {
+            ?p p:P30/ps:P30 wd:Q46 .
+
+            ?p p:P625 ?s2 .
+
+            ?s2 ps:P625 ?v .
+            ?s2 <http://www.wikidata.org/prop/statement/value/P625> ?psv .
+            ?psv wikibase:geoLatitude ?geoLatitude .
+            ?psv wikibase:geoLongitude ?geoLongitude .
+            ?psv wikibase:geoGlobe ?geoGlobe .
+            ?psv wikibase:geoPrecision ?geoPrecision .
+            OPTIONAL {
+                ?s2 ?pr ?q .
+                FILTER(STRSTARTS(STR(?pr), "http://www.wikidata.org/prop/qualifier/"))
+              }
+
+            }
+        '''
 
         if not __debug__:
             print(query)
@@ -275,6 +322,7 @@ class FastRunContainer(object):
         }
 
         query = '''
+        #Tool: PBB_core fastrun
         SELECT ?p ?label WHERE {{
             {0}
 
