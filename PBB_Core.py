@@ -631,11 +631,16 @@ class WDItemEngine(object):
         for x in match_count_per_prop:
             core_prop_match_count += match_count_per_prop[x]
 
+        data_kv_pairs = ['{}:{}'.format(x.get_prop_nr(), x.get_value()) for x in self.data]
+        statements_kv_pairs = ['{}:{}'.format(x.get_prop_nr(), x.get_value()) for x in self.statements]
+
         if core_prop_match_count < count_existing_ids * 0.66:
             raise ManualInterventionReqException('Retrieved item ({}) does not match provided core IDs. '
                                                  'Matching count {}, non-matching count {}'
                                                  .format(self.wd_item_id, core_prop_match_count,
-                                                         count_existing_ids - core_prop_match_count), '', '')
+                                                         count_existing_ids - core_prop_match_count),
+                                                 'data Key values: {}'.format(data_kv_pairs),
+                                                 'statement Key values: {}'.format(statements_kv_pairs))
         else:
             return True
 
@@ -1913,14 +1918,15 @@ class WDQuantity(WDBaseDataType):
         """
         Constructor, calls the superclass WDBaseDataType
         :param value: The quantity value
-        :type value: float
+        :type value: float, str
         :param prop_nr: The WD item ID for this claim
         :type prop_nr: str with a 'P' prefix followed by digits
         :param upper_bound: Upper bound of the value if it exists, e.g. for standard deviations
-        :type upper_bound: float
+        :type upper_bound: float, str
         :param lower_bound: Lower bound of the value if it exists, e.g. for standard deviations
-        :type lower_bound: float
-        :param unit: The WD unit item URL a certain quantity has been measured in (https://www.wikidata.org/wiki/Wikidata:Units)
+        :type lower_bound: float, str
+        :param unit: The WD unit item URL a certain quantity has been measured
+                        in (https://www.wikidata.org/wiki/Wikidata:Units)
         :type unit: str
         :type is_reference: boolean
         :param is_qualifier: Whether this snak is a qualifier
@@ -1978,6 +1984,7 @@ class WDQuantity(WDBaseDataType):
             'type': 'quantity'
         }
 
+        self.value = (value, unit, upper_bound, lower_bound)
         super(WDQuantity, self).set_value(value)
 
     @classmethod
@@ -2102,6 +2109,8 @@ class WDGlobeCoordinate(WDBaseDataType):
         }
 
         super(WDGlobeCoordinate, self).set_value(self.latitude)
+
+        self.value = value
 
     @classmethod
     @JsonParser
