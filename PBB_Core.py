@@ -799,11 +799,14 @@ class WDItemEngine(object):
         else:
             return None
 
-    def write(self, login):
+    def write(self, login, bot_account=True):
         """
         Writes the WD item Json to WD and after successful write, updates the object with new ids and hashes generated
         by WD. For new items, also returns the new QIDs.
         :param login: a instance of the class PBB_login which provides edit-cookies and edit-tokens
+        :type login:
+        :param bot_account: Tell the Wikidata API whether the script should be run as part of a bot account or not.
+        :type bot_account: bool
         :return: the WD QID on sucessful write
         """
         if not self.require_write:
@@ -818,8 +821,10 @@ class WDItemEngine(object):
             'data': json.JSONEncoder().encode(self.wd_json_representation),
             'format': 'json',
             'token': login.get_edit_token(),
-            'bot': ''
         }
+
+        if bot_account:
+            payload.update({'bot': ''})
 
         if self.create_new_item:
             payload.update({u'new': u'item'})
