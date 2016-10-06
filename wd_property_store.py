@@ -432,9 +432,22 @@ wd_properties = {
         'domain': ['interpro'],
         'core_id': 'True'
     },
-    # '': {
-    #     'datatype': 'string',
-    #     'name': '',
-    #     'domain': ['']
-    # }
+    'P2870': {
+        'datatype': 'string',
+        'name': 'miRBase pre-miRNA ID',
+        'domain': ['microRNAs'],
+        'core_id': 'True'
+    },
+    'P2871': {
+        'datatype': 'string',
+        'name': 'miRBase mature miRNA ID',
+        'domain': ['microRNAs'],
+        'core_id': 'True'
+    },
+    'P2646': {
+        'datatype': 'string',
+        'name': 'mirTarBase ID',
+        'domain': ['microRNAs'],
+        'core_id': 'True'
+    }
 }
