@@ -96,9 +96,9 @@ class WDItemEngine(object):
             human proteins (specified by Uniprot IDs (P352) and 'found in taxon' homo sapiens 'Q15978631').
         :type fast_run_base_filter: dict
         :param global_ref_mode: sets the reference handling mode for an item. Four modes are possible, 'STRICT_KEEP'
-            keeps all references as they are, 'STRICT_KEEP_APPEND' keeps the references as they are and appends and
-            appends new ones. 'STRICT_OVERWRITE' overwrites all existing references for given.
-        :type ref_mode: str of value 'STRICT_KEEP', 'STRICT_KEEP_APPEND', 'STRICT_OVERWRITE', 'KEEP_GOOD'
+            keeps all references as they are, 'STRICT_KEEP_APPEND' keeps the references as they are and appends
+            new ones. 'STRICT_OVERWRITE' overwrites all existing references for given.
+        :type global_ref_mode: str of value 'STRICT_KEEP', 'STRICT_KEEP_APPEND', 'STRICT_OVERWRITE', 'KEEP_GOOD'
         :param good_refs: This parameter lets the user define blocks of good references. It is a list of dictionaries.
             One block is a dictionary with  Wikidata properties as keys and potential values as the required value for
             a property. There can be arbitrarily many key: value pairs in one reference block.
@@ -205,7 +205,8 @@ class WDItemEngine(object):
         if not self.fast_run_container:
             self.fast_run_container = PBB_fastrun.FastRunContainer(base_filter=self.fast_run_base_filter)
 
-        self.require_write = self.fast_run_container.check_data(self.data, append_props=self.append_value, cqid=self.wd_item_id)
+        self.require_write = self.fast_run_container.check_data(self.data, append_props=self.append_value,
+                                                                cqid=self.wd_item_id)
         self.fast_run_store.append(self.fast_run_container)
 
         # set item id based on fast run data
@@ -455,7 +456,8 @@ class WDItemEngine(object):
             elif self.global_ref_mode == 'STRICT_KEEP' or new_item.statement_ref_mode == 'STRICT_KEEP':
                 pass
             elif self.global_ref_mode == 'STRICT_KEEP_APPEND' or new_item.statement_ref_mode == 'STRICT_KEEP_APPEND':
-                old_item.set_references(old_references.extend(new_references))
+                old_references.extend(new_references)
+                old_item.set_references(old_references)
 
             elif self.global_ref_mode == 'KEEP_GOOD' or new_item.statement_ref_mode == 'KEEP_GOOD':
                 keep_block = [False for x in old_references]
@@ -1146,7 +1148,10 @@ class WDBaseDataType(object):
         self.value = value
         self.snak_type = snak_type
         self.data_type = data_type
-        self.references = references
+        if not references:
+            self.references = []
+        else:
+            self.references = references
         self.qualifiers = qualifiers
         self.is_reference = is_reference
         self.is_qualifier = is_qualifier
@@ -1268,6 +1273,7 @@ class WDBaseDataType(object):
         return self.references
 
     def set_references(self, references):
+        print('set ref value:', references)
         if len(references) > 0 and (self.is_qualifier or self.is_reference):
             raise ValueError('Qualifiers or references cannot have references')
 
