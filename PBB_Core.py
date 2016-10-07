@@ -1273,7 +1273,6 @@ class WDBaseDataType(object):
         return self.references
 
     def set_references(self, references):
-        print('set ref value:', references)
         if len(references) > 0 and (self.is_qualifier or self.is_reference):
             raise ValueError('Qualifiers or references cannot have references')
 
