@@ -36,7 +36,7 @@ class FastRunContainer(object):
                 else:
                     self.base_filter_string += '?p p:{0}/ps:{0} ?zz . \n'.format(k)
 
-    def check_data(self, data, append_props=None):
+    def check_data(self, data, append_props=None, cqid=None):
         del_props = set()
         data_props = set()
         if not append_props:
@@ -79,7 +79,10 @@ class FastRunContainer(object):
 
             match_sets.append(temp_set)
 
-        matching_qids = match_sets[0].intersection(*match_sets[1:])
+        if cqid:
+            matching_qids = {cqid}
+        else:
+            matching_qids = match_sets[0].intersection(*match_sets[1:])
 
         if not len(matching_qids) == 1:
             if not __debug__:
