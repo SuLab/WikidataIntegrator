@@ -76,6 +76,36 @@ The data types currently implemented:
 For details of how to create values (=instances) with these data types, please (for now) consult the docstrings in the source code. Of note, these data type instances hold the values and, if specified,
 data type instances for references and qualifiers. Furthermore, calling the get_value() method of an instance returns either an integer, a string or a tuple, depending on the complexity of the data type.
 
+
+# Helper Methods #
+
+## Execute SPARQL queries ##
+The method PBB_core.WDItemEngine.execute_sparql_query() allows you to execute SPARQL queries without a hassle. It takes the actual
+query string (query), optional prefixes (prefix) if you do not want to use the standard prefixes of Wikidata, the actual entpoint URL (endpoint)
+ and you can also specify a user agent for the http header sent to the SPARQL server (user_agent). The latter is very useful to let
+ the operators of the endpoint know who you are, especially if you execute many queries on the endpoint. This allows the operators of
+ the endpoint to contact you (e.g. specify a email address or the URL to your bot code repository.)
+
+## Logging ##
+The method PBB_core.WDItemEngine.log() allows for using the Python built in logging functionality to collect errors and other logs.
+It takes two parameters, the log level (level) and the log message (message). It is advisable to separate log file columns by colons
+and always use the same number of fields, as this allows you to load the log file into databases or dataframes of R or Python.
+
+## Wikidata Search ##
+ The method PBB_core.WDItemEngine.get_wd_search_results() allows for string search in
+ Wikidata. This means that labels, descriptions and aliases can be searched for a string of interest. The method takes two arguments:
+ The actual search string (search_string) and an optional server, in case the Wikibase instance used is not Wikidata.
+ 
+## Merge Wikidata items ##
+Sometimes, Wikidata items need to be merged. An API call exists for that an PBB_core implements a method accordingly.
+PBB_core.WDItemEngine.merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts='') takes five
+arguments, the QID of the item which should be merged into another item (from_id), the QID of the item the first item should be
+merged into (to_qid), a login object of type PBB_login.WDLogin() (login_obj) to provide the API call with the required authentication
+information, a server (server) if the Wikibase instance is not Wikidata and a flag for ignoring merge conflicts (ignore_conflicts).
+ The last parameter will do a partial merge for all statements which do not conflict. This should generally be avoided because it 
+ leaves a crippled item in Wikidata. Before a merge, any potential conflicts should be resolved first.
+
+
 # Examples (in normal mode) #
 
 ## A Minimal Bot ##
@@ -137,16 +167,19 @@ An enhanced example of the previous bot just puts two of the three things into a
 # Examples (fast run mode) #
 In order to use the fast run mode, you need to know the property/value combination which determines the data corpus you would like to operate on.
 E.g. for operating on human genes, you need to know that [P351](http://www.wikidata.org/entity/P351) is the NCBI entrez gene ID and you also need to know that you are dealing with humans, 
-best represented by the [found in taxon property (P703)](http://www.wikidata.org/entity/P703) with the value [Q15978631](http://www.wikidata.org/entity/Q15978631) for human. 
+best represented by the [found in taxon property (P703)](http://www.wikidata.org/entity/P703) with the value [Q15978631](http://www.wikidata.org/entity/Q15978631) for homo sapiens.
 
-Here, the above example from normal mode with the small modifications required for running in fastrun mode. To enable it, WDItemEngine requires two parameters, fast_run=True/False and fast_run_base_filter which 
+IMPORTANT: In order for the fast run mode to work, the data you provide in the constructor must contain at least one unique value/id only present on one Wikidata item, e.g. an NCBI entrez gene ID, Uniprot ID, etc.
+Usually, these would be the same unique core properties used for defining domains in PBB_core, e.g. for genes, proteins, drugs or your custom domains.
+
+Below, the normal mode run example from above, slightly modified, to meet the requirements for the fastrun mode. To enable it, WDItemEngine requires two parameters, fast_run=True/False and fast_run_base_filter which 
  is a dictionary holding the properties to filter for as keys and the item QIDs as dict values. If the value is not a QID but a literal, just provide an empty string. For the above example, the dictionary looks like this:
  
 ```Python
     fast_run_base_filter = {'P351': '', 'P703': 'Q15978631'}
 ```
  
-
+The full example:
 ```Python
 
     import PBB_Core
