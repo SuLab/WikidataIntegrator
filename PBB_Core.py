@@ -205,7 +205,7 @@ class WDItemEngine(object):
         if not self.fast_run_container:
             self.fast_run_container = PBB_fastrun.FastRunContainer(base_filter=self.fast_run_base_filter)
 
-        self.require_write = self.fast_run_container.check_data(self.data, append_props=self.append_value)
+        self.require_write = self.fast_run_container.check_data(self.data, append_props=self.append_value, cqid=self.wd_item_id)
         self.fast_run_store.append(self.fast_run_container)
 
         # set item id based on fast run data
@@ -257,14 +257,18 @@ class WDItemEngine(object):
 
         return wd_data
 
-    def get_wd_search_results(self, search_string=''):
+    @staticmethod
+    def get_wd_search_results(search_string='', server='www.wikidata.org'):
         """
         Performs a search in WD for a certain WD search string
         :param search_string: a string which should be searched for in WD
+        :type search_string: str
+        :param server: Specify the server the WikiBase instance is running on.
+        :type server: str
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         """
         try:
-            url = 'https://{}/w/api.php'.format(self.server)
+            url = 'https://{}/w/api.php'.format(server)
             params = {
                 'action': 'wbsearchentities',
                 'language': 'en',
@@ -289,7 +293,7 @@ class WDItemEngine(object):
                 return id_list
 
         except requests.HTTPError as e:
-            self.log('ERROR', str(e))
+            WDItemEngine.log('ERROR', str(e))
 
     def get_property_list(self):
         """
