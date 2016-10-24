@@ -66,6 +66,7 @@ class WDItemEngine(object):
     databases = {}
     pmids = []
 
+    log_file_path = './logs'
     log_file_name = ''
     fast_run_store = []
 
@@ -900,16 +901,16 @@ class WDItemEngine(object):
         log_levels = {'DEBUG': logging.DEBUG, 'ERROR': logging.ERROR, 'INFO': logging.INFO, 'WARNING': logging.WARNING,
                       'CRITICAL': logging.CRITICAL}
 
-        if path.endswith('/'):
-            path = path[0:-1]
+        if WDItemEngine.log_file_path == './logs' and path != './logs':
+            WDItemEngine.log_file_path = path
 
         if not os.path.exists(path):
             os.makedirs(path)
 
         logger = logging.getLogger('WD_logger')
         if not WDItemEngine.log_file_name:
-            WDItemEngine.log_file_name = '{}/WD_bot_run-{}.log'\
-                .format(path, time.strftime('%Y-%m-%d_%H:%M', time.localtime()))
+            WDItemEngine.log_file_name = os.path.join(WDItemEngine.log_file_path, 'WD_bot_run-{}.log'
+                                                      .format(time.strftime('%Y-%m-%d_%H:%M', time.localtime())))
 
             logger.setLevel(logging.DEBUG)
             file_handler = logging.FileHandler(WDItemEngine.log_file_name)
