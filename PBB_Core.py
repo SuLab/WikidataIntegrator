@@ -878,7 +878,7 @@ class WDItemEngine(object):
         return self.wd_item_id
 
     @staticmethod
-    def log(level, message):
+    def log(level, message, path='./logs'):
         """
         A static method which initiates log files compatible to .csv format, allowing for easy further analysis.
         :param level: The log level as in the Python logging documentation, 5 different possible values with increasing
@@ -894,17 +894,23 @@ class WDItemEngine(object):
                         wd_id=<wikidata id>,
                         duration=<duration of action>
         :type message: str
+        :param path: allows for setting an relative or absolute path for logging, default is ./logs.
+        :type path: str
         """
         log_levels = {'DEBUG': logging.DEBUG, 'ERROR': logging.ERROR, 'INFO': logging.INFO, 'WARNING': logging.WARNING,
                       'CRITICAL': logging.CRITICAL}
 
-        if not os.path.exists('./logs'):
-            os.makedirs('./logs')
+        if path.endswith('/'):
+            path = path[0:-1]
+
+        if not os.path.exists(path):
+            os.makedirs(path)
 
         logger = logging.getLogger('WD_logger')
-        if WDItemEngine.log_file_name == '':
-            WDItemEngine.log_file_name = './logs/WD_bot_run-{}.log'.format(time.strftime('%Y-%m-%d_%H:%M',
-                                                                                         time.localtime()))
+        if not WDItemEngine.log_file_name:
+            WDItemEngine.log_file_name = '{}/WD_bot_run-{}.log'\
+                .format(path, time.strftime('%Y-%m-%d_%H:%M', time.localtime()))
+
             logger.setLevel(logging.DEBUG)
             file_handler = logging.FileHandler(WDItemEngine.log_file_name)
             file_handler.setLevel(logging.DEBUG)
