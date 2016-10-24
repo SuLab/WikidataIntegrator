@@ -50,6 +50,11 @@ valid_instances = {
         'Q898273',  # domain
         'Q417841',  # family
         'Q898362',  # ptm
+    ],
+    'chromosome': [
+        'Q186380',
+        'Q37748',  # chromosome
+        'Q667636'
     ]
 }
 
@@ -243,7 +248,7 @@ wd_properties = {
     'P703': {
         'datatype': 'item',
         'name': 'found in taxon',
-        'domain': ['genes'],
+        'domain': ['genes', 'chromosome'],
         'core_id': 'False'
     },
     'P594': {
@@ -448,6 +453,12 @@ wd_properties = {
         'datatype': 'string',
         'name': 'mirTarBase ID',
         'domain': ['microRNAs'],
+        'core_id': 'True'
+    },
+    'P2249': {
+        'datatype': 'string',
+        'name': 'Refseq Genome ID',
+        'domain': ['chromosome'],
         'core_id': 'True'
     }
 }
