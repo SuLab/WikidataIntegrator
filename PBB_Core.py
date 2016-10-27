@@ -2253,13 +2253,13 @@ class MergeError(Exception):
 class FormatterWithHeader(logging.Formatter):
     # http://stackoverflow.com/questions/33468174/write-header-to-a-python-log-file-but-only-if-a-record-gets-written
     def __init__(self, header, **kwargs):
-        super().__init__(**kwargs)
+        super(FormatterWithHeader, self).__init__(**kwargs)
         self.header = header
         # Override the normal format method
         self.format = self.first_line_format
 
     def first_line_format(self, record):
         # First time in, switch back to the normal format function
-        self.format = super().format
+        self.format = super(FormatterWithHeader, self).format
         return self.header + "\n" + self.format(record)
 
