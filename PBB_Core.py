@@ -66,9 +66,10 @@ class WDItemEngine(object):
     databases = {}
     pmids = []
 
-    log_file_path = './logs'
     log_file_name = ''
     fast_run_store = []
+
+    logger = None
 
     def __init__(self, wd_item_id='', item_name='', domain='', data=None, server='www.wikidata.org',
                  append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None,
@@ -162,8 +163,10 @@ class WDItemEngine(object):
 
         if self.require_write and self.fast_run:
             print('fastrun skipped, because no full data match, updating item...')
+
         elif not self.require_write and self.fast_run:
             print('successful fastrun, no write to Wikidata required')
+            
 
         if self.item_name and self.domain is None and len(self.data) > 0:
             self.create_new_item = True
@@ -878,10 +881,48 @@ class WDItemEngine(object):
 
         return self.wd_item_id
 
-    @staticmethod
-    def log(level, message, path='./logs'):
+    @classmethod
+    def setup_logging(cls, log_dir="./logs", log_name=None, header=None):
         """
         A static method which initiates log files compatible to .csv format, allowing for easy further analysis.
+        :param log_dir: allows for setting relative or absolute path for logging, default is ./logs.
+        :type log_dir: str
+        :param log_name: File name of log file to be written. e.g. "WD_bot_run-20160204.log". Default is "WD_bot_run"
+        and a timestamp of the current time
+        :type log_name: str
+        :param header: Log file will be prepended with header if given
+        :type header: str
+        """
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+        if not log_name:
+            run_id = time.strftime('%Y%m%d_%H:%M', time.localtime())
+            log_name = "WD_bot_run-{}.log".format(run_id)
+
+        logger = logging.getLogger('WD_logger')
+        logger.setLevel(logging.DEBUG)
+
+        log_file_name = os.path.join(log_dir, log_name)
+
+        file_handler = logging.FileHandler(log_file_name, mode='a')
+        file_handler.setLevel(logging.DEBUG)
+
+        if header:
+            header = header if header.startswith("#") else "#" + header
+            formatter = FormatterWithHeader(header, fmt='%(levelname)s,%(asctime)s,%(message)s',
+                                            datefmt='%m/%d/%Y %H:%M:%S')
+        else:
+            formatter = logging.Formatter(fmt='%(levelname)s,%(asctime)s,%(message)s',
+                                          datefmt='%m/%d/%Y %H:%M:%S')
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
+        cls.logger = logger
+
+    @classmethod
+    def log(cls, level, message):
+        """
         :param level: The log level as in the Python logging documentation, 5 different possible values with increasing
          severity
         :type level: String of value 'DEBUG', 'INFO', 'WARNING', 'ERROR' or 'CRITICAL'.
@@ -895,31 +936,14 @@ class WDItemEngine(object):
                         wd_id=<wikidata id>,
                         duration=<duration of action>
         :type message: str
-        :param path: allows for setting an relative or absolute path for logging, default is ./logs.
-        :type path: str
         """
+        if cls.logger is None:
+            cls.setup_logging()
+
         log_levels = {'DEBUG': logging.DEBUG, 'ERROR': logging.ERROR, 'INFO': logging.INFO, 'WARNING': logging.WARNING,
                       'CRITICAL': logging.CRITICAL}
 
-        if WDItemEngine.log_file_path == './logs' and path != './logs':
-            WDItemEngine.log_file_path = path
-
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-        logger = logging.getLogger('WD_logger')
-        if not WDItemEngine.log_file_name:
-            WDItemEngine.log_file_name = os.path.join(WDItemEngine.log_file_path, 'WD_bot_run-{}.log'
-                                                      .format(time.strftime('%Y-%m-%d_%H:%M', time.localtime())))
-
-            logger.setLevel(logging.DEBUG)
-            file_handler = logging.FileHandler(WDItemEngine.log_file_name)
-            file_handler.setLevel(logging.DEBUG)
-            file_handler.setFormatter(logging.Formatter(fmt='%(levelname)s, %(asctime)s, %(message)s',
-                                                        datefmt='%m/%d/%Y %H:%M:%S'))
-            logger.addHandler(file_handler)
-
-        logger.log(level=log_levels[level], msg=message)
+        cls.logger.log(level=log_levels[level], msg=message)
 
     @staticmethod
     def execute_sparql_query(prefix='', query='', endpoint='https://query.wikidata.org/sparql',
@@ -2224,3 +2248,18 @@ class MergeError(Exception):
 
     def __str__(self):
         return repr(self.value)
+
+
+class FormatterWithHeader(logging.Formatter):
+    # http://stackoverflow.com/questions/33468174/write-header-to-a-python-log-file-but-only-if-a-record-gets-written
+    def __init__(self, header, **kwargs):
+        super().__init__(**kwargs)
+        self.header = header
+        # Override the normal format method
+        self.format = self.first_line_format
+
+    def first_line_format(self, record):
+        # First time in, switch back to the normal format function
+        self.format = super().format
+        return self.header + "\n" + self.format(record)
+
