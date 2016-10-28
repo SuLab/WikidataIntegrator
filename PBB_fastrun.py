@@ -68,9 +68,11 @@ class FastRunContainer(object):
             elif self.prop_dt_map[prop_nr] == 'globe-coordinate':
                 write_required = True  # temporary workaround for handling globe coordinates
 
-            print(current_value)
-            try:
+            if not __debug__:
                 print(current_value)
+            try:
+                if not __debug__:
+                    print(current_value)
                 temp_set = set(self.rev_lookup[current_value])
             except KeyError:
                 if not __debug__:
