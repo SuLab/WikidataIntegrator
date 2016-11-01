@@ -24,7 +24,7 @@ class PubmedStub:
         self.reference = None
         self.statements = None
         self._root = None
-        self.wdid = SPARQLHelper().prop2qid('P698', self.pmid)  # if doesn't exist, will be None
+        self.wdid = prop2qid('P698', self.pmid)  # if doesn't exist, will be None
 
     def _validate_pmid(self):
         pubmed_url = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=Pubmed&Retmode=xml&id={}'.format(
