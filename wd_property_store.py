@@ -55,6 +55,9 @@ valid_instances = {
         'Q186380',
         'Q37748',  # chromosome
         'Q667636'
+    ],
+    'scientific_article': [
+
     ]
 }
 
@@ -459,6 +462,12 @@ wd_properties = {
         'datatype': 'string',
         'name': 'Refseq Genome ID',
         'domain': ['chromosome'],
+        'core_id': 'True'
+    },
+    'P698': {
+        'datatype': 'string',
+        'name': 'PubMed ID',
+        'domain': ['scientific_article'],
         'core_id': 'True'
     }
 }
