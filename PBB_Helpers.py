@@ -5,6 +5,7 @@ import requests
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 from . import PBB_Core, PBB_login
+from .PBB_Core import WDItemEngine
 
 
 class PubmedStub:
@@ -119,61 +120,51 @@ def format_msg(main_data_id, message, wd_id, external_id_prop=None):
     return msg
 
 
-class SPARQLHelper:
-    def __init__(self):
-        self.endpoint = SPARQLWrapper("https://query.wikidata.org/bigdata/namespace/wdq/sparql")
-        self.wd = 'PREFIX wd: <http://www.wikidata.org/entity/>'
-        self.wdt = 'PREFIX wdt: <http://www.wikidata.org/prop/direct/>'
+def prop2qid(prop, value):
+    """
+    Lookup a wikidata item ID from a property and string value. For example, get the item QID for the
+     item with the entrez gene id (P351): "899959"
+    >>> prop2qid('P351','899959')
+    :param prop: property
+    :type prop: str
+    :param value: value of property
+    :type value: str
+    :return: wdid as string or None
+    """
+    arguments = '?item wdt:{} "{}"'.format(prop, value)
+    query = 'SELECT * WHERE {{{}}}'.format(arguments)
+    results = WDItemEngine.execute_sparql_query(query)
+    result = results['results']['bindings']
+    if len(result) == 0:
+        # not found
+        return None
+    elif len(result) > 1:
+        raise ValueError("More than one wikidata ID found for {} {}: {}".format(prop, value, result))
+    else:
+        return result[0]['item']['value'].split("/")[-1]
 
-    def execute_query(self, query):
-        self.endpoint.setQuery(query)
-        self.endpoint.setReturnFormat(JSON)
-        return self.endpoint.query().convert()
 
-    def prop2qid(self, prop, value):
-        """
-        Lookup a wikidata item ID from a property and string value. For example, get the item QID for the
-         item with the entrez gene id (P351): "899959"
-        >>> SPARQLHelper().prop2qid('P351','899959')
-        :param prop: property
-        :type prop: str
-        :param value: value of property
-        :type value: str
-        :return: wdid as string or None
-        """
-        arguments = '?item wdt:{} "{}"'.format(prop, value)
-        select_where = 'SELECT * WHERE {{{}}}'.format(arguments)
-        query = self.wdt + " " + select_where
-        results = self.execute_query(query)
-        result = results['results']['bindings']
-        if len(result) == 0:
-            # not found
-            return None
-        elif len(result) > 1:
-            raise ValueError("More than one wikidata ID found for {} {}: {}".format(prop, value, result))
-        else:
-            return result[0]['item']['value'].split("/")[-1]
+def id_mapper(prop, filters=None):
+    """
+    Get all wikidata ID <-> prop <-> value mappings
+    Example: id_mapper("P352") -> { 'A0KH68': 'Q23429083',
+                                     'Q5ZWJ4': 'Q22334494',
+                                     'Q53WF2': 'Q21766762', .... }
+    Optional filters can filter query results.
+    Example (get all uniprot to wdid, where taxon is human): id_mapper("P352",(("P703", "Q15978631"),))
+    :param prop: wikidata property
+    :type prop: str
+    :param filters: list of tuples, where the first item is a property, second is a value
+    :return: dict
 
-    def id_mapper(self, prop, filters=None):
-        """
-        Get all wikidata ID <-> prop <-> value mappings
-        Example: id_mapper("P352") -> { 'A0KH68': 'Q23429083',
-                                         'Q5ZWJ4': 'Q22334494',
-                                         'Q53WF2': 'Q21766762', .... }
-        Optional filters consist of a list of tuples, where the first item is a property, second is a value
-        Example (get all uniprot to wdid, where taxon is human): id_mapper("P352",(("P703", "Q15978631"),))
-        :param prop: wikidata property
-        :type prop: str
-        :return: dict
-
-        """
-        query = self.wdt + "\n" + self.wd + "\nSELECT * WHERE {"
-        query += "?item wdt:{} ?id .\n".format(prop)
-        if filters:
-            for f in filters:
-                query += "?item wdt:{} wd:{} .\n".format(f[0], f[1])
-        query = query + "}"
-        results = self.execute_query(query)
-        if not results['results']['bindings']:
-            return None
-        return {x['id']['value']: x['item']['value'].split('/')[-1] for x in results['results']['bindings']}
+    """
+    query = "SELECT * WHERE {"
+    query += "?item wdt:{} ?id .\n".format(prop)
+    if filters:
+        for f in filters:
+            query += "?item wdt:{} wd:{} .\n".format(f[0], f[1])
+    query = query + "}"
+    results = WDItemEngine.execute_sparql_query(query)
+    if not results['results']['bindings']:
+        return None
+    return {x['id']['value']: x['item']['value'].split('/')[-1] for x in results['results']['bindings']}
