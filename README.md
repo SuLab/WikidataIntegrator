@@ -105,6 +105,14 @@ information, a server (server) if the Wikibase instance is not Wikidata and a fl
  The last parameter will do a partial merge for all statements which do not conflict. This should generally be avoided because it 
  leaves a crippled item in Wikidata. Before a merge, any potential conflicts should be resolved first.
 
+## Pubmed Articles ##
+The class PBBCore.PBB_Helpers.PubmedStub allows you to create article items. Given a PMID, it retrives the article title, and DOIs using Entrez Eutils.
+It then creates a wikidata item. More detailed information can be filled in by other bots. This is useful for quickly creating items to use in reference
+statements.
+
+## Database Release ##
+The class PBBCore.PBB_Helpers.Release allows you to create an item for a database release. These should be used in reference statements. See [here](https://www.wikidata.org/wiki/User:ProteinBoxBot/evidence#Guidelines_for_Referencing_Databases.2C_Ontologies_and_similar_Web-native_information_entities.) 
+for more information. 
 
 # Examples (in normal mode) #
 
