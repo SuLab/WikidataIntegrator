@@ -2,13 +2,12 @@ import xml.etree.ElementTree as ET
 from time import gmtime, strftime
 
 import requests
-from SPARQLWrapper import SPARQLWrapper, JSON
 
 from . import PBB_Core, PBB_login
-from .PBB_Core import WDItemEngine
+from . PBB_Core import WDItemEngine
 
 
-class PubmedStub:
+class PubmedStub(object):
     """
     Get or create a wikidata item stub given a pubmed ID
 
