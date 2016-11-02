@@ -17,7 +17,7 @@ class Release(object):
         title: **user_defined**
         description: **user_defined**
         instance of (P31): edition (Q3331189)
-        edition or translation of (P629): **user_defined** (wd_item or string of database name)
+        edition or translation of (P629): **user_defined** (wd_item)
         edition number (P393): **user_defined** (str)
     Optional properties:
         archive URL (P1065): (str)
@@ -186,7 +186,7 @@ class PubmedStub(object):
         return item.wd_item_id
 
 
-def try_write(wd_item, record_id, record_prop, login):
+def try_write(wd_item, record_id, record_prop, login, edit_summary=''):
     """
     Write a PBB_core item. Log if item was created, updated, or skipped.
     Catch and log all errors.
@@ -199,6 +199,8 @@ def try_write(wd_item, record_id, record_prop, login):
     :type record_prop: str
     :param login: PBB_core login instance
     :type login: PBB_login.WDLogin
+    :param edit_summary: passed directly to wd_item.write
+    :type edit_summary: str
     :return: None
     """
     if wd_item.require_write:
@@ -210,7 +212,7 @@ def try_write(wd_item, record_id, record_prop, login):
         msg = "SKIP"
 
     try:
-        wd_item.write(login=login)
+        wd_item.write(login=login, edit_summary=edit_summary)
         PBB_Core.WDItemEngine.log("INFO", format_msg(record_id, msg, wd_item.wd_item_id, record_prop))
     except Exception as e:
         print(e)
