@@ -32,7 +32,7 @@ class Release(object):
     """
 
     def __init__(self, title, description, edition, edition_of=None, edition_of_wdid=None, archive_url=None,
-                 pub_date=None, date_precision=None):
+                 pub_date=None, date_precision=11):
         """
 
         :param title: title of release item
@@ -49,7 +49,7 @@ class Release(object):
         :type archive_url: str
         :param pub_date: (optional) Datetime will be converted to str
         :type pub_date: str or datetime
-        :param date_precision: (optional) passed to PBB_Core.WDTime as is
+        :param date_precision: (optional) passed to PBB_Core.WDTime as is. default is 11 (day)
         :type date_precision: int
         """
         self.title = title
