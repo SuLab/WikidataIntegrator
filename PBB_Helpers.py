@@ -1,7 +1,7 @@
 import datetime
 import xml.etree.ElementTree as ET
 from time import gmtime, strftime
-
+import functools
 import requests
 
 from . import PBB_Core, PBB_login
@@ -41,8 +41,7 @@ class Release(object):
         :type description: str
         :param edition: edition number or unique identifier for the release
         :type edition: str
-        :param edition_of: name of database. database wdid will automatically be looked up. Must pass either edition_of
-        or edition_of_wdid
+        :param edition_of: name of database. database wdid will automatically be looked up. Must pass either edition_of or edition_of_wdid
         :type edition_of: str
         :param edition_of_wdid: wikidata id of database
         :type edition_of_wdid: str
@@ -63,7 +62,7 @@ class Release(object):
             self.pub_date = pub_date
         self.date_precision = date_precision
 
-        if edition_of and edition_of_wdid:
+        if (edition_of is None and edition_of_wdid is None) or (edition_of and edition_of_wdid):
             raise ValueError("must provide either edition_of or edition_of_wdid")
         if edition_of:
             self.edition_of_wdid = self.lookup_database(edition_of)
@@ -74,6 +73,7 @@ class Release(object):
         self.make_statements()
 
     @staticmethod
+    @functools.lru_cache()
     def lookup_database(edition_of):
         query = """SELECT ?item ?itemLabel WHERE {
                     ?item wdt:P31 wd:Q4117139 .
@@ -86,9 +86,9 @@ class Release(object):
             raise ValueError("Database {} not found in wikidata. Please provide edition_of_wdid".format(edition_of))
         return db_item_map[edition_of]
 
+    @functools.lru_cache()
     def release_exists(self):
         edition_dict = id_mapper("P393", (("P629", self.edition_of_wdid), ("P31", "Q3331189")))
-        print("existing releases of {}: {}".format(self.edition_of_wdid, edition_dict))
         return edition_dict.get(self.edition, False)
 
     def make_statements(self):
@@ -108,12 +108,10 @@ class Release(object):
 
         self.statements = s
 
-    def create(self, login, check_existing=True):
-        if check_existing:
-            re = self.release_exists()
-            if re:
-                print("Release already exists")
-                return re
+    def get_or_create(self, login):
+        re = self.release_exists()
+        if re:
+            return re
         item = PBB_Core.WDItemEngine(item_name=self.title, data=self.statements, domain="release")
         item.set_label(self.title)
         item.set_description(description=self.description, lang='en')
@@ -213,26 +211,24 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary=''):
 
     try:
         wd_item.write(login=login, edit_summary=edit_summary)
-        PBB_Core.WDItemEngine.log("INFO", format_msg(record_id, msg, wd_item.wd_item_id, record_prop))
+        PBB_Core.WDItemEngine.log("INFO", format_msg(record_id, record_prop, wd_item.wd_item_id, msg))
     except Exception as e:
         print(e)
-        PBB_Core.WDItemEngine.log("ERROR", format_msg(record_id, str(e), wd_item.wd_item_id, record_prop))
+        PBB_Core.WDItemEngine.log("ERROR", format_msg(record_id, record_prop, wd_item.wd_item_id, str(e), type(e)))
 
 
-def format_msg(main_data_id, message, wd_id, external_id_prop=None):
+def format_msg(external_id, external_id_prop, wdid, msg, msg_type=None):
     """
     Format message for logging
     :return: str
     """
     # escape double quotes and quote string with commas,
     # so it can be read by pd.read_csv(fp, escapechar='\\')
-    message = message.replace("\"", "\\\"")
-    message = "\"" + message + "\"" if "," in message else message
-    message = message.replace(",", "")
-    msg = '{main_data_id},{message},{wd_id},{prop}'.format(
-        main_data_id=main_data_id, message=message,
-        wd_id=wd_id, prop=external_id_prop)
-    return msg
+    msg = msg.replace("\"", "\\\"")
+    msg = "\"" + msg + "\"" if "," in msg else msg
+    msg = msg.replace(",", "")
+    s = '{},{},{},{},{}'.format(external_id, external_id_prop, wdid, msg, msg_type)
+    return s
 
 
 def prop2qid(prop, value):
