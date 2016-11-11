@@ -1,11 +1,13 @@
 import datetime
+import functools
+import json
 import xml.etree.ElementTree as ET
 from time import gmtime, strftime
-import functools
+
 import requests
 
 from . import PBB_Core, PBB_login
-from .PBB_Core import WDItemEngine
+from .PBB_Core import WDItemEngine, WDApiError
 
 
 class Release(object):
@@ -115,7 +117,7 @@ class Release(object):
         item = PBB_Core.WDItemEngine(item_name=self.title, data=self.statements, domain="release")
         item.set_label(self.title)
         item.set_description(description=self.description, lang='en')
-        try_write(item, self.edition + ";" + self.edition_of_wdid, 'P393;P629', login)
+        try_write(item, self.edition + "|" + self.edition_of_wdid, 'P393|P629', login)
         return item.wd_item_id
 
 
@@ -212,22 +214,23 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary=''):
     try:
         wd_item.write(login=login, edit_summary=edit_summary)
         PBB_Core.WDItemEngine.log("INFO", format_msg(record_id, record_prop, wd_item.wd_item_id, msg))
+    except WDApiError as e:
+        print(e)
+        PBB_Core.WDItemEngine.log("ERROR",
+                                  format_msg(record_id, record_prop, wd_item.wd_item_id, json.dumps(e.wd_error_msg),
+                                             type(e)))
     except Exception as e:
         print(e)
         PBB_Core.WDItemEngine.log("ERROR", format_msg(record_id, record_prop, wd_item.wd_item_id, str(e), type(e)))
 
 
-def format_msg(external_id, external_id_prop, wdid, msg, msg_type=None):
+def format_msg(external_id, external_id_prop, wdid, msg, msg_type=None, delimiter=";"):
     """
     Format message for logging
     :return: str
     """
-    # escape double quotes and quote string with commas,
-    # so it can be read by pd.read_csv(fp, escapechar='\\')
-    msg = msg.replace("\"", "\\\"")
-    msg = "\"" + msg + "\"" if "," in msg else msg
-    msg = msg.replace(",", "")
-    s = '{},{},{},{},{}'.format(external_id, external_id_prop, wdid, msg, msg_type)
+    fmt = ('{}'+delimiter)*4 + '{}'  # '{};{};{};{};{}'
+    s = fmt.format(external_id, external_id_prop, wdid, msg, msg_type)
     return s
 
 

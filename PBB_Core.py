@@ -881,7 +881,7 @@ class WDItemEngine(object):
         return self.wd_item_id
 
     @classmethod
-    def setup_logging(cls, log_dir="./logs", log_name=None, header=None):
+    def setup_logging(cls, log_dir="./logs", log_name=None, header=None, delimiter=";"):
         """
         A static method which initiates log files compatible to .csv format, allowing for easy further analysis.
         :param log_dir: allows for setting relative or absolute path for logging, default is ./logs.
@@ -891,6 +891,8 @@ class WDItemEngine(object):
         :type log_name: str
         :param header: Log file will be prepended with header if given
         :type header: str
+        :param delimiter: Log file will be delimited with `delimiter`
+        :type delimiter: str
         """
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
@@ -907,13 +909,12 @@ class WDItemEngine(object):
         file_handler = logging.FileHandler(log_file_name, mode='a')
         file_handler.setLevel(logging.DEBUG)
 
+        fmt = '%(levelname)s{delimiter}%(asctime)s{delimiter}%(message)s'.format(delimiter=delimiter)
         if header:
             header = header if header.startswith("#") else "#" + header
-            formatter = FormatterWithHeader(header, fmt='%(levelname)s,%(asctime)s,%(message)s',
-                                            datefmt='%m/%d/%Y %H:%M:%S')
+            formatter = FormatterWithHeader(header, fmt=fmt, datefmt='%m/%d/%Y %H:%M:%S')
         else:
-            formatter = logging.Formatter(fmt='%(levelname)s,%(asctime)s,%(message)s',
-                                          datefmt='%m/%d/%Y %H:%M:%S')
+            formatter = logging.Formatter(fmt=fmt, datefmt='%m/%d/%Y %H:%M:%S')
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
