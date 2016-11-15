@@ -1,9 +1,7 @@
-[TOC]
-
-# ProteinBoxBot_Core #
+# Wikidata Integrator #
 
 # Introduction #
-ProteinBoxBot_core (PBB_core) is a library for reading and writing to Wikidata/Wikibase. We created it for populating [WikiData](http://www.wikidata.org) with content from authoritative resources on Genes, Proteins, Diseases, Drugs and others. 
+WikidataIntegrator is a library for reading and writing to Wikidata/Wikibase. We created it for populating [WikiData](http://www.wikidata.org) with content from authoritative resources on Genes, Proteins, Diseases, Drugs and others. 
 Details on the different tasks can be found on [the botx Wikidata page](https://www.wikidata.org/wiki/User:ProteinBoxBot).
 
 [Pywikibot](https://www.mediawiki.org/wiki/Manual:Pywikibot) is an existing framework for interacting with the [MediaWiki](https://www.mediawiki.org/) API. The reason why we came up with our own solution is
