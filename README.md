@@ -7,7 +7,7 @@ ProteinBoxBot_core (PBB_core) is a library for reading and writing to Wikidata/W
 Details on the different tasks can be found on [the botx Wikidata page](https://www.wikidata.org/wiki/User:ProteinBoxBot).
 
 [Pywikibot](https://www.mediawiki.org/wiki/Manual:Pywikibot) is an existing framework for interacting with the [MediaWiki](https://www.mediawiki.org/) API. The reason why we came up with our own solution is
- that we need a high integration with the []Wikidata SPARQL endpoint](query.wikidata.org) in order to ensure data consistency (duplicate check, consistency checks, correct item selection, etc.). 
+ that we need a high integration with the [Wikidata SPARQL endpoint](query.wikidata.org) in order to ensure data consistency (duplicate check, consistency checks, correct item selection, etc.). 
 
 Compared to Pywikibot, PBB_core currently is not a full Python wrapper for the MediaWiki API but is solely focused on providing an easy means to generate Python
 based Wikidata bots, it therefore resembles a basic database connector like JDBC or ODBC. 
