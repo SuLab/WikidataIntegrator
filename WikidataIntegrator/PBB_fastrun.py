@@ -1,5 +1,6 @@
-import PBB_Core
 import copy
+
+from WikidataIntegrator import PBB_Core
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
 __license__ = 'AGPLv3'
