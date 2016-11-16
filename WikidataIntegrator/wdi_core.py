@@ -9,8 +9,8 @@ import re
 import requests
 import time
 
-from WikidataIntegrator import PBB_fastrun
-from WikidataIntegrator import wd_property_store
+from WikidataIntegrator.wdi_fastrun import FastRunContainer
+from WikidataIntegrator import wdi_property_store
 
 """
 Authors: 
@@ -205,7 +205,7 @@ class WDItemEngine(object):
                 self.fast_run_container = c
 
         if not self.fast_run_container:
-            self.fast_run_container = PBB_fastrun.FastRunContainer(base_filter=self.fast_run_base_filter)
+            self.fast_run_container = FastRunContainer(base_filter=self.fast_run_base_filter)
 
         self.require_write = self.fast_run_container.check_data(self.data, append_props=self.append_value,
                                                                 cqid=self.wd_item_id)
@@ -324,10 +324,10 @@ class WDItemEngine(object):
             if isinstance(data_point, tuple):
                 data_point = data_point[0]
 
-            if wd_property in wd_property_store.wd_properties:
+            if wd_property in wdi_property_store.wd_properties:
                 try:
                     # check if the property is a core_id and should be unique for every WD item
-                    if wd_property_store.wd_properties[wd_property]['core_id'] == 'True':
+                    if wdi_property_store.wd_properties[wd_property]['core_id'] == 'True':
                         tmp_qids = []
 
                         if not self.use_sparql:
@@ -614,8 +614,8 @@ class WDItemEngine(object):
         # generate a set containing all property number of the item currently loaded
         core_props_list = set([
                                   x.get_prop_nr()
-                                  for x in self.statements if x.get_prop_nr() in wd_property_store.wd_properties and
-                                  wd_property_store.wd_properties[x.get_prop_nr()]['core_id'] == 'True'
+                                  for x in self.statements if x.get_prop_nr() in wdi_property_store.wd_properties and
+                                  wdi_property_store.wd_properties[x.get_prop_nr()]['core_id'] == 'True'
                                   ])
 
         # compare the claim values of the currently loaded QIDs to the data provided in self.data
