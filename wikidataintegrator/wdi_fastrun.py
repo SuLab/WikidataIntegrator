@@ -1,6 +1,6 @@
 import copy
 
-from WikidataIntegrator import PBB_Core
+from . import wdi_core
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
 __license__ = 'AGPLv3'
@@ -17,7 +17,6 @@ prefix = '''
 
 
 class FastRunContainer(object):
-
     def __init__(self, base_filter=None):
         self.prop_data = {}
         self.loaded_langs = {}
@@ -103,12 +102,11 @@ class FastRunContainer(object):
                 if q_prop not in self.prop_dt_map:
                     self.prop_dt_map.update({q_prop: FastRunContainer.get_prop_datatype(prop_nr=q_prop)})
             for uid in all_uids:
-
-                qualifiers = [[x for x in PBB_Core.WDBaseDataType.__subclasses__() if x.DTYPE ==
+                qualifiers = [[x for x in wdi_core.WDBaseDataType.__subclasses__() if x.DTYPE ==
                                self.prop_dt_map[y['pr']]][0](value=y['q'], prop_nr=y['pr'], is_qualifier=True)
                               for y in dt if y['s2'] == uid and 'q' in y]
 
-                stmts = [[x for x in PBB_Core.WDBaseDataType.__subclasses__() if x.DTYPE ==
+                stmts = [[x for x in wdi_core.WDBaseDataType.__subclasses__() if x.DTYPE ==
                           self.prop_dt_map[prop_nr]][0](value=y['v'], prop_nr=prop_nr, qualifiers=qualifiers)
                          for y in dt if y['s2'] == uid][0]
 
@@ -209,7 +207,7 @@ class FastRunContainer(object):
 
     def __query_data(self, prop_nr):
         query = '''
-            #Tool: PBB_core fastrun
+            #Tool: wdi_core fastrun
             select ?p ?q ?pr ?s2 ?v where {{
               {0}
 
@@ -272,7 +270,7 @@ class FastRunContainer(object):
         if not __debug__:
             print(query)
 
-        r = PBB_Core.WDItemEngine.execute_sparql_query(query=query, prefix=prefix)
+        r = wdi_core.WDItemEngine.execute_sparql_query(query=query, prefix=prefix)
 
         for i in r['results']['bindings']:
             i['p'] = i['p']['value'].split('/')[-1]
@@ -328,7 +326,7 @@ class FastRunContainer(object):
         }
 
         query = '''
-        #Tool: PBB_core fastrun
+        #Tool: wdi_core fastrun
         SELECT ?p ?label WHERE {{
             {0}
 
@@ -341,9 +339,9 @@ class FastRunContainer(object):
         if not __debug__:
             print(query)
 
-        return PBB_Core.WDItemEngine.execute_sparql_query(query=query, prefix=prefix)
+        return wdi_core.WDItemEngine.execute_sparql_query(query=query, prefix=prefix)
 
     @staticmethod
     def get_prop_datatype(prop_nr):
-        item = PBB_Core.WDItemEngine(wd_item_id=prop_nr)
+        item = wdi_core.WDItemEngine(wd_item_id=prop_nr)
         return item.entity_metadata['datatype']

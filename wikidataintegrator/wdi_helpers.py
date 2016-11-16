@@ -2,12 +2,12 @@ import datetime
 import functools
 import json
 import xml.etree.ElementTree as ET
-
-import requests
 from time import gmtime, strftime
 
-from . import PBB_Core, PBB_login
-from .PBB_Core import WDItemEngine, WDApiError
+import requests
+
+from . import wdi_core
+from .wdi_core import WDItemEngine, WDApiError
 
 
 class Release(object):
@@ -96,17 +96,17 @@ class Release(object):
     def make_statements(self):
         s = []
         # instance of edition
-        s.append(PBB_Core.WDItemID('Q3331189', 'P31'))
+        s.append(wdi_core.WDItemID('Q3331189', 'P31'))
         # edition or translation of
-        s.append(PBB_Core.WDItemID(self.edition_of_wdid, 'P629'))
+        s.append(wdi_core.WDItemID(self.edition_of_wdid, 'P629'))
         # edition number
-        s.append(PBB_Core.WDString(self.edition, 'P393'))
+        s.append(wdi_core.WDString(self.edition, 'P393'))
 
         if self.archive_url:
-            s.append(PBB_Core.WDUrl(self.archive_url, 'P1065'))
+            s.append(wdi_core.WDUrl(self.archive_url, 'P1065'))
 
         if self.pub_date:
-            s.append(PBB_Core.WDTime(self.pub_date, 'P577', precision=self.date_precision))
+            s.append(wdi_core.WDTime(self.pub_date, 'P577', precision=self.date_precision))
 
         self.statements = s
 
@@ -114,7 +114,7 @@ class Release(object):
         re = self.release_exists()
         if re:
             return re
-        item = PBB_Core.WDItemEngine(item_name=self.title, data=self.statements, domain="release")
+        item = wdi_core.WDItemEngine(item_name=self.title, data=self.statements, domain="release")
         item.set_label(self.title)
         item.set_description(description=self.description, lang='en')
         try_write(item, self.edition + "|" + self.edition_of_wdid, 'P393|P629', login)
@@ -152,22 +152,22 @@ class PubmedStub(object):
         self.dois = [x.text for x in doiset]
 
     def _make_reference(self):
-        refStatedIn = PBB_Core.WDItemID(value='Q180686', prop_nr='P248', is_reference=True)
-        refPubmedId = PBB_Core.WDString(value=self.pmid, prop_nr='P698', is_reference=True)
+        refStatedIn = wdi_core.WDItemID(value='Q180686', prop_nr='P248', is_reference=True)
+        refPubmedId = wdi_core.WDString(value=self.pmid, prop_nr='P698', is_reference=True)
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
-        refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
+        refRetrieved = wdi_core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
         self.reference = [refStatedIn, refPubmedId, refRetrieved]
 
     def _make_statements(self):
         s = []
         # instance of scientific article
-        s.append(PBB_Core.WDItemID('Q13442814', 'P31', references=[self.reference]))
+        s.append(wdi_core.WDItemID('Q13442814', 'P31', references=[self.reference]))
         # pmid
-        s.append(PBB_Core.WDExternalID(self.pmid, 'P698', references=[self.reference]))
+        s.append(wdi_core.WDExternalID(self.pmid, 'P698', references=[self.reference]))
         # title
-        s.append(PBB_Core.WDMonolingualText(self.title, 'P1476', references=[self.reference]))
+        s.append(wdi_core.WDMonolingualText(self.title, 'P1476', references=[self.reference]))
         for doi in self.dois:
-            s.append(PBB_Core.WDExternalID(doi, 'P356', references=[self.reference]))
+            s.append(wdi_core.WDExternalID(doi, 'P356', references=[self.reference]))
         self.statements = s
 
     def create(self, login):
@@ -179,7 +179,7 @@ class PubmedStub(object):
         self._parse_ncbi()
         self._make_reference()
         self._make_statements()
-        item = PBB_Core.WDItemEngine(item_name=self.title, data=self.statements, domain="scientific_article")
+        item = wdi_core.WDItemEngine(item_name=self.title, data=self.statements, domain="scientific_article")
         item.set_label(self.title)
         item.set_description(description='scientific article', lang='en')
         try_write(item, self.pmid, 'P698', login)
@@ -213,15 +213,15 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary=''):
 
     try:
         wd_item.write(login=login, edit_summary=edit_summary)
-        PBB_Core.WDItemEngine.log("INFO", format_msg(record_id, record_prop, wd_item.wd_item_id, msg))
+        wdi_core.WDItemEngine.log("INFO", format_msg(record_id, record_prop, wd_item.wd_item_id, msg))
     except WDApiError as e:
         print(e)
-        PBB_Core.WDItemEngine.log("ERROR",
+        wdi_core.WDItemEngine.log("ERROR",
                                   format_msg(record_id, record_prop, wd_item.wd_item_id, json.dumps(e.wd_error_msg),
                                              type(e)))
     except Exception as e:
         print(e)
-        PBB_Core.WDItemEngine.log("ERROR", format_msg(record_id, record_prop, wd_item.wd_item_id, str(e), type(e)))
+        wdi_core.WDItemEngine.log("ERROR", format_msg(record_id, record_prop, wd_item.wd_item_id, str(e), type(e)))
 
 
 def format_msg(external_id, external_id_prop, wdid, msg, msg_type=None, delimiter=";"):
@@ -229,7 +229,7 @@ def format_msg(external_id, external_id_prop, wdid, msg, msg_type=None, delimite
     Format message for logging
     :return: str
     """
-    fmt = ('{}'+delimiter)*4 + '{}'  # '{};{};{};{};{}'
+    fmt = ('{}' + delimiter) * 4 + '{}'  # '{};{};{};{};{}'
     s = fmt.format(external_id, external_id_prop, wdid, msg, msg_type)
     return s
 

@@ -4,7 +4,6 @@
 __author__ = 'Sebastian Burgstaller and Andra Waagmeester'
 __licence__ = 'AGPLv3'
 
-
 domain_incompatibilities = {
     'drugs': [
 
@@ -28,7 +27,7 @@ valid_instances = {
     'drugs': [
         'Q11173',  # chemical compound (only one single, pure chemical compound)
         'Q79529',  # chemical substance (several defined chemical compounds)
-        'Q8054',   # protein
+        'Q8054',  # protein
         'Q12140',  # pharmaceutical drug
         'Q422248'  # monoclonal antibodies
     ],
@@ -44,7 +43,7 @@ valid_instances = {
     'obo': [
 
     ],
-    'interpro':[
+    'interpro': [
         'Q423026',  # active site
         'Q616005',  # binding site
         'Q898273',  # domain

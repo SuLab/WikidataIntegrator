@@ -31,9 +31,9 @@ f.write("{}.git\n{}".format(REPO_URL, commit_hash))
 f.close()
 
 setup(
-    name='WikidataIntegrator',
+    name='wikidataintegrator',
     version="{}.{}.{}".format(MAJOR_VERSION, MINOR_VERSION, MICRO_VERSION),
-    author='Sebastian Burgstaller-Muehlbacher, Gregg Stupp, Andra Waagmeester',
+    author='Sebastian Burgstaller-Muehlbacher, Greg Stupp, Andra Waagmeester',
     author_email='sburgs@scripps.edu',
     description='Python package for reading and writing to/from Wikidata',
     license='AGPLv3',

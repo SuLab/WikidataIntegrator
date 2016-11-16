@@ -1,5 +1,6 @@
-import requests
 import time
+
+import requests
 
 __author__ = 'Andra Waagmeester and Sebastian Burgstaller'
 __license__ = 'AGPLv3'

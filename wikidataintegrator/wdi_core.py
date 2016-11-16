@@ -5,12 +5,12 @@ import json
 import logging
 import os
 import re
-
-import requests
 import time
 
-from WikidataIntegrator.wdi_fastrun import FastRunContainer
-from WikidataIntegrator import wdi_property_store
+import requests
+
+from . import wdi_property_store
+from .wdi_fastrun import FastRunContainer
 
 """
 Authors: 
@@ -39,6 +39,7 @@ __license__ = 'AGPLv3'
 
 class WDItemList(object):
     """DEPRECATED"""
+
     def __init__(self, wdquery, wdprop=""):
         self.wdquery = wdquery
         self.wditems = self.getItemsByProperty(wdquery, wdprop)
@@ -61,7 +62,6 @@ class WDItemList(object):
 
 
 class WDItemEngine(object):
-
     databases = {}
     pmids = []
 
@@ -1095,7 +1095,7 @@ class JsonParser(object):
                         jsn = ref_block['snaks'][prop]
 
                         for prop_ref in jsn:
-                            #pprint.pprint(prop_ref)
+                            # pprint.pprint(prop_ref)
 
                             ref_class = self.get_class_representation(prop_ref)
                             ref_class.is_reference = True
@@ -1123,7 +1123,6 @@ class JsonParser(object):
             mainsnak.set_references(self.references)
             mainsnak.set_qualifiers(self.qualifiers)
             if 'id' in json_representation:
-
                 mainsnak.set_id(json_representation['id'])
             if 'rank' in json_representation:
                 mainsnak.set_rank(json_representation['rank'])
@@ -1277,7 +1276,7 @@ class WDBaseDataType(object):
 
     @overwrite_references.setter
     def overwrite_references(self, value):
-        assert(value is True or value is False)
+        assert (value is True or value is False)
         print('DEPRECATED!!! Calls to overwrite_references should not be used')
         self._overwrite_references = value
 
@@ -1926,7 +1925,7 @@ class WDMonolingualText(WDBaseDataType):
         self.language = language
         value = (value, language)
 
-        super(WDMonolingualText, self)\
+        super(WDMonolingualText, self) \
             .__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
                       is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank,
                       prop_nr=prop_nr, check_qualifier_equality=check_qualifier_equality)
@@ -1934,7 +1933,6 @@ class WDMonolingualText(WDBaseDataType):
         self.set_value(value)
 
     def set_value(self, value):
-
         self.json_representation['datavalue'] = {
             'value': {
                 'text': value[0],
@@ -2004,7 +2002,7 @@ class WDQuantity(WDBaseDataType):
         if value is not None:
             value = str('+{}'.format(value)) if not str(value).startswith('+') and float(value) > 0 else str(value)
             unit = str(unit)
-            upper_bound = str('+{}'.format(upper_bound)) if not str(upper_bound).startswith('+')\
+            upper_bound = str('+{}'.format(upper_bound)) if not str(upper_bound).startswith('+') \
                                                             and float(upper_bound) > 0 else str(upper_bound)
             lower_bound = str('+{}'.format(lower_bound)) if not str(lower_bound).startswith('+') \
                                                             and float(lower_bound) > 0 else str(lower_bound)
@@ -2133,7 +2131,7 @@ class WDGlobeCoordinate(WDBaseDataType):
         value = (latitude, longitude, precision)
         self.latitude, self.longitude, self.precision = value
 
-        super(WDGlobeCoordinate, self)\
+        super(WDGlobeCoordinate, self) \
             .__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
                       is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank,
                       prop_nr=prop_nr, check_qualifier_equality=check_qualifier_equality)
@@ -2141,7 +2139,6 @@ class WDGlobeCoordinate(WDBaseDataType):
         self.set_value(value)
 
     def set_value(self, value):
-
         # TODO: Introduce validity checks for coordinates
 
         self.latitude, self.longitude, self.precision = value
@@ -2261,4 +2258,3 @@ class FormatterWithHeader(logging.Formatter):
         # First time in, switch back to the normal format function
         self.format = super(FormatterWithHeader, self).format
         return self.header + "\n" + self.format(record)
-
