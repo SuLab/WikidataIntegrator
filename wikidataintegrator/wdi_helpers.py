@@ -186,7 +186,7 @@ class PubmedStub(object):
         return item.wd_item_id
 
 
-def try_write(wd_item, record_id, record_prop, login, edit_summary=''):
+def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=True):
     """
     Write a PBB_core item. Log if item was created, updated, or skipped.
     Catch and log all errors.
@@ -201,6 +201,8 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary=''):
     :type login: PBB_login.WDLogin
     :param edit_summary: passed directly to wd_item.write
     :type edit_summary: str
+    :param write: If `False`, do not actually perform write. Action will be logged as if write had occured
+    :type write: bool
     :return: None
     """
     if wd_item.require_write:
@@ -212,7 +214,8 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary=''):
         msg = "SKIP"
 
     try:
-        wd_item.write(login=login, edit_summary=edit_summary)
+        if write:
+            wd_item.write(login=login, edit_summary=edit_summary)
         wdi_core.WDItemEngine.log("INFO", format_msg(record_id, record_prop, wd_item.wd_item_id, msg))
     except WDApiError as e:
         print(e)
