@@ -90,10 +90,10 @@ class WDItemEngine(object):
         :param fast_run: True if this item should be run in fastrun mode, otherwise False. User setting this to True
             should also specify the fast_run_base_filter for these item types
         :type fast_run: bool
-        :param fast_run_base_filter: A property value dict determining the Wikidata property and the corresonding value
+        :param fast_run_base_filter: A property value dict determining the Wikidata property and the corresponding value
             which should be used as a filter for this item type. Several filter criteria can be specified. The values
             can be either Wikidata item QIDs, strings or empty strings if the value should be a variable in SPARQL.
-            Example: {'P352': '', 'P703': 'Q15978631'} if the base comman type of things this bot runs on is
+            Example: {'P352': '', 'P703': 'Q15978631'} if the basic common type of things this bot runs on is
             human proteins (specified by Uniprot IDs (P352) and 'found in taxon' homo sapiens 'Q15978631').
         :type fast_run_base_filter: dict
         :param global_ref_mode: sets the reference handling mode for an item. Four modes are possible, 'STRICT_KEEP'
@@ -1959,7 +1959,7 @@ class WDQuantity(WDBaseDataType):
     """
     DTYPE = 'quantity'
 
-    def __init__(self, value, prop_nr, upper_bound, lower_bound, unit='', is_reference=False, is_qualifier=False,
+    def __init__(self, value, prop_nr, upper_bound=None, lower_bound=None, unit='', is_reference=False, is_qualifier=False,
                  snak_type='value', references=None, qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
@@ -2002,22 +2002,26 @@ class WDQuantity(WDBaseDataType):
         if value is not None:
             value = str('+{}'.format(value)) if not str(value).startswith('+') and float(value) > 0 else str(value)
             unit = str(unit)
-            upper_bound = str('+{}'.format(upper_bound)) if not str(upper_bound).startswith('+') \
-                                                            and float(upper_bound) > 0 else str(upper_bound)
-            lower_bound = str('+{}'.format(lower_bound)) if not str(lower_bound).startswith('+') \
-                                                            and float(lower_bound) > 0 else str(lower_bound)
+            if upper_bound:
+                upper_bound = str('+{}'.format(upper_bound)) if not str(upper_bound).startswith('+') \
+                                                                and float(upper_bound) > 0 else str(upper_bound)
+            if lower_bound:
+                lower_bound = str('+{}'.format(lower_bound)) if not str(lower_bound).startswith('+') \
+                                                                and float(lower_bound) > 0 else str(lower_bound)
 
             # Integrity checks for value and bounds
             try:
                 for i in [value, upper_bound, lower_bound]:
-                    float(i)
+                    if i:
+                        float(i)
             except ValueError as e:
                 raise ValueError('Value, bounds and units must parse as integers or float')
 
-            if float(lower_bound) > float(upper_bound) or float(lower_bound) > float(value):
+            if (lower_bound and upper_bound) and (float(lower_bound) > float(upper_bound)
+                                                  or float(lower_bound) > float(value)):
                 raise ValueError('Lower bound too large')
 
-            if float(upper_bound) < float(value):
+            if upper_bound and float(upper_bound) < float(value):
                 raise ValueError('Upper bound too small')
 
         self.json_representation['datavalue'] = {
@@ -2030,6 +2034,13 @@ class WDQuantity(WDBaseDataType):
             'type': 'quantity'
         }
 
+        # remove bounds from json if they are undefined
+        if not upper_bound:
+            del self.json_representation['datavalue']['value']['upperBound']
+
+        if not lower_bound:
+            del self.json_representation['datavalue']['value']['lowerBound']
+
         self.value = (value, unit, upper_bound, lower_bound)
         super(WDQuantity, self).set_value(value)
 
@@ -2041,8 +2052,10 @@ class WDQuantity(WDBaseDataType):
                        snak_type=jsn['snaktype'])
 
         value = jsn['datavalue']['value']
-        return cls(value=value['amount'], prop_nr=jsn['property'], upper_bound=value['upperBound'],
-                   lower_bound=value['lowerBound'], unit=value['unit'])
+        upper_bound = value['upperBound'] if 'upperBound' in value else None
+        lower_bound = value['lowerBound'] if 'lowerBound' in value else None
+        return cls(value=value['amount'], prop_nr=jsn['property'], upper_bound=upper_bound,
+                   lower_bound=lower_bound, unit=value['unit'])
 
 
 class WDCommonsMedia(WDBaseDataType):
