@@ -1,0 +1,50 @@
+import unittest
+import pprint
+from wikidataintegrator import wdi_core
+
+
+class TestDataType(unittest.TestCase):
+
+    def test_wd_quantity(self):
+        dt = wdi_core.WDQuantity(value='34', prop_nr='P43')
+
+        dt_json = dt.get_json_representation()
+
+        if not dt_json['mainsnak']['datatype'] == 'quantity':
+            raise
+
+        value = dt_json['mainsnak']['datavalue']
+
+        if not value['value']['amount'] == '+34':
+            raise
+
+        if not value['value']['unit'] == '':
+            raise
+
+        dt2 = wdi_core.WDQuantity(value='34', prop_nr='P43', upper_bound='35', lower_bound='33')
+
+        value = dt2.get_json_representation()['mainsnak']['datavalue']
+
+        if not value['value']['amount'] == '+34':
+            raise
+
+        if not value['value']['unit'] == '':
+            raise
+
+        if not value['value']['upperBound'] == '+35':
+            raise
+
+        if not value['value']['lowerBound'] == '+33':
+            raise
+
+    def test_live_item(self):
+        wd_item = wdi_core.WDItemEngine(wd_item_id='Q423111')
+
+        mass_statement = [x for x in wd_item.statements if x.get_prop_nr() == 'P2067'].pop()
+        pprint.pprint(mass_statement.get_json_representation())
+
+        if not mass_statement:
+            raise
+
+        # TODO: get json directly from the API and compare part to WDItemEngine
+
