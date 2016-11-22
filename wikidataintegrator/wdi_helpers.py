@@ -137,7 +137,7 @@ class PubmedStub(object):
         self.reference = None
         self.statements = None
         self._root = None
-        self.wdid = prop2qid('P698', self.pmid)  # if doesn't exist, will be None
+        self.wdid = None
 
     def _validate_pmid(self):
         pubmed_url = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=Pubmed&Retmode=xml&id={}'.format(
@@ -150,6 +150,7 @@ class PubmedStub(object):
         self.title = self._root.find(".//MedlineCitation/Article/ArticleTitle").text
         doiset = self._root.findall(".//ArticleIdList/ArticleId[@IdType='doi']")
         self.dois = [x.text for x in doiset]
+        self.journal_issns = self._root.findall(".//MedlineCitation/Article/Journal/ISSN")
 
     def _make_reference(self):
         refStatedIn = wdi_core.WDItemID(value='Q180686', prop_nr='P248', is_reference=True)
@@ -166,11 +167,27 @@ class PubmedStub(object):
         s.append(wdi_core.WDExternalID(self.pmid, 'P698', references=[self.reference]))
         # title
         s.append(wdi_core.WDMonolingualText(self.title, 'P1476', references=[self.reference]))
+        # dois
         for doi in self.dois:
             s.append(wdi_core.WDExternalID(doi, 'P356', references=[self.reference]))
+        # published in *journal* #P1433
+        journal_wdid = None
+        for issn in self.journal_issns:
+            journal_wdid = prop2qid("P236", issn.text)
+            if journal_wdid:
+                break
+        if journal_wdid:
+            s.append(wdi_core.WDItemID(journal_wdid, 'P1433', references=[self.reference]))
+
         self.statements = s
 
     def create(self, login):
+        print("use PubmedStub.get_or_create instead")
+        self.get_or_create(login)
+
+    @functools.lru_cache()
+    def get_or_create(self, login):
+        self.wdid = prop2qid('P698', self.pmid)  # if doesn't exist, will be None
         if self.wdid:
             return self.wdid
         if not self._validate_pmid():
