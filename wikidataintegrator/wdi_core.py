@@ -880,7 +880,7 @@ class WDItemEngine(object):
         return self.wd_item_id
 
     @classmethod
-    def setup_logging(cls, log_dir="./logs", log_name=None, header=None, delimiter=";"):
+    def setup_logging(cls, log_dir="./logs", log_name=None, header=None, delimiter=";", logger_name='WD_logger'):
         """
         A static method which initiates log files compatible to .csv format, allowing for easy further analysis.
         :param log_dir: allows for setting relative or absolute path for logging, default is ./logs.
@@ -900,7 +900,7 @@ class WDItemEngine(object):
             run_id = time.strftime('%Y%m%d_%H:%M', time.localtime())
             log_name = "WD_bot_run-{}.log".format(run_id)
 
-        logger = logging.getLogger('WD_logger')
+        logger = logging.getLogger(logger_name)
         logger.setLevel(logging.DEBUG)
 
         log_file_name = os.path.join(log_dir, log_name)
