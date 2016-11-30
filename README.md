@@ -1,5 +1,30 @@
 # Wikidata Integrator #
 
+# Setup #
+We plan on bringing this project to pypi soon so you can install it via pip. For now, just clone the repo and execute with administrator rights or install into a virtualenv.
+
+```bash
+
+git clone https://github.com/sebotic/WikidataIntegrator.git
+
+cd WikidataIntegrator
+
+python setup.py install
+```
+
+After installation, you can remove the directory you cloned the repo into or just keep it to pull the latest releases.
+
+To test for correct installation, start a python console and execute the following (Will retrieve the Wikidata item for ['Human'](http://www.wikidata.org/entity/Q5)):
+
+```python
+from wikidataintegrator import wdi_core
+
+my_first_wikidata_item = wdi_core.WDItemEngine(wd_item_id='Q5')
+
+# to check successful installation and retrieval of the data, you can print the json representation of the item
+my_first_wikidata_item.get_wd_json_representation()
+```
+
 # Introduction #
 WikidataIntegrator is a library for reading and writing to Wikidata/Wikibase. We created it for populating [WikiData](http://www.wikidata.org) with content from authoritative resources on Genes, Proteins, Diseases, Drugs and others. 
 Details on the different tasks can be found on [the botx Wikidata page](https://www.wikidata.org/wiki/User:ProteinBoxBot).
