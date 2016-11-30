@@ -148,6 +148,7 @@ class PubmedStub(object):
 
     def _parse_ncbi(self):
         self.title = self._root.find(".//MedlineCitation/Article/ArticleTitle").text
+        self.title = self.title[:250]  # max length is 250 chars
         doiset = self._root.findall(".//ArticleIdList/ArticleId[@IdType='doi']")
         self.dois = [x.text for x in doiset]
         self.journal_issns = self._root.findall(".//MedlineCitation/Article/Journal/ISSN")
