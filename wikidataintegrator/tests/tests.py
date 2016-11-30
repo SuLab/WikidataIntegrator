@@ -1,6 +1,9 @@
 import unittest
 import pprint
-from wikidataintegrator import wdi_core
+from wikidataintegrator import wdi_core, wdi_fastrun
+
+__author__ = 'Sebastian Burgstaller-Muehlbacher'
+__license__ = 'AGPLv3'
 
 
 class TestDataType(unittest.TestCase):
@@ -47,4 +50,26 @@ class TestDataType(unittest.TestCase):
             raise
 
         # TODO: get json directly from the API and compare part to WDItemEngine
+
+    def test_fast_run(self):
+        qid = 'Q27552312'
+
+        statements = [
+            wdi_core.WDExternalID(value='P40095', prop_nr='P352'),
+            wdi_core.WDExternalID(value='YER158C', prop_nr='P705')
+        ]
+
+        frc = wdi_fastrun.FastRunContainer(base_filter={'P352': '', 'P703': 'Q27510868'})
+
+        fast_run_result = frc.check_data(data=statements)
+
+        if fast_run_result:
+            message = 'fastrun failed'
+        else:
+            message = 'successful fastrun'
+        print(fast_run_result, message)
+
+        # here, fastrun should succeed, if not, test failed
+        if fast_run_result:
+            raise
 
