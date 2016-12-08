@@ -48,7 +48,6 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 2.7",
         "Development Status :: 4 - Beta",
-        "License :: OSI Approved :: GPL License",
         "Operating System :: POSIX",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: Microsoft :: Windows",
