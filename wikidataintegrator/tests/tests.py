@@ -40,6 +40,9 @@ class TestDataType(unittest.TestCase):
         if not value['value']['lowerBound'] == '+33':
             raise
 
+    def test_wd_string(self):
+        pass
+
     def test_live_item(self):
         wd_item = wdi_core.WDItemEngine(wd_item_id='Q423111')
 
