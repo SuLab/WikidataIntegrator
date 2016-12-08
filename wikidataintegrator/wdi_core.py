@@ -10,7 +10,7 @@ import time
 import requests
 
 from . import wdi_property_store
-from .wdi_fastrun import FastRunContainer
+from . wdi_fastrun import FastRunContainer
 
 """
 Authors: 
