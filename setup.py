@@ -39,7 +39,7 @@ setup(
     license='AGPLv3',
     keywords='Wikidata biology chemistry medicine',
     url=REPO_URL,
-    download_url='',
+    download_url='https://github.com/sebotic/WikidataIntegrator/tarball/0.0.325',
     packages=find_packages(),
     include_package_data=True,
     long_description=read('README.md'),
