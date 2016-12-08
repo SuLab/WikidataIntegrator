@@ -42,7 +42,7 @@ setup(
     download_url='https://github.com/sebotic/WikidataIntegrator/tarball/0.0.325',
     packages=find_packages(),
     include_package_data=True,
-    long_description=read('README.md'),
+    long_description=read('../README.md'),
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
