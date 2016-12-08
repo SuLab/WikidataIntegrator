@@ -39,6 +39,7 @@ setup(
     license='AGPLv3',
     keywords='Wikidata biology chemistry medicine',
     url=REPO_URL,
+    download_url='',
     packages=find_packages(),
     include_package_data=True,
     long_description=read('README.md'),
