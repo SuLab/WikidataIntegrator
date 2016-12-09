@@ -1,6 +1,6 @@
 import copy
 
-from wikidataintegrator import wdi_core
+from . import wdi_core
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
 __license__ = 'AGPLv3'
