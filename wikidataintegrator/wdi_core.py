@@ -9,8 +9,9 @@ import time
 
 import requests
 
-from . import wdi_property_store
-from .wdi_fastrun import FastRunContainer
+import wikidataintegrator.wdi_property_store as wdi_property_store
+from wikidataintegrator.wdi_fastrun import FastRunContainer
+
 
 """
 Authors: 
