@@ -1,7 +1,7 @@
 import datetime
-import functools
 import json
 import xml.etree.ElementTree as ET
+from collections import defaultdict
 from time import gmtime, strftime
 
 import requests
@@ -32,6 +32,9 @@ class Release(object):
     r.create(login)
 
     """
+
+    _release_cache = defaultdict(dict)
+    _database_cache = dict()
 
     def __init__(self, title, description, edition, edition_of=None, edition_of_wdid=None, archive_url=None,
                  pub_date=None, date_precision=11):
@@ -74,9 +77,11 @@ class Release(object):
         self.statements = None
         self.make_statements()
 
-    @staticmethod
-    @functools.lru_cache()
-    def lookup_database(edition_of):
+    @classmethod
+    def lookup_database(cls, edition_of):
+        if edition_of in cls._database_cache:
+            return cls._database_cache[edition_of]
+
         query = """SELECT ?item ?itemLabel WHERE {
                     ?item wdt:P31 wd:Q4117139 .
                     SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
@@ -86,12 +91,9 @@ class Release(object):
                        in results['results']['bindings']}
         if edition_of not in db_item_map:
             raise ValueError("Database {} not found in wikidata. Please provide edition_of_wdid".format(edition_of))
-        return db_item_map[edition_of]
 
-    @functools.lru_cache()
-    def release_exists(self):
-        edition_dict = id_mapper("P393", (("P629", self.edition_of_wdid), ("P31", "Q3331189")))
-        return edition_dict.get(self.edition, False)
+        cls._database_cache[edition_of] = db_item_map[edition_of]
+        return db_item_map[edition_of]
 
     def make_statements(self):
         s = []
@@ -110,15 +112,32 @@ class Release(object):
 
         self.statements = s
 
-    def get_or_create(self, login):
-        re = self.release_exists()
-        if re:
-            return re
+    def get_or_create(self, login=None):
+
+        # check in cache
+        if self.edition_of_wdid in self._release_cache and self.edition in self._release_cache[self.edition_of_wdid]:
+            return self._release_cache[self.edition_of_wdid][self.edition]
+
+        #check in wikidata
+        edition_dict = id_mapper("P393", (("P629", self.edition_of_wdid), ("P31", "Q3331189")))
+        if self.edition in edition_dict:
+            # add to cache
+            self._release_cache[self.edition_of_wdid][self.edition] = edition_dict[self.edition]
+            return edition_dict[self.edition]
+
+        # create new
+        if login is None:
+            raise ValueError("login required to create item")
         item = wdi_core.WDItemEngine(item_name=self.title, data=self.statements, domain="release")
         item.set_label(self.title)
         item.set_description(description=self.description, lang='en')
-        try_write(item, self.edition + "|" + self.edition_of_wdid, 'P393|P629', login)
-        return item.wd_item_id
+        write_success = try_write(item, self.edition + "|" + self.edition_of_wdid, 'P393|P629', login)
+        if write_success:
+            # add to cache
+            self._release_cache[self.edition_of_wdid][self.edition] = item.wd_item_id
+            return item.wd_item_id
+        else:
+            raise write_success
 
 
 class PubmedStub(object):
@@ -126,9 +145,11 @@ class PubmedStub(object):
     Get or create a wikidata item stub given a pubmed ID
 
     Usage:
-    PubmedStub(22674334).create(login)
+    PubmedStub(22674334).get_or_create(login)
 
     """
+
+    _cache = dict()
 
     def __init__(self, pmid):
         self.pmid = str(pmid)
@@ -186,22 +207,45 @@ class PubmedStub(object):
         print("use PubmedStub.get_or_create instead")
         self.get_or_create(login)
 
-    @functools.lru_cache()
-    def get_or_create(self, login):
-        self.wdid = prop2qid('P698', self.pmid)  # if doesn't exist, will be None
-        if self.wdid:
-            return self.wdid
+    def get_or_create(self, login=None):
+        """
+        Returns wdid if item exists or is created
+        return None if the pmid is not found in NCBI
+        return None and logs the exception if there is a write failure
+
+        :param login: required to create an item
+        :return:
+        """
+        # check if in local cache
+        if self.pmid in self._cache:
+            return self._cache[self.pmid]
+        # check if exists in wikidata
+        wdid = prop2qid('P698', self.pmid)
+        # if doesn't exist, will be None
+        if wdid:
+            self._cache[self.pmid] = wdid
+            return wdid
+
+        # item doesn't exist. Check ncbi to make sure its a valid pmid
         if not self._validate_pmid():
-            print("invalid pmid: {}".format(self.wdid))
+            print("invalid pmid: {}".format(self.pmid))
             return None
+
+        # create new item
+        if login is None:
+            raise ValueError("login required to create item")
         self._parse_ncbi()
         self._make_reference()
         self._make_statements()
         item = wdi_core.WDItemEngine(item_name=self.title, data=self.statements, domain="scientific_article")
         item.set_label(self.title)
         item.set_description(description='scientific article', lang='en')
-        try_write(item, self.pmid, 'P698', login)
-        return item.wd_item_id
+        write_success = try_write(item, self.pmid, 'P698', login)
+        if write_success:
+            self._cache[self.pmid] = item.wd_item_id
+            return item.wd_item_id
+        else:
+            return None
 
 
 def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=True):
@@ -221,7 +265,7 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=Tru
     :type edit_summary: str
     :param write: If `False`, do not actually perform write. Action will be logged as if write had occured
     :type write: bool
-    :return: None
+    :return: True if write did not throw an exception, returns the exception otherwise
     """
     if wd_item.require_write:
         if wd_item.create_new_item:
@@ -240,9 +284,13 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=Tru
         wdi_core.WDItemEngine.log("ERROR",
                                   format_msg(record_id, record_prop, wd_item.wd_item_id, json.dumps(e.wd_error_msg),
                                              type(e)))
+        return e
     except Exception as e:
         print(e)
         wdi_core.WDItemEngine.log("ERROR", format_msg(record_id, record_prop, wd_item.wd_item_id, str(e), type(e)))
+        return e
+
+    return True
 
 
 def format_msg(external_id, external_id_prop, wdid, msg, msg_type=None, delimiter=";"):
