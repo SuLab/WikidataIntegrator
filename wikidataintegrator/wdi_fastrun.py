@@ -1,6 +1,6 @@
 import copy
 
-from wikidataintegrator.wdi_core import WDBaseDataType, WDItemEngine
+from wikidataintegrator.wdi_core import *
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
 __license__ = 'AGPLv3'
