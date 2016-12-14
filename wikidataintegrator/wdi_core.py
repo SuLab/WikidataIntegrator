@@ -12,7 +12,6 @@ import requests
 import wikidataintegrator.wdi_property_store as wdi_property_store
 from wikidataintegrator.wdi_fastrun import FastRunContainer
 
-
 """
 Authors: 
   Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
@@ -372,7 +371,8 @@ class WDItemEngine(object):
             self.create_new_item = True
             return ''
 
-        print(qid_list)
+        if not __debug__:
+            print(qid_list)
 
         unique_qids = set(qid_list)
         if len(unique_qids) > 1:
@@ -584,7 +584,9 @@ class WDItemEngine(object):
 
         self.data.extend(data)
         self.statements = copy.deepcopy(self.original_statments)
-        print(self.data)
+
+        if not __debug__:
+            print(self.data)
 
         if self.fast_run:
             self.init_fastrun()
