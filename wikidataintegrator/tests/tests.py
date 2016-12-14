@@ -62,7 +62,8 @@ class TestDataType(unittest.TestCase):
             wdi_core.WDExternalID(value='YER158C', prop_nr='P705')
         ]
 
-        frc = wdi_fastrun.FastRunContainer(base_filter={'P352': '', 'P703': 'Q27510868'})
+        frc = wdi_fastrun.FastRunContainer(base_filter={'P352': '', 'P703': 'Q27510868'},
+                                           base_data_type=wdi_core.WDBaseDataType, engine=wdi_core.WDItemEngine)
 
         fast_run_result = frc.check_data(data=statements)
 

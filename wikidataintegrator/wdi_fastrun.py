@@ -1,6 +1,6 @@
 import copy
 
-from wikidataintegrator.wdi_core import *
+# from wikidataintegrator.wdi_core import *
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
 __license__ = 'AGPLv3'
@@ -17,7 +17,7 @@ prefix = '''
 
 
 class FastRunContainer(object):
-    def __init__(self, base_filter=None):
+    def __init__(self, base_data_type, engine, base_filter=None):
         self.prop_data = {}
         self.loaded_langs = {}
         self.statements = []
@@ -26,6 +26,8 @@ class FastRunContainer(object):
         self.prop_dt_map = {}
         self.current_qid = ''
         self.rev_lookup = {}
+        self.base_data_type = base_data_type
+        self.engine = engine
 
         if base_filter and any(base_filter):
             self.base_filter = base_filter
@@ -57,7 +59,8 @@ class FastRunContainer(object):
             prop_nr = date.get_prop_nr()
 
             if prop_nr not in self.prop_dt_map:
-                self.prop_dt_map.update({prop_nr: FastRunContainer.get_prop_datatype(prop_nr=prop_nr)})
+                self.prop_dt_map.update({prop_nr: FastRunContainer.get_prop_datatype(prop_nr=prop_nr,
+                                                                                     engine=self.engine)})
                 self.__query_data(prop_nr=prop_nr)
 
             # more sophisticated data types like dates and globe coordinates need special treatment here
@@ -100,13 +103,14 @@ class FastRunContainer(object):
             q_props = set([x['pr'] for x in dt if 'pr' in x])
             for q_prop in q_props:
                 if q_prop not in self.prop_dt_map:
-                    self.prop_dt_map.update({q_prop: FastRunContainer.get_prop_datatype(prop_nr=q_prop)})
+                    self.prop_dt_map.update({q_prop: FastRunContainer.get_prop_datatype(prop_nr=q_prop,
+                                                                                        engine=self.engine)})
             for uid in all_uids:
-                qualifiers = [[x for x in WDBaseDataType.__subclasses__() if x.DTYPE ==
+                qualifiers = [[x for x in self.base_data_type.__subclasses__() if x.DTYPE ==
                                self.prop_dt_map[y['pr']]][0](value=y['q'], prop_nr=y['pr'], is_qualifier=True)
                               for y in dt if y['s2'] == uid and 'q' in y]
 
-                stmts = [[x for x in WDBaseDataType.__subclasses__() if x.DTYPE ==
+                stmts = [[x for x in self.base_data_type.__subclasses__() if x.DTYPE ==
                           self.prop_dt_map[prop_nr]][0](value=y['v'], prop_nr=prop_nr, qualifiers=qualifiers)
                          for y in dt if y['s2'] == uid][0]
 
@@ -270,7 +274,7 @@ class FastRunContainer(object):
         if not __debug__:
             print(query)
 
-        r = WDItemEngine.execute_sparql_query(query=query, prefix=prefix)
+        r = self.engine.execute_sparql_query(query=query, prefix=prefix)
 
         for i in r['results']['bindings']:
             i['p'] = i['p']['value'].split('/')[-1]
@@ -339,9 +343,9 @@ class FastRunContainer(object):
         if not __debug__:
             print(query)
 
-        return WDItemEngine.execute_sparql_query(query=query, prefix=prefix)
+        return self.engine.execute_sparql_query(query=query, prefix=prefix)
 
     @staticmethod
-    def get_prop_datatype(prop_nr):
-        item = WDItemEngine(wd_item_id=prop_nr)
+    def get_prop_datatype(prop_nr, engine):
+        item = engine(wd_item_id=prop_nr)
         return item.entity_metadata['datatype']

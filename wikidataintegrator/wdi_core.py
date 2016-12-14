@@ -205,7 +205,8 @@ class WDItemEngine(object):
                 self.fast_run_container = c
 
         if not self.fast_run_container:
-            self.fast_run_container = FastRunContainer(base_filter=self.fast_run_base_filter)
+            self.fast_run_container = FastRunContainer(base_filter=self.fast_run_base_filter,
+                                                       base_data_type=WDBaseDataType, engine=WDItemEngine)
 
         self.require_write = self.fast_run_container.check_data(self.data, append_props=self.append_value,
                                                                 cqid=self.wd_item_id)
