@@ -1,22 +1,22 @@
-from wikidataintegrator.wdi_helpers import PubmedStub, Release
+from wikidataintegrator.wdi_helpers import PubmedItem, Release
 
 
 def test_get_pubmed_item():
     # this one exists
-    wdid = PubmedStub(1234).get_or_create()
+    wdid = PubmedItem(1234).get_or_create()
     assert wdid == "Q27442302"
 
 
 def test_get_pubmed_item_cache():
     # this one exists
-    wdid = PubmedStub(1234).get_or_create()
-    assert '1234' in PubmedStub._cache
-    assert PubmedStub._cache['1234'] == "Q27442302"
+    wdid = PubmedItem(1234).get_or_create()
+    assert '1234' in PubmedItem._cache
+    assert PubmedItem._cache['1234'] == "Q27442302"
 
 
 def test_pubmedstub_bad_pmid():
     # invalid pubmed id
-    wdid = PubmedStub(999999999).get_or_create()
+    wdid = PubmedItem(999999999).get_or_create(login='fake login')
     assert wdid is None
 
 

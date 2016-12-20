@@ -1,10 +1,10 @@
 import datetime
 import json
-import xml.etree.ElementTree as ET
 from collections import defaultdict
 from time import gmtime, strftime
 
 import requests
+from dateutil import parser as du
 
 from . import wdi_core
 from .wdi_core import WDItemEngine, WDApiError
@@ -118,7 +118,7 @@ class Release(object):
         if self.edition_of_wdid in self._release_cache and self.edition in self._release_cache[self.edition_of_wdid]:
             return self._release_cache[self.edition_of_wdid][self.edition]
 
-        #check in wikidata
+        # check in wikidata
         edition_dict = id_mapper("P393", (("P629", self.edition_of_wdid), ("P31", "Q3331189")))
         if self.edition in edition_dict:
             # add to cache
@@ -140,78 +140,219 @@ class Release(object):
             raise write_success
 
 
-class PubmedStub(object):
+class PubmedItem(object):
     """
     Get or create a wikidata item stub given a pubmed ID
 
     Usage:
     PubmedStub(22674334).get_or_create(login)
 
+    Data source: https://www.mediawiki.org/wiki/Citoid/API
+    example:
+    https://citoid.wikimedia.org/api?search=https://www.ncbi.nlm.nih.gov/pubmed/13054692&format=zotero
+
+    wikidata Item format
+    general guidelines: https://www.wikidata.org/wiki/Help:Sources
+    more specific to journal articles: https://github.com/mitar/bib2wikidata/issues/1#issuecomment-50998834
+    modelling after: https://www.wikidata.org/wiki/Q21093381 because it has both authors and author name strings
+
+    This will not add authors, it will only add author name strings, as I do not habve enough information to assume
+    they are the same as author items that exist.
+
     """
 
     _cache = dict()
+    PROPS = {
+        'instance of': 'P31',
+        'title': 'P1476',
+        'published in': 'P1433',
+        'volume': 'P478',
+        'publication date': 'P577',
+        'page(s)': 'P304',
+        'issue': 'P433',
+        'author name string': 'P2093',
+        'PubMed ID': 'P698',
+        'DOI': 'P356',
+        'series ordinal': 'P1545',
+    }
+
+    # can be expanded to books and such...
+    instance_of_items = {'journalArticle': 'Q13442814'}
+    descriptions = {'journalArticle': 'scientific journal article'}
 
     def __init__(self, pmid):
         self.pmid = str(pmid)
-        self.title = None
-        self.dois = None
+        self.meta = {
+            'title': None,
+            'dois': None,
+            'volume': None,
+            'issue': None,
+            'journal_wdid': None,
+            'journal_issn': None,
+            'type': None,
+            'date': None,
+            'pages': None,
+            'authors': None,
+        }
+
         self.reference = None
         self.statements = None
-        self._root = None
         self.wdid = None
+        self.citoid = None
 
-    def _validate_pmid(self):
-        pubmed_url = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=Pubmed&Retmode=xml&id={}'.format(
+    def _valid_pmid(self):
+        url = 'https://citoid.wikimedia.org/api?search=https://www.ncbi.nlm.nih.gov/pubmed/{}&format=zotero'.format(
             self.pmid)
-        r = requests.get(pubmed_url)
-        self._root = ET.fromstring(r.text)
-        return True if self._root.find(".//MedlineCitation/Article/ArticleTitle") is not None else False
+        self.citoid = requests.get(url).json()[0]
+        return True if self.citoid['itemType'] in self.instance_of_items else False
 
-    def _parse_ncbi(self):
-        self.title = self._root.find(".//MedlineCitation/Article/ArticleTitle").text
-        self.title = self.title[:250]  # max length is 250 chars
-        doiset = self._root.findall(".//ArticleIdList/ArticleId[@IdType='doi']")
-        self.dois = [x.text for x in doiset]
-        self.journal_issns = self._root.findall(".//MedlineCitation/Article/Journal/ISSN")
+    def get_metadata(self):
 
-    def _make_reference(self):
-        refStatedIn = wdi_core.WDItemID(value='Q180686', prop_nr='P248', is_reference=True)
-        refPubmedId = wdi_core.WDString(value=self.pmid, prop_nr='P698', is_reference=True)
-        timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
-        refRetrieved = wdi_core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
-        self.reference = [refStatedIn, refPubmedId, refRetrieved]
+        if not self._valid_pmid():
+            raise ValueError("error getting metadata: {}".format(self.pmid))
 
-    def _make_statements(self):
+        # todo: original language of work not in citoid response
+        self.meta['title'] = self.citoid['title'][:249]
+        self.meta['type'] = self.citoid['itemType']  # instance of. values = {'journalArticle', .. }
+        self.meta['journal_issn'] = self.citoid['ISSN']  # published in
+        self.meta['date'] = du.parse(self.citoid['date']).strftime('+%Y-%m-%dT%H:%M:%SZ')
+        self.meta['authors'] = [x['firstName'] + " " + x['lastName'] for x in self.citoid['creators'] if
+                                x['creatorType'] == 'author']
+
+        # optional
+        self.meta['volume'] = self.citoid.get('volume', None)
+        self.meta['pages'] = self.citoid.get('pages', None)
+        self.meta['issue'] = self.citoid.get('issue', None)
+        self.meta['dois'] = self.citoid.get('DOI', None)
+
+        # also validate response here
+        if self.meta['dois']:
+            assert isinstance(self.meta['dois'], str)
+        self.meta['journal_wdid'] = prop2qid("P236", self.meta['journal_issn'])
+        if not self.meta['journal_wdid']:
+            raise ValueError("journal not found: {}".format(self.meta['journal_issn']))
+
+    def make_reference(self):
+        stated_in = wdi_core.WDItemID(value='Q180686', prop_nr='P248', is_reference=True)
+        pmid = wdi_core.WDString(value=self.pmid, prop_nr='P698', is_reference=True)
+        retrieved = wdi_core.WDTime(strftime("+%Y-%m-%dT00:00:00Z", gmtime()), prop_nr='P813', is_reference=True)
+        self.reference = [stated_in, pmid, retrieved]
+
+    def make_author_statements(self, ordinals=None):
+        """
+        ordinals is a list of ordinals to NOT include
+        use this to update an existing item that may have authors, so you don't want to
+        add the author string for them
+        :param ordinals: if None, include all authors
+        :return:
+        """
         s = []
-        # instance of scientific article
-        s.append(wdi_core.WDItemID('Q13442814', 'P31', references=[self.reference]))
-        # pmid
-        s.append(wdi_core.WDExternalID(self.pmid, 'P698', references=[self.reference]))
-        # title
-        s.append(wdi_core.WDMonolingualText(self.title, 'P1476', references=[self.reference]))
-        # dois
-        for doi in self.dois:
-            s.append(wdi_core.WDExternalID(doi, 'P356', references=[self.reference]))
-        # published in *journal* #P1433
-        journal_wdid = None
-        for issn in self.journal_issns:
-            journal_wdid = prop2qid("P236", issn.text)
-            if journal_wdid:
-                break
-        if journal_wdid:
-            s.append(wdi_core.WDItemID(journal_wdid, 'P1433', references=[self.reference]))
+        for n, author in enumerate(self.meta['authors'], 1):
+            if ordinals is not None and n in ordinals:
+                continue
+            series_ordinal = wdi_core.WDString(str(n), self.PROPS['series ordinal'], is_qualifier=True)
+            s.append(wdi_core.WDString(author, self.PROPS['author name string'],
+                                       references=[self.reference], qualifiers=[series_ordinal]))
+        return s
+
+    def make_statements(self, ordinals=None):
+        """
+
+        :param ordinals: passed to self.make_author_statements
+        :return:
+        """
+        self.make_reference()
+        s = []
+
+        ### Required statements
+        s.append(wdi_core.WDExternalID(self.pmid, self.PROPS['PubMed ID'], references=[self.reference]))
+        s.append(wdi_core.WDItemID(self.instance_of_items[self.meta['type']], self.PROPS['instance of'],
+                                   references=[self.reference]))
+        s.append(wdi_core.WDMonolingualText(self.meta['title'], self.PROPS['title'], references=[self.reference]))
+        s.append(wdi_core.WDTime(self.meta['date'], self.PROPS['publication date'], references=[self.reference]))
+        s.append(wdi_core.WDItemID(self.meta['journal_wdid'], self.PROPS['published in'], references=[self.reference]))
+        s.extend(self.make_author_statements(ordinals=ordinals))
+
+        ### Optional statements
+        if self.meta['volume']:
+            s.append(wdi_core.WDString(self.meta['volume'], self.PROPS['volume'], references=[self.reference]))
+        if self.meta['pages']:
+            s.append(wdi_core.WDString(self.meta['pages'], self.PROPS['page(s)'], references=[self.reference]))
+        if self.meta['issue']:
+            s.append(wdi_core.WDString(self.meta['issue'], self.PROPS['issue'], references=[self.reference]))
+        if self.meta['dois']:
+            s.append(wdi_core.WDExternalID(self.meta['dois'], self.PROPS['DOI'], references=[self.reference]))
 
         self.statements = s
 
-    def create(self, login):
-        print("use PubmedStub.get_or_create instead")
-        self.get_or_create(login)
+    def update(self, wdid, login):
+        # we need the json of the item to grab any existing authors
+        url = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids={}&format=json".format(wdid)
+        dc = requests.get(url).json()
+        claims = dc['entities'][wdid]['claims']
+        if 'P50' not in claims:
+            ordinals = None
+        else:
+            ordinals = []
+            if not isinstance(claims['P50'], list):
+                claims['P50'] = [claims['P50']]
+            for claim in claims['P50']:
+                assert len(claim['qualifiers']['P1545']) == 1
+                ordinals.append(int(claim['qualifiers']['P1545'][0]['datavalue']['value']))
+
+        # validate pmid is on item
+        if 'P698' not in claims:
+            raise ValueError("unknown pubmed id")
+        if len(claims['P698']) != 1:
+            raise ValueError("more than one pmid")
+        item_pmid = claims['P698'][0]['mainsnak']['datavalue']['value']
+        if item_pmid != self.pmid:
+            raise ValueError("pmids don't match")
+
+        try:
+            self.get_metadata()
+        except Exception as e:
+            print(e)
+            return None
+        self.make_statements(ordinals)
+
+        item = wdi_core.WDItemEngine(wd_item_id=wdid, data=self.statements, domain="scientific_article")
+        item.set_label(self.meta['title'])
+        item.set_description(description=self.descriptions[self.meta['type']], lang='en')
+        write_success = try_write(item, self.pmid, 'P698', login)
+        if write_success:
+            self._cache[self.pmid] = item.wd_item_id
+            return item.wd_item_id
+        else:
+            return None
+
+    def create(self, login=None):
+        # create new item
+        if login is None:
+            raise ValueError("login required to create item")
+
+        try:
+            self.get_metadata()
+        except Exception as e:
+            print(e)
+            return None
+        self.make_statements()
+
+        item = wdi_core.WDItemEngine(item_name=self.meta['title'], data=self.statements, domain="scientific_article")
+        item.set_label(self.meta['title'])
+        item.set_description(description=self.descriptions[self.meta['type']], lang='en')
+        write_success = try_write(item, self.pmid, 'P698', login)
+        if write_success:
+            self._cache[self.pmid] = item.wd_item_id
+            return item.wd_item_id
+        else:
+            return None
 
     def get_or_create(self, login=None):
         """
         Returns wdid if item exists or is created
-        return None if the pmid is not found in NCBI
-        return None and logs the exception if there is a write failure
+        returns None if the pmid is not found
+        returns None and logs the exception if there is a write failure
 
         :param login: required to create an item
         :return:
@@ -221,31 +362,12 @@ class PubmedStub(object):
             return self._cache[self.pmid]
         # check if exists in wikidata
         wdid = prop2qid('P698', self.pmid)
-        # if doesn't exist, will be None
         if wdid:
             self._cache[self.pmid] = wdid
             return wdid
 
-        # item doesn't exist. Check ncbi to make sure its a valid pmid
-        if not self._validate_pmid():
-            print("invalid pmid: {}".format(self.pmid))
-            return None
-
-        # create new item
-        if login is None:
-            raise ValueError("login required to create item")
-        self._parse_ncbi()
-        self._make_reference()
-        self._make_statements()
-        item = wdi_core.WDItemEngine(item_name=self.title, data=self.statements, domain="scientific_article")
-        item.set_label(self.title)
-        item.set_description(description='scientific article', lang='en')
-        write_success = try_write(item, self.pmid, 'P698', login)
-        if write_success:
-            self._cache[self.pmid] = item.wd_item_id
-            return item.wd_item_id
-        else:
-            return None
+        # item doesn't exist.
+        return self.create(login=login)
 
 
 def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=True):
