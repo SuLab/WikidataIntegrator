@@ -247,6 +247,18 @@ wd_properties = {
         'domain': ['genes'],
         'core_id': 'True'
     },
+    'P2393': {
+        'datatype': 'string',
+        'name': 'NCBI Locus tag',
+        'domain': ['genes'],
+        'core_id': 'True'
+    },
+    'P3406': {
+        'datatype': 'string',
+        'name': 'Saccharomyces Genome Database ID',
+        'domain': ['genes'],
+        'core_id': 'False'
+    },
     'P703': {
         'datatype': 'item',
         'name': 'found in taxon',
