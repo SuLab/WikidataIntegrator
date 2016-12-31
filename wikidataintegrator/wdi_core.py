@@ -1066,6 +1066,52 @@ class WDItemEngine(object):
         for x in WDItemEngine.execute_sparql_query(pmid_query)['results']['bindings']:
             WDItemEngine.pmids.append(x['x']['value'].split('/')[-1])
 
+    @staticmethod
+    def delete_items(item_list, reason, login):
+        """
+        Takes a list of items and posts them for deletion by Wikidata moderators
+        :param item_list: a list of QIDs which should be deleted
+        :type item_list: list
+        :param reason: short text about the reason for the deletion request
+        :type reason: str
+        :param login: A WDI login object which contains username and password the edit should be performed with.
+        :type login: wdi_login.WDLogin
+        """
+
+        url = 'https://www.wikidata.org/w/api.php'
+        bulk_deletion_string = '==Bulk deletion request==\n'
+        bulk_deletion_string += '{{{{subst:Rfd group | {0} | reason = {1} }}}}'.format(' | '.join(item_list), reason)
+
+        # get page text
+        params = {
+            'action': 'query',
+            'titles': 'Wikidata:Requests_for_deletions',
+            'prop': 'revisions',
+            'rvprop': 'content',
+            'format': 'json'
+        }
+
+        page_text = [x['revisions'][0]['*']
+                     for x in requests.get(url=url, params=params).json()['query']['pages'].values()][0]
+
+        if not login:
+            print(page_text)
+            print(bulk_deletion_string)
+        else:
+            # Append new deletion request to existing list of deletions being processed
+            params = {
+                'action': 'edit',
+                'title': 'Portal:Gene_Wiki/Quick_Links',
+                'section': '0',
+                'text': bulk_deletion_string,
+                'token': login.get_edit_token(),
+                'format': 'json'
+            }
+
+            r = requests.post(url=url, data=params, cookies=login.get_edit_cookie())
+
+            print(r.json())
+
 
 class JsonParser(object):
     references = []

@@ -77,3 +77,7 @@ class TestDataType(unittest.TestCase):
         if fast_run_result:
             raise
 
+    def test_deletion_request(self):
+        items_for_deletion = ['Q423', 'Q43345']
+        wdi_core.WDItemEngine.delete_items(item_list=items_for_deletion, reason='test deletion', login=None)
+
