@@ -1069,7 +1069,8 @@ class WDItemEngine(object):
     @staticmethod
     def delete_items(item_list, reason, login):
         """
-        Takes a list of items and posts them for deletion by Wikidata moderators
+        Takes a list of items and posts them for deletion by Wikidata moderators, appends at the end of the deletion
+        request page.
         :param item_list: a list of QIDs which should be deleted
         :type item_list: list
         :param reason: short text about the reason for the deletion request
@@ -1079,7 +1080,7 @@ class WDItemEngine(object):
         """
 
         url = 'https://www.wikidata.org/w/api.php'
-        bulk_deletion_string = '==Bulk deletion request==\n'
+        bulk_deletion_string = '\n==Bulk deletion request==\n'
         bulk_deletion_string += '{{{{subst:Rfd group | {0} | reason = {1} }}}}'.format(' | '.join(item_list), reason)
 
         # get page text
@@ -1103,7 +1104,7 @@ class WDItemEngine(object):
                 'action': 'edit',
                 'title': 'Portal:Gene_Wiki/Quick_Links',
                 'section': '0',
-                'text': bulk_deletion_string,
+                'text': page_text + bulk_deletion_string,
                 'token': login.get_edit_token(),
                 'format': 'json'
             }
