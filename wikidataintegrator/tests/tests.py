@@ -1,6 +1,6 @@
 import unittest
 import pprint
-from wikidataintegrator import wdi_core, wdi_fastrun
+from wikidataintegrator import wdi_core, wdi_fastrun, wdi_login
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
 __license__ = 'AGPLv3'
@@ -21,7 +21,7 @@ class TestDataType(unittest.TestCase):
         if not value['value']['amount'] == '+34':
             raise
 
-        if not value['value']['unit'] == '':
+        if not value['value']['unit'] == '1':
             raise
 
         dt2 = wdi_core.WDQuantity(value='34', prop_nr='P43', upper_bound='35', lower_bound='33')
@@ -31,7 +31,7 @@ class TestDataType(unittest.TestCase):
         if not value['value']['amount'] == '+34':
             raise
 
-        if not value['value']['unit'] == '':
+        if not value['value']['unit'] == '1':
             raise
 
         if not value['value']['upperBound'] == '+35':
