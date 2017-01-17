@@ -10,6 +10,7 @@ import time
 import requests
 
 import wikidataintegrator.wdi_property_store as wdi_property_store
+from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_fastrun import FastRunContainer
 
 """
@@ -217,6 +218,7 @@ class WDItemEngine(object):
         if not self.require_write and not self.wd_item_id:
             self.wd_item_id = self.fast_run_container.current_qid
 
+    @wdi_backoff()
     def get_wd_entity(self):
         """
         retrieve a WD item in json representation from Wikidata
@@ -263,6 +265,7 @@ class WDItemEngine(object):
         return wd_data
 
     @staticmethod
+    @wdi_backoff()
     def get_wd_search_results(search_string='', server='www.wikidata.org'):
         """
         Performs a search in WD for a certain WD search string
@@ -311,6 +314,7 @@ class WDItemEngine(object):
 
         return list(property_list)
 
+    @wdi_backoff()
     def __select_wd_item(self):
         """
         The most likely WD item QID should be returned, after querying WDQ for all values in core_id properties
@@ -957,6 +961,7 @@ class WDItemEngine(object):
         cls.logger.log(level=log_levels[level], msg=message)
 
     @staticmethod
+    @wdi_backoff()
     def execute_sparql_query(prefix='', query='', endpoint='https://query.wikidata.org/sparql',
                              user_agent='PBB_core: bitbucket.org/sulab/wikidatabots/'):
         """
@@ -998,6 +1003,7 @@ class WDItemEngine(object):
         return requests.get(endpoint, params=params, headers=headers).json()
 
     @staticmethod
+    @wdi_backoff()
     def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts=''):
         """
         A static method to merge two Wikidata items

@@ -2,6 +2,8 @@ import time
 
 import requests
 
+from wikidataintegrator.backoff.wdi_backoff import wdi_backoff, get_config
+
 __author__ = 'Andra Waagmeester and Sebastian Burgstaller'
 __license__ = 'AGPLv3'
 
@@ -15,6 +17,7 @@ class WDLogin(object):
     A class which handles the login to Wikidata and the generation of edit-tokens
     """
 
+    @wdi_backoff()
     def __init__(self, user, pwd, server='www.wikidata.org', token_renew_period=1800, use_clientlogin=False):
         """
         constructor
