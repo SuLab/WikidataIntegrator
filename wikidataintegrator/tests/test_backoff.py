@@ -10,21 +10,21 @@ from wikidataintegrator.wdi_core import WDItemEngine
 
 
 @wdi_backoff()
-def test_bad_json():
+def bad_json():
     json.loads("<xml>I failed :(</xml>")
 
 
 @wdi_backoff()
-def test_bad_request():
+def bad_request():
     requests.get("http://www.fakeurlgsdkjhjgfseg.com")
 
 
-def test_bad_login():
+def bad_login():
     config['BACKOFF_MAX_TRIES'] = 4
     config['BACKOFF_MAX_VALUE'] = 2
     wdi_login.WDLogin("name", "pass", server="www.wikidataaaaaaaaa.org")
 
-def test_item():
+def item():
     config['BACKOFF_MAX_TRIES'] = 4
     config['BACKOFF_MAX_VALUE'] = 2
     wd_item = WDItemEngine(wd_item_id="Q14911732", server='www.wikidataaaaaaaaa.org', search_only=True)
@@ -32,10 +32,10 @@ def test_item():
 
 if __name__ == "__main__":
     if sys.argv[1] == "json":
-        test_bad_json()
+        bad_json()
     if sys.argv[1] == "request":
-        test_bad_request()
+        bad_request()
     if sys.argv[1] == "login":
-        test_bad_login()
+        bad_login()
     if sys.argv[1] == "item":
-        test_item()
+        item()
