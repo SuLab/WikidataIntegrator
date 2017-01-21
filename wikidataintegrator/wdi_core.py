@@ -663,6 +663,8 @@ class WDItemEngine(object):
         :type lang: str
         :return: returns the label in the specified language, an empty string if the label does not exist
         """
+        if self.fast_run:
+            return self.fast_run_container.get_language_data(self.wd_item_id, lang, 'label')[0]
         try:
             return self.wd_json_representation['labels'][lang]['value']
         except KeyError:
@@ -699,6 +701,9 @@ class WDItemEngine(object):
         :param lang: The Wikidata language the description should be retrieved for
         :return: Returns a list of aliases, an empty list if none exist for the specified language
         """
+        if self.fast_run:
+            return self.fast_run_container.get_language_data(self.wd_item_id, lang, 'aliases')
+
         alias_list = []
         if 'aliases' in self.wd_json_representation and lang in self.wd_json_representation['aliases']:
             for alias in self.wd_json_representation['aliases'][lang]:
@@ -750,6 +755,8 @@ class WDItemEngine(object):
         :param lang: The Wikidata language the description should be retrieved for
         :return: Returns the description string
         """
+        if self.fast_run:
+            return self.fast_run_container.get_language_data(self.wd_item_id, lang, 'description')[0]
         if 'descriptions' not in self.wd_json_representation or lang not in self.wd_json_representation['descriptions']:
             return ''
         else:

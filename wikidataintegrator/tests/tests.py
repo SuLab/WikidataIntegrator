@@ -81,3 +81,21 @@ class TestDataType(unittest.TestCase):
         items_for_deletion = ['Q423', 'Q43345']
         wdi_core.WDItemEngine.delete_items(item_list=items_for_deletion, reason='test deletion', login=None)
 
+
+def test_fastrun_label():
+    data = [wdi_core.WDItemID('Q544', 'P361')]
+    fast_run_base_filter = {'P361': 'Q544'}
+    item = wdi_core.WDItemEngine(wd_item_id="Q2", data=data, fast_run=True,
+                                 fast_run_base_filter=fast_run_base_filter)
+    assert item.get_label('en') == "Earth"
+    assert item.fast_run_container.get_language_data("Q2", 'en', 'label')[0] == "Earth"
+    assert item.fast_run_container.check_language_data("Q2", ['not the Earth'], 'en', 'label')
+    assert "Terra" in item.get_aliases()
+
+    """
+    # this item has no aliases or a description, but it might change...
+    data = [wdi_core.WDItemID('Q13442814', 'P31')]
+    fast_run_base_filter = {'P1433': 'Q5227381'}
+    item = wdi_core.WDItemEngine(wd_item_id="Q28445414", data=data, fast_run=True,
+                                 fast_run_base_filter=fast_run_base_filter)
+    """

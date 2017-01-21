@@ -177,13 +177,12 @@ class FastRunContainer(object):
 
         return write_required
 
-    def check_language_data(self, qid, lang_data, lang, lang_data_type):
+    def init_language_data(self, lang, lang_data_type):
         """
-        Method to check if certain language data exists as a label, description or aliases
-        :param lang: a list of language specific values
-        :type lang: str
-        :param lang_data_type: What kind of data is it? 'label', 'description' or 'aliases'?
-        :return:
+        Initialize language data store
+        :param lang: language code
+        :param lang_data_type: 'label', 'description' or 'aliases'
+        :return: None
         """
         if lang not in self.loaded_langs:
             self.loaded_langs[lang] = {}
@@ -192,16 +191,41 @@ class FastRunContainer(object):
             self.loaded_langs[lang].update({lang_data_type: self.__query_lang(lang=lang,
                                                                               lang_data_type=lang_data_type)})
 
+    def get_language_data(self, qid, lang, lang_data_type):
+        """
+        get language data for specified qid
+        :param qid:
+        :param lang: language code
+        :param lang_data_type: 'label', 'description' or 'aliases'
+        :return: list of strings
+        """
+        self.init_language_data(lang, lang_data_type)
+
         current_lang_data = self.loaded_langs[lang][lang_data_type]['results']['bindings']
         all_lang_strings = []
         for sresult in current_lang_data:
             if sresult['p']['value'].split('/')[-1] == qid:
                 if 'label' in sresult:
                     all_lang_strings.append(sresult['label']['value'])
+        if not all_lang_strings and lang_data_type in {'label', 'description'}:
+            all_lang_strings = ['']
+        return all_lang_strings
+
+    def check_language_data(self, qid, lang_data, lang, lang_data_type):
+        """
+        Method to check if certain language data exists as a label, description or aliases
+        :param lang_data: list of string values to check
+        :type lang_data: list
+        :param lang: language code
+        :type lang: str
+        :param lang_data_type: What kind of data is it? 'label', 'description' or 'aliases'?
+        :return:
+        """
+        all_lang_strings = self.get_language_data(qid, lang, lang_data_type)
 
         for s in lang_data:
             if s not in all_lang_strings:
-                print('fastrun failed at label', lang_data_type)
+                print('fastrun failed at label: ', lang_data_type)
                 return True
 
         return False
