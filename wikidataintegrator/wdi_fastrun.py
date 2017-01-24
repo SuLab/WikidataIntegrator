@@ -318,7 +318,9 @@ class FastRunContainer(object):
                     else:
                         i['v'] = i['v']['value']
 
-                if i['v'] in self.rev_lookup:
+                # TODO: needs check for no-value and some-value sparql results return
+                # for some-value, this json is being returned {'value': 't329541227', 'type': 'bnode'}
+                if type(i['v']) is not dict and i['v'] in self.rev_lookup:
                     self.rev_lookup[i['v']].append(i['p'])
                 else:
                     self.rev_lookup[i['v']] = [i['p']]
