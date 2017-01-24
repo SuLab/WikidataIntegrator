@@ -17,8 +17,17 @@ REPO_URL = 'https://github.com/sebotic/WikidataIntegrator'
 
 try:
     MICRO_VERSION = int(check_output("git rev-list --count master", shell=True).decode('utf-8').strip('\n'))
+
+    f = open('./VERSION', 'w')
+    f.write("{}.{}.{}".format(MAJOR_VERSION, MINOR_VERSION, MICRO_VERSION))
+    f.close()
 except:
-    MICRO_VERSION = 1
+    if os.path.isfile('./VERSION'):
+        f = open('./VERSION', 'rt')
+        version_string = f.readline()
+        MAJOR_VERSION, MINOR_VERSION, MICRO_VERSION = version_string.split('.')
+    else:
+        MICRO_VERSION = 1
 
 # Calculate commit hash
 try:
