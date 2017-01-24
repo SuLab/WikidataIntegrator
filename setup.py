@@ -15,15 +15,17 @@ MAJOR_VERSION = 0
 MINOR_VERSION = 0
 REPO_URL = 'https://github.com/sebotic/WikidataIntegrator'
 
+version_file = os.path.join(setup_path, 'wikidataintegrator', 'VERSION')
+
 try:
     MICRO_VERSION = int(check_output("git rev-list --count master", shell=True).decode('utf-8').strip('\n'))
 
-    f = open('./VERSION', 'w')
+    f = open(version_file, 'w')
     f.write("{}.{}.{}".format(MAJOR_VERSION, MINOR_VERSION, MICRO_VERSION))
     f.close()
 except:
-    if os.path.isfile('./VERSION'):
-        f = open('./VERSION', 'rt')
+    if os.path.isfile(version_file):
+        f = open(version_file, 'rt')
         version_string = f.readline()
         MAJOR_VERSION, MINOR_VERSION, MICRO_VERSION = version_string.split('.')
     else:
@@ -49,10 +51,10 @@ setup(
     keywords='Wikidata biology chemistry medicine',
     url=REPO_URL,
     download_url='https://github.com/sebotic/WikidataIntegrator/tarball/0.0.325',
-    # packages=find_packages(),
+    #packages=find_packages(),
     packages=['wikidataintegrator'],
     include_package_data=True,
-    # long_description=read('README.md'),
+    long_description=read('README.md'),
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
