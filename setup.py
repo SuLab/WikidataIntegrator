@@ -51,10 +51,10 @@ setup(
     keywords='Wikidata biology chemistry medicine',
     url=REPO_URL,
     download_url='https://github.com/sebotic/WikidataIntegrator/tarball/0.0.325',
-    #packages=find_packages(),
+    # packages=find_packages(),
     packages=['wikidataintegrator'],
     include_package_data=True,
-    long_description=read('README.md'),
+    # long_description=read('README.md'),
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
