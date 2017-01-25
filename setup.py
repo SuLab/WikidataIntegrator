@@ -15,7 +15,7 @@ MAJOR_VERSION = 0
 MINOR_VERSION = 0
 REPO_URL = 'https://github.com/sebotic/WikidataIntegrator'
 
-version_file = os.path.join(setup_path, 'wikidataintegrator', 'VERSION')
+version_file = os.path.join(setup_path, 'VERSION')
 
 try:
     MICRO_VERSION = int(check_output("git rev-list --count master", shell=True).decode('utf-8').strip('\n'))
