@@ -1,7 +1,12 @@
 # Wikidata Integrator #
 
-# Setup #
-We plan on bringing this project to pypi soon so you can install it via pip. For now, just clone the repo and execute with administrator rights or install into a virtualenv.
+# Installation #
+The easiest way to install WikidataIntegrator is using `pip`
+```
+pip install wikidataintegrator
+```
+
+You can also clone the repo and execute with administrator rights or install into a virtualenv.
 
 ```bash
 
@@ -11,8 +16,6 @@ cd WikidataIntegrator
 
 python setup.py install
 ```
-
-After installation, you can remove the directory you cloned the repo into or just keep it to pull the latest releases.
 
 To test for correct installation, start a python console and execute the following (Will retrieve the Wikidata item for ['Human'](http://www.wikidata.org/entity/Q5)):
 
@@ -27,13 +30,11 @@ my_first_wikidata_item.get_wd_json_representation()
 
 # Introduction #
 WikidataIntegrator is a library for reading and writing to Wikidata/Wikibase. We created it for populating [WikiData](http://www.wikidata.org) with content from authoritative resources on Genes, Proteins, Diseases, Drugs and others. 
-Details on the different tasks can be found on [the botx Wikidata page](https://www.wikidata.org/wiki/User:ProteinBoxBot).
+Details on the different tasks can be found on [the bot's Wikidata page](https://www.wikidata.org/wiki/User:ProteinBoxBot).
 
-[Pywikibot](https://www.mediawiki.org/wiki/Manual:Pywikibot) is an existing framework for interacting with the [MediaWiki](https://www.mediawiki.org/) API. The reason why we came up with our own solution is
- that we need a high integration with the [Wikidata SPARQL endpoint](query.wikidata.org) in order to ensure data consistency (duplicate check, consistency checks, correct item selection, etc.). 
+[Pywikibot](https://www.mediawiki.org/wiki/Manual:Pywikibot) is an existing framework for interacting with the [MediaWiki](https://www.mediawiki.org/) API. The reason why we came up with our own solution is that we need a high integration with the [Wikidata SPARQL endpoint](query.wikidata.org) in order to ensure data consistency (duplicate check, consistency checks, correct item selection, etc.). 
 
-Compared to Pywikibot, WikidataIntegrator currently is not a full Python wrapper for the MediaWiki API but is solely focused on providing an easy means to generate Python
-based Wikidata bots, it therefore resembles a basic database connector like JDBC or ODBC. 
+Compared to Pywikibot, WikidataIntegrator currently is not a full Python wrapper for the MediaWiki API but is solely focused on providing an easy means to generate Python based Wikidata bots, it therefore resembles a basic database connector like JDBC or ODBC. 
 
 # The Core Parts #
 
@@ -129,9 +130,7 @@ information, a server (server) if the Wikibase instance is not Wikidata and a fl
  leaves a crippled item in Wikidata. Before a merge, any potential conflicts should be resolved first.
 
 ## Pubmed Articles ##
-The class wdi_core.wdi_helpers.PubmedStub allows you to create article items. Given a PMID, it retrives the article title, and DOIs using Entrez Eutils.
-It then creates a wikidata item. More detailed information can be filled in by other bots. This is useful for quickly creating items to use in reference
-statements.
+The class wdi_core.wdi_helpers.PubmedItem allows you to create article items. Given a PMID, it will create an item representing this journal article. It can also retrieve existing items. This is useful for quickly creating items to use in reference statements.
 
 ## Database Release ##
 The class wdi_core.wdi_helpers.Release allows you to create an item for a database release. These should be used in reference statements. See [here](https://www.wikidata.org/wiki/User:ProteinBoxBot/evidence#Guidelines_for_Referencing_Databases.2C_Ontologies_and_similar_Web-native_information_entities.) 
