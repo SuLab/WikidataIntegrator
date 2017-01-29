@@ -281,7 +281,7 @@ class PubmedItem(object):
         if self.meta['issue']:
             s.append(wdi_core.WDString(self.meta['issue'], self.PROPS['issue'], references=[self.reference]))
         if self.meta['dois']:
-            s.append(wdi_core.WDExternalID(self.meta['dois'], self.PROPS['DOI'], references=[self.reference]))
+            s.append(wdi_core.WDExternalID(self.meta['dois'].upper(), self.PROPS['DOI'], references=[self.reference]))
 
         self.statements = s
 
