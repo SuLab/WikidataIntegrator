@@ -1,6 +1,6 @@
 import datetime
 import json
-from collections import defaultdict
+from collections import defaultdict, Counter
 from time import gmtime, strftime
 
 import requests
@@ -449,7 +449,7 @@ def prop2qid(prop, value):
         return result[0]['item']['value'].split("/")[-1]
 
 
-def id_mapper(prop, filters=None):
+def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False):
     """
     Get all wikidata ID <-> prop <-> value mappings
     Example: id_mapper("P352") -> { 'A0KH68': 'Q23429083',
@@ -460,6 +460,18 @@ def id_mapper(prop, filters=None):
     :param prop: wikidata property
     :type prop: str
     :param filters: list of tuples, where the first item is a property, second is a value
+    :param raise_on_duplicate: If an ID is found on more than one wikidata item, what action to take?
+        This is equivalent to the Distinct values constraint. e.g.: http://tinyurl.com/ztpncyb
+        Note that a wikidata item can have more than one ID. This is not checked for
+        True: raise ValueError
+        False: only one of the values is kept if there are duplicates
+    :type raise_on_duplicate: bool
+    :param return_as_set: If True, all values in the returned dict will be a set of strings
+    :type return_as_set: bool
+
+    If `raise_on_duplicate` is False and `return_as_set` is True, the following can be returned:
+    { 'A0KH68': {'Q23429083'}, 'B023F44': {'Q237623', 'Q839742'} }
+
     :return: dict
 
     """
@@ -469,7 +481,20 @@ def id_mapper(prop, filters=None):
         for f in filters:
             query += "?item wdt:{} wd:{} .\n".format(f[0], f[1])
     query = query + "}"
-    results = WDItemEngine.execute_sparql_query(query)
-    if not results['results']['bindings']:
+    results = WDItemEngine.execute_sparql_query(query)['results']['bindings']
+    if not results:
         return None
-    return {x['id']['value']: x['item']['value'].split('/')[-1] for x in results['results']['bindings']}
+
+    ids = [x['id']['value'] for x in results]
+    if raise_on_duplicate and len(ids) != len(set(ids)):
+        dupe_ids = [x for x, count in Counter(ids).items() if count > 1]
+        raise ValueError("duplicate ids: {}".format(
+            [(x['id']['value'], x['item']['value']) for x in results if x['id']['value'] in dupe_ids]))
+
+    if return_as_set:
+        d = defaultdict(set)
+        for x in results:
+            d[x['id']['value']].add(x['item']['value'].split('/')[-1])
+        return dict(d)
+    else:
+        return {x['id']['value']: x['item']['value'].split('/')[-1] for x in results}

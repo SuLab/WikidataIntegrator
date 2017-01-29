@@ -1,4 +1,4 @@
-from wikidataintegrator.wdi_helpers import PubmedItem, Release
+from wikidataintegrator.wdi_helpers import PubmedItem, Release, id_mapper
 
 
 def test_get_pubmed_item():
@@ -38,3 +38,21 @@ def test_release_new_item_no_write():
         r.get_or_create()
     except ValueError as e:
         assert "login required to create item" == str(e)
+
+
+def test_id_mapper():
+    # get all uniprot to wdid, where taxon is human
+    d = id_mapper("P352",(("P703", "Q15978631"),))
+    assert 100000 > len(d) > 20000
+
+    d = id_mapper("P683", raise_on_duplicate=False, return_as_set=True)
+    assert '3978' in d
+    assert type(d['3978']) == set
+
+    # should raise error
+    raised = False
+    try:
+        d = id_mapper("P492", raise_on_duplicate=True)
+    except ValueError:
+        raised = True
+    assert raised
