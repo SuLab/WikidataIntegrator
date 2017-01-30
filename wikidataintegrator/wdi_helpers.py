@@ -120,7 +120,7 @@ class Release(object):
 
         # check in wikidata
         edition_dict = id_mapper("P393", (("P629", self.edition_of_wdid), ("P31", "Q3331189")))
-        if self.edition in edition_dict:
+        if edition_dict and self.edition in edition_dict:
             # add to cache
             self._release_cache[self.edition_of_wdid][self.edition] = edition_dict[self.edition]
             return edition_dict[self.edition]
