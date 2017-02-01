@@ -1,13 +1,19 @@
 import copy
 import datetime
 import itertools
-import json
 import logging
 import os
 import re
 import time
-
+import sys
 import requests
+
+python_version = sys.version_info.major
+if python_version == 2:
+    import simplejson as json
+else:
+    import json
+
 
 import wikidataintegrator.wdi_property_store as wdi_property_store
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
@@ -36,30 +42,6 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = 'Sebastian Burgstaller, Andra Waagmeester'
 __license__ = 'AGPLv3'
-
-
-class WDItemList(object):
-    """DEPRECATED"""
-
-    def __init__(self, wdquery, wdprop=""):
-        self.wdquery = wdquery
-        self.wditems = self.getItemsByProperty(wdquery, wdprop)
-
-    def getItemsByProperty(self, wdquery, wdproperty):
-        """
-        Gets all WikiData item IDs that contains statements containing property wdproperty
-        :param wdquery: A string representation of a WD query
-        :return: A Python json representation object with the search results is returned
-        """
-        url = 'http://wdq.wmflabs.org/api'
-        params = {
-            'q': wdquery,
-            'props': wdproperty
-        }
-
-        reply = requests.get(url, params=params)
-
-        return reply.json()
 
 
 class WDItemEngine(object):
@@ -225,21 +207,17 @@ class WDItemEngine(object):
         :rtype: dict
         :return: python complex dictionary represenation of a json
         """
-        try:
-            url = 'https://{}/w/api.php'.format(self.server)
-            params = {
-                'action': 'wbgetentities',
-                'sites': 'enwiki',
-                'ids': self.wd_item_id,
-                'format': 'json'
-            }
+        url = 'https://{}/w/api.php'.format(self.server)
+        params = {
+            'action': 'wbgetentities',
+            'sites': 'enwiki',
+            'ids': self.wd_item_id,
+            'format': 'json'
+        }
 
-            reply = requests.get(url, params=params)
-
-            return self.parse_wd_json(wd_json=reply.json()['entities'][self.wd_item_id])
-
-        except requests.HTTPError as e:
-            self.log('ERROR', str(e))
+        reply = requests.get(url, params=params)
+        reply.raise_for_status()
+        return self.parse_wd_json(wd_json=json.loads(reply.text)['entities'][self.wd_item_id])
 
     def parse_wd_json(self, wd_json):
         """
@@ -275,33 +253,30 @@ class WDItemEngine(object):
         :type server: str
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         """
-        try:
-            url = 'https://{}/w/api.php'.format(server)
-            params = {
-                'action': 'wbsearchentities',
-                'language': 'en',
-                'search': search_string,
-                'format': 'json'
-            }
+        url = 'https://{}/w/api.php'.format(server)
+        params = {
+            'action': 'wbsearchentities',
+            'language': 'en',
+            'search': search_string,
+            'format': 'json'
+        }
 
-            reply = requests.get(url, params=params)
-            search_results = json.loads(reply.text)
+        reply = requests.get(url, params=params)
+        reply.raise_for_status()
+        search_results = json.loads(reply.text)
 
-            if search_results['success'] != 1:
-                raise WDSearchError('WD search failed')
-            elif len(search_results['search']) == 0:
-                return []
-            else:
-                id_list = []
-                id_labels = []
-                for i in search_results['search']:
-                    id_list.append(i['id'])
-                    id_labels.append(i['label'])
+        if search_results['success'] != 1:
+            raise WDSearchError('WD search failed')
+        elif len(search_results['search']) == 0:
+            return []
+        else:
+            id_list = []
+            id_labels = []
+            for i in search_results['search']:
+                id_list.append(i['id'])
+                id_labels.append(i['label'])
 
-                return id_list
-
-        except requests.HTTPError as e:
-            WDItemEngine.log('ERROR', str(e))
+            return id_list
 
     def get_property_list(self):
         """
@@ -331,45 +306,42 @@ class WDItemEngine(object):
                 data_point = data_point[0]
 
             if wd_property in wdi_property_store.wd_properties:
-                try:
-                    # check if the property is a core_id and should be unique for every WD item
-                    if wdi_property_store.wd_properties[wd_property]['core_id'] == 'True':
-                        tmp_qids = []
+                # check if the property is a core_id and should be unique for every WD item
+                if wdi_property_store.wd_properties[wd_property]['core_id'] == 'True':
+                    tmp_qids = []
 
-                        if not self.use_sparql:
-                            url = 'http://wdq.wmflabs.org/api'
-                            params = {
-                                'q': u'string[{}:{}]'.format(str(wd_property).replace('P', ''),
-                                                             u'"{}"'.format(data_point)),
-                            }
+                    if not self.use_sparql:
+                        url = 'http://wdq.wmflabs.org/api'
+                        params = {
+                            'q': u'string[{}:{}]'.format(str(wd_property).replace('P', ''),
+                                                         u'"{}"'.format(data_point)),
+                        }
 
-                            reply = requests.get(url, params=params)
+                        reply = requests.get(url, params=params)
+                        reply.raise_for_status()
 
-                            tmp_qids = reply.json()['items']
-                        else:
-                            query = statement.sparql_query.format(wd_property, data_point)
-                            results = WDItemEngine.execute_sparql_query(query=query)
+                        tmp_qids = json.loads(reply.text)['items']
+                    else:
+                        query = statement.sparql_query.format(wd_property, data_point)
+                        results = WDItemEngine.execute_sparql_query(query=query)
 
-                            for i in results['results']['bindings']:
-                                qid = i['item_id']['value'].split('/')[-1]
-                                # remove 'Q' prefix
-                                qid = qid[1:]
-                                tmp_qids.append(qid)
+                        for i in results['results']['bindings']:
+                            qid = i['item_id']['value'].split('/')[-1]
+                            # remove 'Q' prefix
+                            qid = qid[1:]
+                            tmp_qids.append(qid)
 
-                        qid_list.append(tmp_qids)
+                    qid_list.append(tmp_qids)
 
-                        # Protocol in what property the conflict arises
-                        if wd_property in conflict_source:
-                            conflict_source[wd_property].append(tmp_qids)
-                        else:
-                            conflict_source[wd_property] = [tmp_qids]
+                    # Protocol in what property the conflict arises
+                    if wd_property in conflict_source:
+                        conflict_source[wd_property].append(tmp_qids)
+                    else:
+                        conflict_source[wd_property] = [tmp_qids]
 
-                        if len(tmp_qids) > 1:
-                            raise ManualInterventionReqException(
-                                'More than one WD item has the same property value', wd_property, tmp_qids)
-
-                except requests.HTTPError as e:
-                    self.log('ERROR', str(e))
+                    if len(tmp_qids) > 1:
+                        raise ManualInterventionReqException(
+                            'More than one WD item has the same property value', wd_property, tmp_qids)
 
         qid_list = [i for i in itertools.chain.from_iterable(qid_list)]
 
@@ -963,7 +935,7 @@ class WDItemEngine(object):
     @staticmethod
     @wdi_backoff()
     def execute_sparql_query(prefix='', query='', endpoint='https://query.wikidata.org/sparql',
-                             user_agent='PBB_core: bitbucket.org/sulab/wikidatabots/'):
+                             user_agent='wikidataintegrator: github.com/SuLab/WikidataIntegrator'):
         """
         Static method which can be used to execute any SPARQL query
         :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
@@ -999,11 +971,11 @@ class WDItemEngine(object):
             'Accept': 'application/sparql-results+json',
             'User-Agent': user_agent
         }
-
-        return requests.get(endpoint, params=params, headers=headers).json()
+        response = requests.get(endpoint, params=params, headers=headers)
+        response.raise_for_status()
+        return json.loads(response.text)
 
     @staticmethod
-    @wdi_backoff()
     def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts=''):
         """
         A static method to merge two Wikidata items
@@ -1037,13 +1009,16 @@ class WDItemEngine(object):
         }
 
         try:
+            # TODO: should we retry this?
             merge_reply = requests.post(url=url, data=params, headers=headers, cookies=login_obj.get_edit_cookie())
+            merge_reply.raise_for_status()
 
             if 'error' in merge_reply.json():
                 raise MergeError(merge_reply.json())
 
         except requests.HTTPError as e:
             print(e)
+            # TODO: should we return this?
             return {'error': 'HTTPError'}
 
         return merge_reply.json()

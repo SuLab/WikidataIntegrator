@@ -4,20 +4,18 @@ Set up backoff module for wikidataintegrator
 """
 
 import sys
-pyv = sys.version_info.major
-if pyv == 3:
-    import json
-    JSONDecodeError = json.decoder.JSONDecodeError  # python3
-else:
-    import simplejson as json
-    JSONDecodeError = json.JSONDecodeError
-
 from functools import partial
 
 import requests
 
 from wikidataintegrator.backoff import backoff
 from wikidataintegrator.wdi_config import config
+
+if sys.version_info.major == 2:
+    import simplejson as json
+else:
+    import json
+JSONDecodeError = json.JSONDecodeError
 
 
 def get_config(name):
@@ -43,7 +41,8 @@ def check_json_decode_error(e):
     return type(e) == JSONDecodeError and str(e) != "Expecting value: line 1 column 1 (char 0)"
 
 
-exceptions = (requests.exceptions.Timeout, requests.exceptions.ConnectionError, JSONDecodeError)
+exceptions = (requests.exceptions.Timeout, requests.exceptions.ConnectionError,
+              requests.HTTPError, JSONDecodeError)
 wdi_backoff = partial(backoff.on_exception, backoff.expo, exceptions, max_value=get_config("BACKOFF_MAX_VALUE"),
                       giveup=check_json_decode_error, on_backoff=backoff_hdlr, jitter=None,
                       max_tries=get_config("BACKOFF_MAX_TRIES"))
