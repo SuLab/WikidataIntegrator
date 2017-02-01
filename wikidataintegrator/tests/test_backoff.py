@@ -1,4 +1,9 @@
-import json
+import sys
+pyv = sys.version_info.major
+if pyv == 3:
+    import json
+else:
+    import simplejson as json
 
 import requests
 import sys

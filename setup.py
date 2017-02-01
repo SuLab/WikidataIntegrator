@@ -52,7 +52,7 @@ setup(
     url=REPO_URL,
     download_url='https://github.com/sebotic/WikidataIntegrator/tarball/0.0.325',
     # packages=find_packages(),
-    packages=['wikidataintegrator'],
+    packages=['wikidataintegrator', 'wikidataintegrator.backoff'],
     include_package_data=True,
     # long_description=read('README.md'),
     classifiers=[
@@ -68,6 +68,6 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
     ],
     install_requires=[
-        'requests',
+        'requests', 'python-dateutil', 'simplejson'
     ],
 )
