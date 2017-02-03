@@ -194,7 +194,6 @@ class WDItemEngine(object):
 
         self.require_write = self.fast_run_container.check_data(self.data, append_props=self.append_value,
                                                                 cqid=self.wd_item_id)
-        self.fast_run_store.append(self.fast_run_container)
 
         # set item id based on fast run data
         if not self.require_write and not self.wd_item_id:
