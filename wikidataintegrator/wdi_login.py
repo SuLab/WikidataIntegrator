@@ -92,7 +92,7 @@ class WDLogin(object):
                 print('login failed:', r['login']['reason'])
                 raise ValueError('login FAILED!!')
             else:
-                print('Successully logged id as', r['login']['lgusername'])
+                print('Successfully logged in as', r['login']['lgusername'])
 
         self.generate_edit_credentials()
 
