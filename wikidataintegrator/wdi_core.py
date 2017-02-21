@@ -55,7 +55,8 @@ class WDItemEngine(object):
 
     def __init__(self, wd_item_id='', item_name='', domain='', data=None, server='www.wikidata.org',
                  append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None,
-                 global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False, search_only=False):
+                 global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False, search_only=False,
+                 item_data=None):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -103,6 +104,8 @@ class WDItemEngine(object):
             data to the item, the method update() will take data, modify the Wikidata item and a write() call will
             then perform the actual write to Wikidata.
         :type search_only: bool
+        :param item_data: A Python JSON object corresponding to the Wikidata item in wd_item_id. This can be used in
+            conjunction with wd_item_id in order to provide raw data.
         """
         self.wd_json_representation = {}
         self.wd_item_id = wd_item_id
@@ -114,6 +117,7 @@ class WDItemEngine(object):
         self.statements = []
         self.original_statments = []
         self.entity_metadata = {}
+        self.item_data = item_data
 
         self.fast_run = fast_run
         self.fast_run_base_filter = fast_run_base_filter
@@ -162,7 +166,9 @@ class WDItemEngine(object):
             self.init_data_load()
 
     def init_data_load(self):
-        if self.wd_item_id:
+        if self.wd_item_id and self.item_data:
+            self.wd_json_representation = self.parse_wd_json(self.item_data)
+        elif self.wd_item_id:
             self.wd_json_representation = self.get_wd_entity()
         else:
             qids_by_props = ''
@@ -930,6 +936,37 @@ class WDItemEngine(object):
                       'CRITICAL': logging.CRITICAL}
 
         cls.logger.log(level=log_levels[level], msg=message)
+
+    @classmethod
+    def generate_item_instances(cls, items, server='www.wikidata.org'):
+        """
+        A method which allows for retrieval of a list of Wikidata items or properties. The method generates a list of
+        tuples where the first value in the tuple is the QID or property ID, whereas the second is the new instance of
+        WDItemEngine containing all the data of the item. This is most useful for mass retrieval of WD items.
+        :param items: A list of QIDs or property IDs
+        :type items: list
+        :param server: A string denoting the server, without a http(s) prefix
+        :type server: str
+        :return: A list of tuples, first value in the tuple is the QID or property ID string, second value is the
+            instance of WDItemEngine with the corresponding item data.
+        """
+        assert type(items) == list
+
+        url = 'https://{}/w/api.php'.format(server)
+        params = {
+            'action': 'wbgetentities',
+            'ids': '|'.join(items),
+            'format': 'json'
+        }
+
+        reply = requests.get(url, params=params)
+
+        item_instances = []
+        for qid, v in reply.json()['entities'].items():
+            ii = cls(wd_item_id=qid, item_data=v, server=server)
+            item_instances.append((qid, ii))
+
+        return item_instances
 
     @staticmethod
     @wdi_backoff()
