@@ -938,7 +938,7 @@ class WDItemEngine(object):
         cls.logger.log(level=log_levels[level], msg=message)
 
     @classmethod
-    def generate_item_instances(cls, items, server='www.wikidata.org'):
+    def generate_item_instances(cls, items, server='www.wikidata.org', login=None):
         """
         A method which allows for retrieval of a list of Wikidata items or properties. The method generates a list of
         tuples where the first value in the tuple is the QID or property ID, whereas the second is the new instance of
@@ -947,6 +947,9 @@ class WDItemEngine(object):
         :type items: list
         :param server: A string denoting the server, without a http(s) prefix
         :type server: str
+        :param login: An object of type WDLogin, which holds the credentials/session cookies required for >50 item bulk
+            retrieval of items.
+        :type login: wdi_login.WDLogin
         :return: A list of tuples, first value in the tuple is the QID or property ID string, second value is the
             instance of WDItemEngine with the corresponding item data.
         """
@@ -959,7 +962,10 @@ class WDItemEngine(object):
             'format': 'json'
         }
 
-        reply = requests.get(url, params=params)
+        if login:
+            reply = login.get_session().get(url, params=params)
+        else:
+            reply = requests.get(url, params=params)
 
         item_instances = []
         for qid, v in reply.json()['entities'].items():
