@@ -82,7 +82,7 @@ class WDLogin(object):
             }
 
             # get login token
-            login_token = self.s.post(self.base_url, params=params).json()['login']['token']
+            login_token = self.s.post(self.base_url, data=params).json()['login']['token']
 
             # do the login using the login token
             params.update({'lgtoken': login_token})
