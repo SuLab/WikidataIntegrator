@@ -89,7 +89,7 @@ wd_properties = {
         'datatype': 'string',
         'name': 'ATC code',
         'domain': ['drugs'],
-        'core_id': 'True'
+        'core_id': 'False'
     },
     'P231': {
         'datatype': 'string',
