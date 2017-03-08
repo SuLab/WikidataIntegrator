@@ -145,7 +145,7 @@ class PubmedItem(object):
     Get or create a wikidata item stub given a pubmed ID
 
     Usage:
-    PubmedStub(22674334).get_or_create(login)
+    PubmedItem(22674334).get_or_create(login)
 
     Data source: https://www.mediawiki.org/wiki/Citoid/API
     example:
