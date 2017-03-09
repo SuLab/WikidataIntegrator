@@ -39,7 +39,7 @@ Compared to Pywikibot, WikidataIntegrator currently is not a full Python wrapper
 # The Core Parts #
 
 wdi_core supports two modes it can be operated in, a normal mode, updating each item at a time and a 'fastrun' mode, which is pre-loading data locally and then just updating items if the new data provided is differing from what is in Wikidata. The latter mode allows for great speedups (measured up to 9x) when tens of thousand of Wikidata 
-items need to be checked if the require updates but only a small number will finally be updated, a situation usually encountered when keeping Wikidata in sync with an external resource. 
+items need to be checked if they require updates but only a small number will finally be updated, a situation usually encountered when keeping Wikidata in sync with an external resource. 
 
 wdi_core consists of a central class called WDItemEngine and WDLogin for authenticating with Wikidata/Wikipedia.
 
@@ -61,13 +61,13 @@ Features:
 
 There are two ways of working with Wikidata items: 
 
-* A user can provide data and WDItemEngine will search for and load/modify an existing item or create a new one, solely based on the data provided (preferred). This also performs consistency checks based on a set of SPARQL queries. 
-* A user can work with a selected QID to specifically modify the data on the item. This requires that the users knows what what he/she is doing and should only be used with great care, as this does not perform consistency checks. 
+* A user can provide data, and WDItemEngine will search for and load/modify an existing item or create a new one, solely based on the data provided (preferred). This also performs consistency checks based on a set of SPARQL queries. 
+* A user can work with a selected QID to specifically modify the data on the item. This requires that the user knows what he/she is doing and should only be used with great care, as this does not perform consistency checks. 
 
 Examples below illustrate the usage of WDItemEngine.
 
 ## wdi_login.WDLogin ##
-In order to write bots for Wikidata, a bot account is required and each script needs to go through a Oauth login procedure. For obtaining a bot account in Wikidata,
+In order to write bots for Wikidata, a bot account is required and each script needs to go through an OAuth login procedure. For obtaining a bot account in Wikidata,
 a specific task needs to be determined and then proposed to the Wikidata community. If the community discussion results in your bot code and account being considered useful for Wikidata, you are ready to go.
 However, the code of wdi_core can also run with normal user accounts, the differences are primarily that you have lower writing limits per minute. 
 
@@ -105,7 +105,7 @@ data type instances for references and qualifiers. Furthermore, calling the get_
 
 ## Execute SPARQL queries ##
 The method wdi_core.WDItemEngine.execute_sparql_query() allows you to execute SPARQL queries without a hassle. It takes the actual
-query string (query), optional prefixes (prefix) if you do not want to use the standard prefixes of Wikidata, the actual entpoint URL (endpoint)
+query string (query), optional prefixes (prefix) if you do not want to use the standard prefixes of Wikidata, the actual entpoint URL (endpoint),
  and you can also specify a user agent for the http header sent to the SPARQL server (user_agent). The latter is very useful to let
  the operators of the endpoint know who you are, especially if you execute many queries on the endpoint. This allows the operators of
  the endpoint to contact you (e.g. specify a email address or the URL to your bot code repository.)
@@ -121,10 +121,10 @@ and always use the same number of fields, as this allows you to load the log fil
  The actual search string (search_string) and an optional server, in case the Wikibase instance used is not Wikidata.
  
 ## Merge Wikidata items ##
-Sometimes, Wikidata items need to be merged. An API call exists for that an wdi_core implements a method accordingly.
+Sometimes, Wikidata items need to be merged. An API call exists for that, and wdi_core implements a method accordingly.
 wdi_core.WDItemEngine.merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts='') takes five
 arguments, the QID of the item which should be merged into another item (from_id), the QID of the item the first item should be
-merged into (to_qid), a login object of type wdi_login.WDLogin() (login_obj) to provide the API call with the required authentication
+merged into (to_id), a login object of type wdi_login.WDLogin() (login_obj) to provide the API call with the required authentication
 information, a server (server) if the Wikibase instance is not Wikidata and a flag for ignoring merge conflicts (ignore_conflicts).
  The last parameter will do a partial merge for all statements which do not conflict. This should generally be avoided because it 
  leaves a crippled item in Wikidata. Before a merge, any potential conflicts should be resolved first.
