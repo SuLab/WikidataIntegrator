@@ -216,8 +216,13 @@ class PubmedItem(object):
         self.meta['type'] = self.citoid['itemType']  # instance of. values = {'journalArticle', .. }
         self.meta['journal_issn'] = self.citoid['ISSN']  # published in
         self.meta['date'] = du.parse(self.citoid['date']).strftime('+%Y-%m-%dT%H:%M:%SZ')
-        self.meta['authors'] = [x['firstName'] + " " + x['lastName'] for x in self.citoid['creators'] if
-                                x['creatorType'] == 'author']
+
+        self.meta['authors'] = []
+        for x in self.citoid['creators']:
+            if x['creatorType'] == 'author' and 'firstName' in x and 'lastName' in x and 'name' not in x:
+                self.meta['authors'].append(x['firstName'] + " " + x['lastName'])
+            elif x['creatorType'] == 'author' and 'name' in x:
+                self.meta['authors'].append(x['name'])
 
         # optional
         self.meta['volume'] = self.citoid.get('volume', None)
