@@ -8,11 +8,8 @@ import time
 import sys
 import requests
 
-python_version = sys.version_info.major
-if python_version == 2:
-    import simplejson as json
-else:
-    import json
+import simplejson as json
+
 
 
 import wikidataintegrator.wdi_property_store as wdi_property_store

@@ -11,10 +11,9 @@ import requests
 from wikidataintegrator.backoff import backoff
 from wikidataintegrator.wdi_config import config
 
-if sys.version_info.major == 2:
-    import simplejson as json
-else:
-    import json
+
+import simplejson as json
+
 JSONDecodeError = json.JSONDecodeError
 
 
