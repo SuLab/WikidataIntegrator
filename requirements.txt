@@ -1,3 +1,4 @@
 simplejson
 requests
 python-dateutil
+mwoauth
