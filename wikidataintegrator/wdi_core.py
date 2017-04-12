@@ -827,7 +827,6 @@ class WDItemEngine(object):
         # if user user password login object is provided, use the session edit token
         if login['s']:
             payload['token'] = login.get_edit_token()
-            auth = None
         # if oauth object is provided, use the oauth provided edit token and authentication object
         else:
             payload['token'] = login['edit_token']
