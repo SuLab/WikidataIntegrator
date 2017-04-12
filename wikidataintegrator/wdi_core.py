@@ -821,10 +821,16 @@ class WDItemEngine(object):
             'action': 'wbeditentity',
             'data': json.JSONEncoder().encode(self.wd_json_representation),
             'format': 'json',
-            'token': login.get_edit_token(),
             'summary': edit_summary
         }
 
+        # if user user password login object is provided, use the session edit token
+        if login['s']:
+            payload['token'] = login.get_edit_token()
+        # if oauth object is provided, use the oauth provided edit token and authentication object
+        else:
+            payload['token'] = login['edit_token']
+            auth = login['oauth']['authorization']
         if bot_account:
             payload.update({'bot': ''})
 
@@ -836,12 +842,15 @@ class WDItemEngine(object):
         base_url = 'https://' + self.server + '/w/api.php'
 
         try:
-            reply = login.get_session().post(base_url, headers=headers, data=payload)
-
-            # if the server does not reply with a string which can be parsed into a json, an error will be raised.
-            json_data = reply.json()
-
-            # pprint.pprint(json_data)
+            # if user user password login object is provided, make session request
+            if login['s']:
+                reply = login.get_session().post(base_url, headers=headers, data=payload)
+                # if the server does not reply with a string which can be parsed into a json, an error will be raised.
+                json_data = reply.json()
+            # if oauth object is provided, make a request with auth authentication object in auth parameter
+            else:
+                reply = requests.post(base_url, data=payload, auth=auth)
+                json_data = reply.json()
 
             if 'error' in json_data.keys() and 'code' in json_data['error'] \
                     and json_data['error']['code'] == 'readonly':
