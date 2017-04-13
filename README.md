@@ -67,7 +67,9 @@ There are two ways of working with Wikidata items:
 Examples below illustrate the usage of WDItemEngine.
 
 ## wdi_login.WDLogin ##
-In order to write bots for Wikidata, a bot account is required and each script needs to go through an OAuth login procedure. For obtaining a bot account in Wikidata,
+
+### Login with username and password ###
+In order to write bots for Wikidata, a bot account is required and each script needs to go through a login procedure. For obtaining a bot account in Wikidata,
 a specific task needs to be determined and then proposed to the Wikidata community. If the community discussion results in your bot code and account being considered useful for Wikidata, you are ready to go.
 However, the code of wdi_core can also run with normal user accounts, the differences are primarily that you have lower writing limits per minute. 
 
@@ -78,6 +80,22 @@ The constructor takes two essential parameters, username and password. Additiona
 ```Python     
     login_instance = wdi_login.WDLogin(user='<bot user name>', pwd='<bot password>')     
 ```
+
+### Login using OAuth1 ###
+The Wikimedia universe currently only support authentication via OAuth1. If WDI should be used as a backend for a webapp or the bot should use OAuth for authentication, WDI supports this
+You just need to specify consumer token and consumer secret when instantiating wdi_login.WDLogin. In contrast to username and password login, OAuth is a 2 step process as manual user confirmation
+for OAuth login is required. This means that the method continue_oath() needs to be called after creating the wdi_login.WDLogin instance.
+
+Example:
+```Python     
+    login_instance = wdi_login.WDLogin(consumer_token='<your_consumer_token>', pwd='<your_consumer_secret>')
+    login_instance.continue_oauth()
+```
+
+The method continue_oauth() will either promt the user for a callback URL (normal bot runs) or it will take a parameter so in the case of WDI being
+used as a backend for e.g. a web app, where the callback will provide the authentication information directly to the backend and so
+ no copy and paste of the callback URL is required.
+
 
 ## Wikidata Data Types ##
 Currently, Wikidata supports 11 different data types. The data types are represented as their own classes in wdi_core. Each data type has its specialties, which means that some of them
