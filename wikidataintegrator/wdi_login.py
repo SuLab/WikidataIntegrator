@@ -1,10 +1,14 @@
 import time
-
 import requests
+import webbrowser
+
+from mwoauth import ConsumerToken, Handshaker
+from requests_oauthlib import OAuth1
+
 
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff, get_config
 
-__author__ = 'Andra Waagmeester and Sebastian Burgstaller'
+__author__ = 'Sebastian Burgstaller-Muehlbacher, Tim Putman, Andra Waagmeester'
 __license__ = 'AGPLv3'
 
 """
@@ -18,9 +22,11 @@ class WDLogin(object):
     """
 
     @wdi_backoff()
-    def __init__(self, user, pwd, server='www.wikidata.org', token_renew_period=1800, use_clientlogin=False):
+    def __init__(self, user=None, pwd=None, server='www.wikidata.org', token_renew_period=1800, use_clientlogin=False,
+                 consumer_key=None, consumer_secret=None):
         """
-        constructor
+        This class handles several types of login procedures. Either use user and pwd authentication or OAuth. 
+        Wikidata clientlogin can also be used. If using one method, do NOT pass parameters for another method. 
         :param user: the username which should be used for the login
         :param pwd: the password which should be used for the login
         :param server: the wikimedia server the login should be made to
@@ -29,6 +35,10 @@ class WDLogin(object):
         :param use_clientlogin: use authmanager based login method instead of standard login.
             For 3rd party data consumer, e.g. web clients
         :type bool
+        :param consumer_key: The consumer key for OAuth
+        :type consumer_key: str
+        :param consumer_secret: The consumer secret for OAuth
+        :type consumer_secret: str
         :return: None
         """
         if server is not None:
@@ -40,7 +50,25 @@ class WDLogin(object):
         self.instantiation_time = time.time()
         self.token_renew_period = token_renew_period
 
-        if use_clientlogin:
+        self.mw_url = "https://www.mediawiki.org/w/index.php"
+        self.consumer_key = consumer_key
+        self.consumer_secret = consumer_secret
+        self.response_qs = None
+
+        if self.consumer_key and self.consumer_secret:
+            # Oauth procedure, based on https://www.mediawiki.org/wiki/OAuth/For_Developers
+
+            # Consruct a "consumer" from the key/secret provided by MediaWiki
+            self.consumer_token = ConsumerToken(self.consumer_key, self.consumer_secret)
+
+            # Construct handshaker with wiki URI and consumer
+            self.handshaker = Handshaker(self.mw_url, self.consumer_token)
+
+            # Step 1: Initialize -- ask MediaWiki for a temp key/secret for user
+            # redirect -> authorization -> callback url
+            self.redirect, self.request_token = self.handshaker.initiate()
+
+        elif use_clientlogin:
             params = {
                 'action': 'query',
                 'format': 'json',
@@ -73,6 +101,8 @@ class WDLogin(object):
 
             if login_result['clientlogin']['status'] == 'FAIL':
                 raise ValueError('Login FAILED')
+
+            self.generate_edit_credentials()
         else:
             params = {
                 'action': 'login',
@@ -94,7 +124,7 @@ class WDLogin(object):
             else:
                 print('Successfully logged in as', r['login']['lgusername'])
 
-        self.generate_edit_credentials()
+            self.generate_edit_credentials()
 
     def generate_edit_credentials(self):
         """
@@ -139,3 +169,32 @@ class WDLogin(object):
         :return: Object of type requests.Session()
         """
         return self.s
+
+    def continue_oauth(self, oauth_callback_data=None):
+        """
+        Continuation of OAuth procedure. Method must be explicitly called in order to complete OAuth. This allows 
+        external entities, e.g. websites, to provide tokens through callback URLs directly.
+        :param oauth_callback_data: The callback URL received to a Web app
+        :type oauth_callback_data: str
+        :return: 
+        """
+        self.response_qs = oauth_callback_data
+
+        if not self.response_qs:
+            webbrowser.open(self.redirect)
+            self.response_qs = input("Callback URL: ")
+
+        # input the url from redirect after authorization
+        response_qs = self.response_qs.split("?")[-1]
+
+        # Step 3: Complete -- obtain authorized key/secret for "resource owner"
+        access_token = self.handshaker.complete(self.request_token, response_qs)
+
+        # input the access token to return a csrf (edit) token
+        auth1 = OAuth1(self.consumer_token.key,
+                       client_secret=self.consumer_token.secret,
+                       resource_owner_key=access_token.key,
+                       resource_owner_secret=access_token.secret)
+
+        self.s.auth = auth1
+        self.generate_edit_credentials()
