@@ -23,7 +23,7 @@ class WDLogin(object):
 
     @wdi_backoff()
     def __init__(self, user=None, pwd=None, server='www.wikidata.org', token_renew_period=1800, use_clientlogin=False,
-                 consumer_key=None, consumer_secret=None, callback_url=None):
+                 consumer_key=None, consumer_secret=None, callback_url='oob'):
         """
         This class handles several types of login procedures. Either use user and pwd authentication or OAuth. 
         Wikidata clientlogin can also be used. If using one method, do NOT pass parameters for another method. 
