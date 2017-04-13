@@ -147,17 +147,18 @@ class PubmedItem(object):
     Usage:
     PubmedItem(22674334).get_or_create(login)
 
-    Data source: https://www.mediawiki.org/wiki/Citoid/API
-    example:
-    https://citoid.wikimedia.org/api?search=https://www.ncbi.nlm.nih.gov/pubmed/13054692&format=zotero
+    Data source: Europepmc
+    API: https://europepmc.org/RestfulWebService
+    Doc: https://europepmc.org/docs/EBI_Europe_PMC_Web_Service_Reference.pdf
 
     wikidata Item format
     general guidelines: https://www.wikidata.org/wiki/Help:Sources
     more specific to journal articles: https://github.com/mitar/bib2wikidata/issues/1#issuecomment-50998834
     modelling after: https://www.wikidata.org/wiki/Q21093381 because it has both authors and author name strings
 
-    This will not add authors, it will only add author name strings, as I do not habve enough information to assume
-    they are the same as author items that exist.
+    This will add authors, if they have orcid IDs AND the item already exists in wikidata
+
+    https://www.wikidata.org/wiki/Wikidata:WikiProject_Source_MetaData/Bibliographic_metadata_for_scholarly_articles_in_Wikidata
 
     """
 
@@ -171,20 +172,31 @@ class PubmedItem(object):
         'page(s)': 'P304',
         'issue': 'P433',
         'author name string': 'P2093',
+        'author': 'P50',
         'PubMed ID': 'P698',
+        'MED': 'P698',
         'DOI': 'P356',
         'series ordinal': 'P1545',
+        'PMCID': 'P932',
+        'PMC': 'P932',
     }
 
-    # can be expanded to books and such...
-    instance_of_items = {'journalArticle': 'Q13442814'}
-    descriptions = {'journalArticle': 'scientific journal article'}
+    id_types = {"MED", "PMC", "EUROPEPMC", "PAT", "NBK", "HIR", "ETH", "CTX", "CBA", "AGR", "DOI"}
 
-    def __init__(self, pmid):
-        self.pmid = str(pmid)
+    pubtypes = {"research-article": "Q13442814",  # scientific article
+                "Journal Article": "Q13442814",  # scientific article
+                }
+    descriptions = {'Q13442814': 'scientific article'}
+
+    def __init__(self, ext_id, id_type="MED"):
+        self.warnings = []
+        self.errors = []
+        assert id_type in self.id_types, "id_type must be in {}".format(self.id_types)
+        self.ext_id = str(ext_id)
+        self.id_type = id_type
         self.meta = {
             'title': None,
-            'dois': None,
+            'doi': None,
             'volume': None,
             'issue': None,
             'journal_wdid': None,
@@ -193,53 +205,102 @@ class PubmedItem(object):
             'date': None,
             'pages': None,
             'authors': None,
+            'pubtypes': None,
+            'pubtype_qid': None
         }
 
         self.reference = None
         self.statements = None
         self.wdid = None
-        self.citoid = None
+        self.article = None
 
-    def _valid_pmid(self):
-        url = 'https://citoid.wikimedia.org/api?search=https://www.ncbi.nlm.nih.gov/pubmed/{}&format=zotero'.format(
-            self.pmid)
-        self.citoid = requests.get(url).json()[0]
-        return True if self.citoid['itemType'] in self.instance_of_items else False
+    def get_article_info(self):
+        if self.id_type != "DOI":
+            url = 'http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{}%20AND%20SRC:{}&resulttype=core&format=json'
+            url = url.format(self.ext_id, self.id_type)
+        elif self.id_type == "DOI":
+            url = "http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:%22{}%22&resulttype=core&format=json"
+            url = url.format(self.ext_id)
+        else:
+            raise ValueError()
+        response = requests.get(url)
+        response.raise_for_status()
+        d = response.json()
+        if d['hitCount'] != 1:
+            raise ValueError("No results")
+        self.article = d['resultList']['result'][0]
 
     def get_metadata(self):
+        if not self.article:
+            self.get_article_info()
 
-        if not self._valid_pmid():
-            raise ValueError("error getting metadata: {}".format(self.pmid))
+        self.meta['pmid'] = self.article['pmid']
+        self.meta['pmcid'] = self.article.get('pmcid')
+        self.meta['title'] = self.article['title'][:249]
+        if 'pubTypeList' in self.article:
+            pubtypes = self.article['pubTypeList']['pubType']
+            if not isinstance(pubtypes, list):
+                pubtypes = [pubtypes]
+            self.meta['pubtypes'] = pubtypes
+        else:
+            self.meta['pubtypes'] = ['research-article']
+            self.warnings.append("unknown publication type, assuming scientific article")
+            print("unknown publication type, assuming scientific article")
+        self.meta['pubtype_qid'] = list(set(self.pubtypes[x] for x in self.meta['pubtypes'] if x in self.pubtypes))
+        if len(self.meta['pubtype_qid']) < 1:
+            self.errors.append("unknown publication type: {}".format(self.meta['pubtypes']))
+            raise ValueError("unknown publication type: {}".format(self.meta['pubtypes']))
 
-        # todo: original language of work not in citoid response
-        self.meta['title'] = self.citoid['title'][:249]
-        self.meta['type'] = self.citoid['itemType']  # instance of. values = {'journalArticle', .. }
-        self.meta['journal_issn'] = self.citoid['ISSN']  # published in
-        self.meta['date'] = du.parse(self.citoid['date']).strftime('+%Y-%m-%dT%H:%M:%SZ')
+        if 'issn' in self.article['journalInfo']['journal']:
+            self.meta['journal_issn'] = self.article['journalInfo']['journal']['issn']  # published in
+        elif 'essn' in self.article['journalInfo']['journal']:
+            self.meta['journal_issn'] = self.article['journalInfo']['journal']['essn']  # published in
+        else:
+            msg = "unknown journal: {}".format(self.article['journalInfo']['journal'])
+            self.errors.append(msg)
+            print(msg)
 
-        self.meta['authors'] = []
-        for x in self.citoid['creators']:
-            if x['creatorType'] == 'author' and 'firstName' in x and 'lastName' in x and 'name' not in x:
-                self.meta['authors'].append(x['firstName'] + " " + x['lastName'])
-            elif x['creatorType'] == 'author' and 'name' in x:
-                self.meta['authors'].append(x['name'])
-
-        # optional
-        self.meta['volume'] = self.citoid.get('volume', None)
-        self.meta['pages'] = self.citoid.get('pages', None)
-        self.meta['issue'] = self.citoid.get('issue', None)
-        self.meta['dois'] = self.citoid.get('DOI', None)
-
-        # also validate response here
-        if self.meta['dois']:
-            assert isinstance(self.meta['dois'], str)
         self.meta['journal_wdid'] = prop2qid("P236", self.meta['journal_issn'])
         if not self.meta['journal_wdid']:
             raise ValueError("journal not found: {}".format(self.meta['journal_issn']))
+        self.meta['date'] = du.parse(self.article['firstPublicationDate']).strftime('+%Y-%m-%dT%H:%M:%SZ')
+
+        authors = []
+        for author in self.article['authorList']['author']:
+            if 'firstName' in author and 'lastName' in author:
+                authors.append(author['firstName'] + ' ' + author['lastName'])
+            elif 'fullName' in author:
+                authors.append(author['fullName'])
+            elif 'collectiveName' in author:
+                authors.append(author['collectiveName'])
+            else:
+                msg = "unknown author: {}".format(author)
+                print(msg)
+                self.errors.append(msg)
+                authors.append(None)
+
+        self.meta['authors'] = authors
+        self.meta['author_orcid'] = {author: x['authorId']['value'] for author, x in
+                                     zip(authors, self.article['authorList']['author']) if
+                                     'authorId' in x and x['authorId']['type'] == 'ORCID'}
+        self.meta['author_qid'] = {author: PubmedItem.lookup_author(orcid) for author, orcid in
+                                   self.meta['author_orcid'].items()}
+
+        # optional
+        self.meta['volume'] = self.article['journalInfo'].get('volume')
+        self.meta['issue'] = self.article['journalInfo'].get('issue')
+        self.meta['pages'] = self.article.get('pageInfo')
+        self.meta['doi'] = self.article.get('doi')
+
+    @staticmethod
+    def lookup_author(orcid_id):
+        return prop2qid("P496", orcid_id)
 
     def make_reference(self):
-        stated_in = wdi_core.WDItemID(value='Q180686', prop_nr='P248', is_reference=True)
-        pmid = wdi_core.WDString(value=self.pmid, prop_nr='P698', is_reference=True)
+        if 'pmid' not in self.meta:
+            self.get_metadata()
+        stated_in = wdi_core.WDItemID(value='Q5412157', prop_nr='P248', is_reference=True)
+        pmid = wdi_core.WDString(value=self.meta['pmid'], prop_nr='P698', is_reference=True)
         retrieved = wdi_core.WDTime(strftime("+%Y-%m-%dT00:00:00Z", gmtime()), prop_nr='P813', is_reference=True)
         self.reference = [stated_in, pmid, retrieved]
 
@@ -256,8 +317,19 @@ class PubmedItem(object):
             if ordinals is not None and n in ordinals:
                 continue
             series_ordinal = wdi_core.WDString(str(n), self.PROPS['series ordinal'], is_qualifier=True)
-            s.append(wdi_core.WDString(author, self.PROPS['author name string'],
-                                       references=[self.reference], qualifiers=[series_ordinal]))
+            if author in self.meta['author_orcid']:
+                if self.meta['author_qid'][author]:
+                    s.append(wdi_core.WDItemID(self.meta['author_qid'][author], self.PROPS['author'],
+                                               references=[self.reference], qualifiers=[series_ordinal]))
+                else:
+                    msg = "No Author found for author: {}, orcid: {}".format(author, self.meta['author_orcid'][author])
+                    self.warnings.append(msg)
+                    print(msg)
+                    s.append(wdi_core.WDString(author, self.PROPS['author name string'],
+                                               references=[self.reference], qualifiers=[series_ordinal]))
+            elif author:
+                s.append(wdi_core.WDString(author, self.PROPS['author name string'],
+                                           references=[self.reference], qualifiers=[series_ordinal]))
         return s
 
     def make_statements(self, ordinals=None):
@@ -270,9 +342,9 @@ class PubmedItem(object):
         s = []
 
         ### Required statements
-        s.append(wdi_core.WDExternalID(self.pmid, self.PROPS['PubMed ID'], references=[self.reference]))
-        s.append(wdi_core.WDItemID(self.instance_of_items[self.meta['type']], self.PROPS['instance of'],
-                                   references=[self.reference]))
+        s.append(wdi_core.WDExternalID(self.meta['pmid'], self.PROPS['PubMed ID'], references=[self.reference]))
+        for pubtype in self.meta['pubtype_qid']:
+            s.append(wdi_core.WDItemID(pubtype, self.PROPS['instance of'], references=[self.reference]))
         s.append(wdi_core.WDMonolingualText(self.meta['title'], self.PROPS['title'], references=[self.reference]))
         s.append(wdi_core.WDTime(self.meta['date'], self.PROPS['publication date'], references=[self.reference]))
         s.append(wdi_core.WDItemID(self.meta['journal_wdid'], self.PROPS['published in'], references=[self.reference]))
@@ -285,16 +357,22 @@ class PubmedItem(object):
             s.append(wdi_core.WDString(self.meta['pages'], self.PROPS['page(s)'], references=[self.reference]))
         if self.meta['issue']:
             s.append(wdi_core.WDString(self.meta['issue'], self.PROPS['issue'], references=[self.reference]))
-        if self.meta['dois']:
-            s.append(wdi_core.WDExternalID(self.meta['dois'].upper(), self.PROPS['DOI'], references=[self.reference]))
+        if self.meta['doi']:
+            s.append(wdi_core.WDExternalID(self.meta['doi'].upper(), self.PROPS['DOI'], references=[self.reference]))
 
         self.statements = s
 
-    def update(self, wdid, login):
+    def update(self, login):
+        qid = self.check_if_exists()
+        if not qid:
+            raise ValueError("item doesn't exist")
+
+        self.get_metadata()
+
         # we need the json of the item to grab any existing authors
-        url = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids={}&format=json".format(wdid)
+        url = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids={}&format=json".format(qid)
         dc = requests.get(url).json()
-        claims = dc['entities'][wdid]['claims']
+        claims = dc['entities'][qid]['claims']
         if 'P50' not in claims:
             ordinals = None
         else:
@@ -311,22 +389,20 @@ class PubmedItem(object):
         if len(claims['P698']) != 1:
             raise ValueError("more than one pmid")
         item_pmid = claims['P698'][0]['mainsnak']['datavalue']['value']
-        if item_pmid != self.pmid:
+        if item_pmid != self.meta['pmid']:
             raise ValueError("pmids don't match")
 
-        try:
-            self.get_metadata()
-        except Exception as e:
-            print(e)
-            return None
+        # make statements without the existing authors
         self.make_statements(ordinals)
 
-        item = wdi_core.WDItemEngine(wd_item_id=wdid, data=self.statements, domain="scientific_article")
+        item = wdi_core.WDItemEngine(wd_item_id=qid, data=self.statements, domain="scientific_article")
         item.set_label(self.meta['title'])
-        item.set_description(description=self.descriptions[self.meta['type']], lang='en')
-        write_success = try_write(item, self.pmid, 'P698', login)
+        description = ', '.join(self.descriptions[x] for x in self.meta['pubtype_qid'])
+        if item.get_description() == '':
+            item.set_description(description, lang='en')
+        write_success = try_write(item, self.meta['pmid'], 'P698', login)
         if write_success:
-            self._cache[self.pmid] = item.wd_item_id
+            self._cache[(self.ext_id, self.id_type)] = item.wd_item_id
             return item.wd_item_id
         else:
             return None
@@ -345,13 +421,23 @@ class PubmedItem(object):
 
         item = wdi_core.WDItemEngine(item_name=self.meta['title'], data=self.statements, domain="scientific_article")
         item.set_label(self.meta['title'])
-        item.set_description(description=self.descriptions[self.meta['type']], lang='en')
-        write_success = try_write(item, self.pmid, 'P698', login)
+        description = ', '.join(self.descriptions[x] for x in self.meta['pubtype_qid'])
+        item.set_description(description, lang='en')
+        write_success = try_write(item, self.meta['pmid'], 'P698', login)
         if write_success:
-            self._cache[self.pmid] = item.wd_item_id
+            self._cache[(self.ext_id, self.id_type)] = item.wd_item_id
             return item.wd_item_id
         else:
             return None
+
+    def check_if_exists(self):
+        if self.id_type not in self.PROPS:
+            raise ValueError("can't check if IDs of this property type are in Wikidata")
+        prop = self.PROPS[self.id_type]
+        wdid = prop2qid(prop, self.ext_id)
+        if wdid:
+            self._cache[(self.ext_id, self.id_type)] = wdid
+            return wdid
 
     def get_or_create(self, login=None):
         """
@@ -363,13 +449,12 @@ class PubmedItem(object):
         :return:
         """
         # check if in local cache
-        if self.pmid in self._cache:
-            return self._cache[self.pmid]
+        if (self.ext_id, self.id_type) in self._cache:
+            return self._cache[(self.ext_id, self.id_type)]
         # check if exists in wikidata
-        wdid = prop2qid('P698', self.pmid)
-        if wdid:
-            self._cache[self.pmid] = wdid
-            return wdid
+        qid_if_exists = self.check_if_exists()
+        if qid_if_exists:
+            return qid_if_exists
 
         # item doesn't exist.
         return self.create(login=login)
