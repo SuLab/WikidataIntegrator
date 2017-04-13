@@ -23,7 +23,7 @@ class WDLogin(object):
 
     @wdi_backoff()
     def __init__(self, user=None, pwd=None, server='www.wikidata.org', token_renew_period=1800, use_clientlogin=False,
-                 consumer_key=None, consumer_secret=None):
+                 consumer_key=None, consumer_secret=None, callback_url=None):
         """
         This class handles several types of login procedures. Either use user and pwd authentication or OAuth. 
         Wikidata clientlogin can also be used. If using one method, do NOT pass parameters for another method. 
@@ -39,6 +39,8 @@ class WDLogin(object):
         :type consumer_key: str
         :param consumer_secret: The consumer secret for OAuth
         :type consumer_secret: str
+        :param callback_url: URL which should be used as the callback URL
+        :type callback_url: str
         :return: None
         """
         if server is not None:
@@ -54,6 +56,7 @@ class WDLogin(object):
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
         self.response_qs = None
+        self.callback_url = callback_url
 
         if self.consumer_key and self.consumer_secret:
             # Oauth procedure, based on https://www.mediawiki.org/wiki/OAuth/For_Developers
@@ -62,11 +65,11 @@ class WDLogin(object):
             self.consumer_token = ConsumerToken(self.consumer_key, self.consumer_secret)
 
             # Construct handshaker with wiki URI and consumer
-            self.handshaker = Handshaker(self.mw_url, self.consumer_token)
+            self.handshaker = Handshaker(self.mw_url, self.consumer_token, callback=self.callback_url)
 
             # Step 1: Initialize -- ask MediaWiki for a temp key/secret for user
             # redirect -> authorization -> callback url
-            self.redirect, self.request_token = self.handshaker.initiate()
+            self.redirect, self.request_token = self.handshaker.initiate(callback=self.callback_url)
 
         elif use_clientlogin:
             params = {
