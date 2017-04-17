@@ -68,6 +68,10 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
     ],
     install_requires=[
-        'requests', 'python-dateutil', 'simplejson'
+        'requests',
+        'python-dateutil',
+        'simplejson',
+        'mwoauth',
+        'requests_oauthlib',
     ],
 )
