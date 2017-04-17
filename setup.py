@@ -72,6 +72,5 @@ setup(
         'python-dateutil',
         'simplejson',
         'mwoauth',
-        'requests_oauthlib',
     ],
 )
