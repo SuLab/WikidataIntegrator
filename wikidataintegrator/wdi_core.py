@@ -2263,6 +2263,59 @@ class WDGlobeCoordinate(WDBaseDataType):
                    prop_nr=jsn['property'])
 
 
+class WDGeoShape(WDBaseDataType):
+    """
+    Implements the Wikidata data type 'string'
+    """
+    DTYPE = 'geo-shape'
+
+    def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=None,
+                 qualifiers=None, rank='normal', check_qualifier_equality=True):
+        """
+        Constructor, calls the superclass WDBaseDataType
+        :param value: The GeoShape map file name in Wikimedia Commons to be linked
+        :type value: str
+        :param prop_nr: The WD item ID for this claim
+        :type prop_nr: str with a 'P' prefix followed by digits
+        :param is_reference: Whether this snak is a reference
+        :type is_reference: boolean
+        :param is_qualifier: Whether this snak is a qualifier
+        :type is_qualifier: boolean
+        :param snak_type: The snak type, either 'value', 'somevalue' or 'novalue'
+        :type snak_type: str
+        :param references: List with reference objects
+        :type references: A WD data type with subclass of WDBaseDataType
+        :param qualifiers: List with qualifier objects
+        :type qualifiers: A WD data type with subclass of WDBaseDataType
+        :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
+        :type rank: str
+        """
+
+        super(WDGeoShape, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE,
+                                         is_reference=is_reference, is_qualifier=is_qualifier, references=references,
+                                         qualifiers=qualifiers, rank=rank, prop_nr=prop_nr,
+                                         check_qualifier_equality=check_qualifier_equality)
+
+        self.set_value(value=value)
+
+    def set_value(self, value):
+        self.value = value
+
+        self.json_representation['datavalue'] = {
+            'value': self.value,
+            'type': 'string'
+        }
+
+        super(WDGeoShape, self).set_value(value=value)
+
+    @classmethod
+    @JsonParser
+    def from_json(cls, jsn):
+        if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
+            return cls(value=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
+        return cls(value=jsn['datavalue']['value'], prop_nr=jsn['property'])
+
+
 class WDApiError(Exception):
     def __init__(self, wd_error_message):
         """

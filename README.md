@@ -114,6 +114,7 @@ The data types currently implemented:
 * wdi_core.WDGlobeCoordinate
 * wdi_core.WDCommonsMedia
 * wdi_core.WDMath
+* wdi_core.WDGeoShape
 
 For details of how to create values (=instances) with these data types, please (for now) consult the docstrings in the source code. Of note, these data type instances hold the values and, if specified,
 data type instances for references and qualifiers. Furthermore, calling the get_value() method of an instance returns either an integer, a string or a tuple, depending on the complexity of the data type.

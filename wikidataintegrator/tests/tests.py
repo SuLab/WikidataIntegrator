@@ -40,6 +40,22 @@ class TestDataType(unittest.TestCase):
         if not value['value']['lowerBound'] == '+33':
             raise
 
+    def test_wd_geoshape(self):
+        dt = wdi_core.WDGeoShape(value='Data:Inner_West_Light_Rail_stops.map', prop_nr='P43')
+
+        dt_json = dt.get_json_representation()
+
+        if not dt_json['mainsnak']['datatype'] == 'geo-shape':
+            raise
+
+        value = dt_json['mainsnak']['datavalue']
+
+        if not value['value'] == 'Data:Inner_West_Light_Rail_stops.map':
+            raise
+
+        if not value['type'] == 'string':
+            raise
+
     def test_wd_string(self):
         pass
 
