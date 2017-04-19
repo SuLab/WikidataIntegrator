@@ -152,6 +152,7 @@ class WDItemEngine(object):
 
         if self.item_name and self.domain is None and len(self.data) > 0:
             self.create_new_item = True
+            self.__construct_claim_json()
         elif self.item_name is '' and self.wd_item_id is '':
             raise IDMissingError('No item name or WD identifier was given')
         elif self.wd_item_id and self.require_write:
