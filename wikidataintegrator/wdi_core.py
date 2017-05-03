@@ -8,10 +8,6 @@ import time
 import sys
 import requests
 
-import simplejson as json
-
-
-
 import wikidataintegrator.wdi_property_store as wdi_property_store
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_fastrun import FastRunContainer
@@ -220,7 +216,7 @@ class WDItemEngine(object):
 
         reply = requests.get(url, params=params)
         reply.raise_for_status()
-        return self.parse_wd_json(wd_json=json.loads(reply.text)['entities'][self.wd_item_id])
+        return self.parse_wd_json(wd_json=reply.json()['entities'][self.wd_item_id])
 
     def parse_wd_json(self, wd_json):
         """
@@ -266,7 +262,7 @@ class WDItemEngine(object):
 
         reply = requests.get(url, params=params)
         reply.raise_for_status()
-        search_results = json.loads(reply.text)
+        search_results = reply.json()
 
         if search_results['success'] != 1:
             raise WDSearchError('WD search failed')
@@ -323,7 +319,7 @@ class WDItemEngine(object):
                         reply = requests.get(url, params=params)
                         reply.raise_for_status()
 
-                        tmp_qids = json.loads(reply.text)['items']
+                        tmp_qids = reply.json()['items']
                     else:
                         query = statement.sparql_query.format(wd_property, data_point)
                         results = WDItemEngine.execute_sparql_query(query=query)
@@ -1013,7 +1009,8 @@ class WDItemEngine(object):
         }
         response = requests.get(endpoint, params=params, headers=headers)
         response.raise_for_status()
-        return json.loads(response.text)
+
+        return response.json()
 
     @staticmethod
     def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts=''):
