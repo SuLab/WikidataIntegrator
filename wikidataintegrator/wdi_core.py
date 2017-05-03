@@ -7,6 +7,7 @@ import re
 import time
 import sys
 import requests
+import json
 
 import wikidataintegrator.wdi_property_store as wdi_property_store
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
