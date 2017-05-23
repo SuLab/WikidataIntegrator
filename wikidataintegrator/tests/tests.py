@@ -70,6 +70,16 @@ class TestDataType(unittest.TestCase):
 
         # TODO: get json directly from the API and compare part to WDItemEngine
 
+    def test_deletion_request(self):
+        items_for_deletion = ['Q423', 'Q43345']
+        wdi_core.WDItemEngine.delete_items(item_list=items_for_deletion, reason='test deletion', login=None)
+
+
+class TestFastRun(unittest.TestCase):
+    """
+    some basic tests for fastrun mode
+    
+    """
     def test_fast_run(self):
         qid = 'Q27552312'
 
@@ -93,25 +103,30 @@ class TestDataType(unittest.TestCase):
         if fast_run_result:
             raise
 
-    def test_deletion_request(self):
-        items_for_deletion = ['Q423', 'Q43345']
-        wdi_core.WDItemEngine.delete_items(item_list=items_for_deletion, reason='test deletion', login=None)
+    def test_fastrun_label(self):
+        data = [wdi_core.WDItemID('Q544', 'P361'), wdi_core.WDItemID('Q7547', 'P398'), wdi_core.WDString('Mars', 'P2572')]
+        fast_run_base_filter = {'P361': 'Q544'}
+        item = wdi_core.WDItemEngine(wd_item_id="Q2", data=data, fast_run=True,
+                                     fast_run_base_filter=fast_run_base_filter)
+
+        fast_run_container = wdi_core.WDItemEngine.fast_run_store[0]
+
+        print(fast_run_container.prop_data)
+        print(fast_run_container.statements)
+        print(fast_run_container.prop_dt_map)
+        print(fast_run_container.rev_lookup)
+
+        assert item.get_label('en') == "Earth"
+        assert item.fast_run_container.get_language_data("Q2", 'en', 'label')[0] == "Earth"
+        assert item.fast_run_container.check_language_data("Q2", ['not the Earth'], 'en', 'label')
+        assert "Terra" in item.get_aliases()
+
+        """
+        # this item has no aliases or a description, but it might change...
+        data = [wdi_core.WDItemID('Q13442814', 'P31')]
+        fast_run_base_filter = {'P1433': 'Q5227381'}
+        item = wdi_core.WDItemEngine(wd_item_id="Q28445414", data=data, fast_run=True,
+                                     fast_run_base_filter=fast_run_base_filter)
+        """
 
 
-def test_fastrun_label():
-    data = [wdi_core.WDItemID('Q544', 'P361')]
-    fast_run_base_filter = {'P361': 'Q544'}
-    item = wdi_core.WDItemEngine(wd_item_id="Q2", data=data, fast_run=True,
-                                 fast_run_base_filter=fast_run_base_filter)
-    assert item.get_label('en') == "Earth"
-    assert item.fast_run_container.get_language_data("Q2", 'en', 'label')[0] == "Earth"
-    assert item.fast_run_container.check_language_data("Q2", ['not the Earth'], 'en', 'label')
-    assert "Terra" in item.get_aliases()
-
-    """
-    # this item has no aliases or a description, but it might change...
-    data = [wdi_core.WDItemID('Q13442814', 'P31')]
-    fast_run_base_filter = {'P1433': 'Q5227381'}
-    item = wdi_core.WDItemEngine(wd_item_id="Q28445414", data=data, fast_run=True,
-                                 fast_run_base_filter=fast_run_base_filter)
-    """
