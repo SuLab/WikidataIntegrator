@@ -1890,9 +1890,12 @@ class WDTime(WDBaseDataType):
 
             try:
                 if self.time[6:8] != '00' and self.time[9:11] != '00':
-                    datetime.datetime.strptime(self.time, '+%Y-%m-%dT%H:%M:%SZ')
+                    if self.time.startswith('-'):
+                        datetime.datetime.strptime(self.time, '-%Y-%m-%dT%H:%M:%SZ')
+                    else:
+                        datetime.datetime.strptime(self.time, '+%Y-%m-%dT%H:%M:%SZ')
             except ValueError as e:
-                raise ValueError('Wrong data format, date format must be +%Y-%m-%dT%H:%M:%SZ')
+                raise ValueError('Wrong data format, date format must be +%Y-%m-%dT%H:%M:%SZ or -%Y-%m-%dT%H:%M:%SZ')
 
     @classmethod
     @JsonParser
