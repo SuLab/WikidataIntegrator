@@ -215,12 +215,15 @@ class PubmedItem(object):
         self.article = None
 
     def get_article_info(self):
-        if self.id_type != "DOI":
-            url = 'http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{}%20AND%20SRC:{}&resulttype=core&format=json'
-            url = url.format(self.ext_id, self.id_type)
+        if self.id_type == "PMC":
+            url = 'http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:{}&resulttype=core&format=json'
+            url = url.format(self.ext_id)
         elif self.id_type == "DOI":
             url = "http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:%22{}%22&resulttype=core&format=json"
             url = url.format(self.ext_id)
+        elif self.id_type != "DOI":
+            url = 'http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{}%20AND%20SRC:{}&resulttype=core&format=json'
+            url = url.format(self.ext_id, self.id_type)
         else:
             raise ValueError()
         response = requests.get(url)
