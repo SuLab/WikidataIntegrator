@@ -91,7 +91,7 @@ class TestFastRun(unittest.TestCase):
         frc = wdi_fastrun.FastRunContainer(base_filter={'P352': '', 'P703': 'Q27510868'},
                                            base_data_type=wdi_core.WDBaseDataType, engine=wdi_core.WDItemEngine)
 
-        fast_run_result = frc.check_data(data=statements)
+        fast_run_result = frc.write_required(data=statements)
 
         if fast_run_result:
             message = 'fastrun failed'

@@ -195,8 +195,8 @@ class WDItemEngine(object):
                                                        base_data_type=WDBaseDataType, engine=WDItemEngine)
             WDItemEngine.fast_run_store.append(self.fast_run_container)
 
-        self.require_write = self.fast_run_container.check_data(self.data, append_props=self.append_value,
-                                                                cqid=self.wd_item_id)
+        self.require_write = self.fast_run_container.write_required(self.data, append_props=self.append_value,
+                                                                    cqid=self.wd_item_id)
 
         # set item id based on fast run data
         if not self.require_write and not self.wd_item_id:
@@ -1541,6 +1541,70 @@ class WDBaseDataType(object):
         return cls(value='', snak_type='value', data_type='', is_reference=False, is_qualifier=False, references=[],
                    qualifiers=[], rank='', prop_nr=prop_nr, check_qualifier_equality=True)
 
+    @staticmethod
+    def equals(this, that, include_ref=False, fref=None):
+        """
+        Tests for equality of two statements.
+        If comparing references, the order of the arguments matters!!!
+        The first should be the current statement, the second is the new statement.
+        Allows passing in a function to use to compare the references 'fref'. Default is equality.
+        fref accepts two arguments 'oldref' and 'newref', each of which are a list of statements
+        """
+        if not include_ref:
+            return this == that
+        if include_ref and this != that:
+            return False
+        if include_ref and fref is None:
+            fref = this.refs_equal
+        oldref = this.ref
+        newref = this.old
+        return fref(oldref, newref)
+
+    @staticmethod
+    def refs_equal(oldrefs, newrefs):
+        """
+        See ref_equals
+        """
+        return len(oldrefs) == len(newrefs) and all(
+            any(oldrefs.ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs)
+
+    @staticmethod
+    def ref_equal(oldref, newref, days=180):
+        """
+        These refs are equal if:
+        1. Excluding the retrieved statement, the references are equivalent
+        3. if newref has a retrieved P813:
+            3a. oldref does not have a retrieved
+            3b. oldref retrieved is more than `days` days older than newref
+        else: No write
+
+        raise Error if newref contains more than one retrieved
+        """
+        if len(oldref) != len(newref):
+            return False
+        oldref_minus_retrieved = [x for x in oldref if x.get_prop_nr() != 'P813']
+        newref_minus_retrieved = [x for x in newref if x.get_prop_nr() != 'P813']
+        if not all(x in oldref_minus_retrieved for x in newref_minus_retrieved):
+            return False
+        oldref_retrieved = [x for x in oldref if x.get_prop_nr() == 'P813']
+        newref_retrieved = [x for x in newref if x.get_prop_nr() == 'P813']
+        if len(newref_retrieved) != len(oldref_retrieved):
+            return False
+        if len(newref_retrieved) == len(oldref_retrieved) == 0:
+            return True
+        if len(newref_retrieved) != 1:
+            raise ValueError("why did you put more than one retrieved?")
+        retrieved_old = set(
+            [datetime.datetime.strptime(r.get_value()[0], '+%Y-%m-%dT%H:%M:%SZ') for r in oldref if r.get_prop_nr() == 'P813'])
+        retrieved_new = set(
+            [datetime.datetime.strptime(r.get_value()[0], '+%Y-%m-%dT%H:%M:%SZ') for r in newref if r.get_prop_nr() == 'P813'])
+        retrieved_new = list(retrieved_new)[0]
+        if all((retrieved_new - x).days >= days for x in retrieved_old):
+            return False
+        else:
+            return True
+
+
 
 class WDString(WDBaseDataType):
     """
@@ -1910,7 +1974,8 @@ class WDTime(WDBaseDataType):
             if self.precision < 0 or self.precision > 14:
                 raise ValueError('Invalid value for time precision, '
                                  'see https://www.mediawiki.org/wiki/Wikibase/DataModel/JSON#time')
-
+            if not self.time.startswith("+"):
+                self.time = "+" + self.time
             try:
                 if self.time[6:8] != '00' and self.time[9:11] != '00':
                     if self.time.startswith('-'):
