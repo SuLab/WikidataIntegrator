@@ -8,7 +8,9 @@ BACKOFF_MAX_TRIES: maximum number of times to retry failed request to wikidata e
         To disable retry, set value to 1
 BACKOFF_MAX_VALUE: maximum number of seconds to wait before retrying. wait time will increase to this number
         Default: 3600 (one hour)
+USER_AGENT_DEFAULT: default user agent string used for http requests. Both to wikibase api, query service and others.
 """
 
 config = {'BACKOFF_MAX_TRIES': None,
-          'BACKOFF_MAX_VALUE': 3600}
+          'BACKOFF_MAX_VALUE': 3600,
+          'USER_AGENT_DEFAULT': 'wikidataintegrator: github.com/SuLab/WikidataIntegrator'}

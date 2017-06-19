@@ -12,6 +12,7 @@ import json
 import wikidataintegrator.wdi_property_store as wdi_property_store
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_fastrun import FastRunContainer
+from wikidataintegrator.wdi_config import config
 
 """
 Authors: 
@@ -972,7 +973,7 @@ class WDItemEngine(object):
     @staticmethod
     @wdi_backoff()
     def execute_sparql_query(prefix='', query='', endpoint='https://query.wikidata.org/sparql',
-                             user_agent='wikidataintegrator: github.com/SuLab/WikidataIntegrator'):
+                             user_agent=config['USER_AGENT_DEFAULT']):
         """
         Static method which can be used to execute any SPARQL query
         :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
