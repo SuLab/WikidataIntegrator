@@ -51,7 +51,7 @@ class WDItemEngine(object):
     def __init__(self, wd_item_id='', item_name='', domain='', data=None, server='www.wikidata.org',
                  append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None,
                  global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False, search_only=False,
-                 item_data=None):
+                 item_data=None, user_agent=config['USER_AGENT_DEFAULT']):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -101,6 +101,8 @@ class WDItemEngine(object):
         :type search_only: bool
         :param item_data: A Python JSON object corresponding to the Wikidata item in wd_item_id. This can be used in
             conjunction with wd_item_id in order to provide raw data.
+        :param user_agent: The user agent string to use when making http requests
+        :type user_agent: str
         """
         self.wd_json_representation = {}
         self.wd_item_id = wd_item_id
@@ -125,6 +127,8 @@ class WDItemEngine(object):
         self.keep_good_ref_statements = keep_good_ref_statements
 
         self.search_only = search_only
+
+        self.user_agent = user_agent
 
         if len(WDItemEngine.databases) == 0 or len(WDItemEngine.pmids) == 0:
             WDItemEngine._init_ref_system()
@@ -215,8 +219,11 @@ class WDItemEngine(object):
             'ids': self.wd_item_id,
             'format': 'json'
         }
+        headers = {
+            'User-Agent': self.user_agent
+        }
 
-        reply = requests.get(url, params=params)
+        reply = requests.get(url, params=params, headers=headers)
         reply.raise_for_status()
         return self.parse_wd_json(wd_json=reply.json()['entities'][self.wd_item_id])
 
@@ -320,8 +327,11 @@ class WDItemEngine(object):
                             'q': u'string[{}:{}]'.format(str(wd_property).replace('P', ''),
                                                          u'"{}"'.format(data_point)),
                         }
+                        headers = {
+                           'User-Agent': self.user_agent
+                        }
 
-                        reply = requests.get(url, params=params)
+                        reply = requests.get(url, params=params, headers=headers)
                         reply.raise_for_status()
 
                         tmp_qids = reply.json()['items']
