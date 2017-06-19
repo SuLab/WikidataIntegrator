@@ -4,6 +4,7 @@ import webbrowser
 
 from mwoauth import ConsumerToken, Handshaker
 from requests_oauthlib import OAuth1
+from wikidataintegrator.wdi_config import config
 
 
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff, get_config
@@ -23,7 +24,7 @@ class WDLogin(object):
 
     @wdi_backoff()
     def __init__(self, user=None, pwd=None, server='www.wikidata.org', token_renew_period=1800, use_clientlogin=False,
-                 consumer_key=None, consumer_secret=None, callback_url='oob'):
+                 consumer_key=None, consumer_secret=None, callback_url='oob', user_agent=config['USER_AGENT_DEFAULT']):
         """
         This class handles several types of login procedures. Either use user and pwd authentication or OAuth. 
         Wikidata clientlogin can also be used. If using one method, do NOT pass parameters for another method. 
@@ -47,7 +48,10 @@ class WDLogin(object):
             self.server = server
         self.base_url = 'https://{}/w/api.php'.format(self.server)
         self.s = requests.Session()
-
+        self.user_agent=user_agent
+        self.s.headers.update({
+            'User-Agent': self.user_agent
+        })
         self.edit_token = ''
         self.instantiation_time = time.time()
         self.token_renew_period = token_renew_period
@@ -65,7 +69,7 @@ class WDLogin(object):
             self.consumer_token = ConsumerToken(self.consumer_key, self.consumer_secret)
 
             # Construct handshaker with wiki URI and consumer
-            self.handshaker = Handshaker(self.mw_url, self.consumer_token, callback=self.callback_url)
+            self.handshaker = Handshaker(self.mw_url, self.consumer_token, callback=self.callback_url, user_agent=self.user_agent)
 
             # Step 1: Initialize -- ask MediaWiki for a temp key/secret for user
             # redirect -> authorization -> callback url
