@@ -245,7 +245,7 @@ class WDItemEngine(object):
 
     @staticmethod
     @wdi_backoff()
-    def get_wd_search_results(search_string='', server='www.wikidata.org'):
+    def get_wd_search_results(search_string='', server='www.wikidata.org', user_agent=config['USER_AGENT_DEFAULT']):
         """
         Performs a search in WD for a certain WD search string
         :param search_string: a string which should be searched for in WD
@@ -261,8 +261,11 @@ class WDItemEngine(object):
             'search': search_string,
             'format': 'json'
         }
+        headers = {
+            'User-Agent': user_agent
+        }
 
-        reply = requests.get(url, params=params)
+        reply = requests.get(url, params=params, headers=headers)
         reply.raise_for_status()
         search_results = reply.json()
 
@@ -1015,7 +1018,7 @@ class WDItemEngine(object):
         return response.json()
 
     @staticmethod
-    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts=''):
+    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts='', user_agent=config['USER_AGENT_DEFAULT']):
         """
         A static method to merge two Wikidata items
         :param from_id: The QID which should be merged into another item
@@ -1034,7 +1037,8 @@ class WDItemEngine(object):
 
         headers = {
             'content-type': 'application/x-www-form-urlencoded',
-            'charset': 'utf-8'
+            'charset': 'utf-8',
+            'User-Agent': user_agent
         }
 
         params = {
@@ -1095,7 +1099,7 @@ class WDItemEngine(object):
             WDItemEngine.pmids.append(x['x']['value'].split('/')[-1])
 
     @staticmethod
-    def delete_items(item_list, reason, login):
+    def delete_items(item_list, reason, login, user_agent=config['USER_AGENT_DEFAULT']):
         """
         Takes a list of items and posts them for deletion by Wikidata moderators, appends at the end of the deletion
         request page.
@@ -1120,8 +1124,12 @@ class WDItemEngine(object):
             'format': 'json'
         }
 
+        headers = {
+            'User-Agent': user_agent
+        }
+
         page_text = [x['revisions'][0]['*']
-                     for x in requests.get(url=url, params=params).json()['query']['pages'].values()][0]
+                     for x in requests.get(url=url, params=params, headers=headers).json()['query']['pages'].values()][0]
 
         if not login:
             print(page_text)
@@ -1137,7 +1145,7 @@ class WDItemEngine(object):
                 'format': 'json'
             }
 
-            r = requests.post(url=url, data=params, cookies=login.get_edit_cookie())
+            r = requests.post(url=url, data=params, cookies=login.get_edit_cookie(), headers=headers)
 
             print(r.json())
 
