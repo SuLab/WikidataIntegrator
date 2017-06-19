@@ -937,7 +937,7 @@ class WDItemEngine(object):
         cls.logger.log(level=log_levels[level], msg=message)
 
     @classmethod
-    def generate_item_instances(cls, items, server='www.wikidata.org', login=None):
+    def generate_item_instances(cls, items, server='www.wikidata.org', login=None, user_agent=config['USER_AGENT_DEFAULT']):
         """
         A method which allows for retrieval of a list of Wikidata items or properties. The method generates a list of
         tuples where the first value in the tuple is the QID or property ID, whereas the second is the new instance of
@@ -960,9 +960,12 @@ class WDItemEngine(object):
             'ids': '|'.join(items),
             'format': 'json'
         }
+        headers = {
+            'User-Agent': user_agent
+        }
 
         if login:
-            reply = login.get_session().get(url, params=params)
+            reply = login.get_session().get(url, params=params, headers=headers)
         else:
             reply = requests.get(url, params=params)
 
