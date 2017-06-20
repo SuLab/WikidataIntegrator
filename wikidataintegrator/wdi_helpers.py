@@ -8,6 +8,7 @@ from dateutil import parser as du
 
 from . import wdi_core
 from .wdi_core import WDItemEngine, WDApiError
+from wikidataintegrator.wdi_config import config
 
 
 class Release(object):
@@ -213,6 +214,7 @@ class PubmedItem(object):
         self.statements = None
         self.wdid = None
         self.article = None
+        self.user_agent = config['USER_AGENT_DEFAULT']
 
     def get_article_info(self):
         if self.id_type == "PMC":
@@ -226,7 +228,10 @@ class PubmedItem(object):
             url = url.format(self.ext_id, self.id_type)
         else:
             raise ValueError()
-        response = requests.get(url)
+        headers = {
+            'User-Agent': self.user_agent
+        }
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
         d = response.json()
         if d['hitCount'] != 1:
@@ -374,7 +379,10 @@ class PubmedItem(object):
 
         # we need the json of the item to grab any existing authors
         url = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids={}&format=json".format(qid)
-        dc = requests.get(url).json()
+        headers = {
+            'User-Agent': self.user_agent
+        }
+        dc = requests.get(url, headers=headers).json()
         claims = dc['entities'][qid]['claims']
         if 'P50' not in claims:
             ordinals = None

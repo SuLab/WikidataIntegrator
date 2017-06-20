@@ -12,6 +12,7 @@ import json
 import wikidataintegrator.wdi_property_store as wdi_property_store
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_fastrun import FastRunContainer
+from wikidataintegrator.wdi_config import config
 
 """
 Authors: 
@@ -50,7 +51,7 @@ class WDItemEngine(object):
     def __init__(self, wd_item_id='', item_name='', domain='', data=None, server='www.wikidata.org',
                  append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None,
                  global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False, search_only=False,
-                 item_data=None):
+                 item_data=None, user_agent=config['USER_AGENT_DEFAULT']):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -100,6 +101,8 @@ class WDItemEngine(object):
         :type search_only: bool
         :param item_data: A Python JSON object corresponding to the Wikidata item in wd_item_id. This can be used in
             conjunction with wd_item_id in order to provide raw data.
+        :param user_agent: The user agent string to use when making http requests
+        :type user_agent: str
         """
         self.wd_json_representation = {}
         self.wd_item_id = wd_item_id
@@ -124,6 +127,8 @@ class WDItemEngine(object):
         self.keep_good_ref_statements = keep_good_ref_statements
 
         self.search_only = search_only
+
+        self.user_agent = user_agent
 
         if len(WDItemEngine.databases) == 0 or len(WDItemEngine.pmids) == 0:
             WDItemEngine._init_ref_system()
@@ -214,8 +219,11 @@ class WDItemEngine(object):
             'ids': self.wd_item_id,
             'format': 'json'
         }
+        headers = {
+            'User-Agent': self.user_agent
+        }
 
-        reply = requests.get(url, params=params)
+        reply = requests.get(url, params=params, headers=headers)
         reply.raise_for_status()
         return self.parse_wd_json(wd_json=reply.json()['entities'][self.wd_item_id])
 
@@ -244,7 +252,7 @@ class WDItemEngine(object):
 
     @staticmethod
     @wdi_backoff()
-    def get_wd_search_results(search_string='', server='www.wikidata.org'):
+    def get_wd_search_results(search_string='', server='www.wikidata.org', user_agent=config['USER_AGENT_DEFAULT']):
         """
         Performs a search in WD for a certain WD search string
         :param search_string: a string which should be searched for in WD
@@ -260,8 +268,11 @@ class WDItemEngine(object):
             'search': search_string,
             'format': 'json'
         }
+        headers = {
+            'User-Agent': user_agent
+        }
 
-        reply = requests.get(url, params=params)
+        reply = requests.get(url, params=params, headers=headers)
         reply.raise_for_status()
         search_results = reply.json()
 
@@ -316,8 +327,11 @@ class WDItemEngine(object):
                             'q': u'string[{}:{}]'.format(str(wd_property).replace('P', ''),
                                                          u'"{}"'.format(data_point)),
                         }
+                        headers = {
+                           'User-Agent': self.user_agent
+                        }
 
-                        reply = requests.get(url, params=params)
+                        reply = requests.get(url, params=params, headers=headers)
                         reply.raise_for_status()
 
                         tmp_qids = reply.json()['items']
@@ -933,7 +947,7 @@ class WDItemEngine(object):
         cls.logger.log(level=log_levels[level], msg=message)
 
     @classmethod
-    def generate_item_instances(cls, items, server='www.wikidata.org', login=None):
+    def generate_item_instances(cls, items, server='www.wikidata.org', login=None, user_agent=config['USER_AGENT_DEFAULT']):
         """
         A method which allows for retrieval of a list of Wikidata items or properties. The method generates a list of
         tuples where the first value in the tuple is the QID or property ID, whereas the second is the new instance of
@@ -956,9 +970,12 @@ class WDItemEngine(object):
             'ids': '|'.join(items),
             'format': 'json'
         }
+        headers = {
+            'User-Agent': user_agent
+        }
 
         if login:
-            reply = login.get_session().get(url, params=params)
+            reply = login.get_session().get(url, params=params, headers=headers)
         else:
             reply = requests.get(url, params=params)
 
@@ -972,7 +989,7 @@ class WDItemEngine(object):
     @staticmethod
     @wdi_backoff()
     def execute_sparql_query(prefix='', query='', endpoint='https://query.wikidata.org/sparql',
-                             user_agent='wikidataintegrator: github.com/SuLab/WikidataIntegrator'):
+                             user_agent=config['USER_AGENT_DEFAULT']):
         """
         Static method which can be used to execute any SPARQL query
         :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
@@ -1014,7 +1031,7 @@ class WDItemEngine(object):
         return response.json()
 
     @staticmethod
-    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts=''):
+    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts='', user_agent=config['USER_AGENT_DEFAULT']):
         """
         A static method to merge two Wikidata items
         :param from_id: The QID which should be merged into another item
@@ -1033,7 +1050,8 @@ class WDItemEngine(object):
 
         headers = {
             'content-type': 'application/x-www-form-urlencoded',
-            'charset': 'utf-8'
+            'charset': 'utf-8',
+            'User-Agent': user_agent
         }
 
         params = {
@@ -1094,7 +1112,7 @@ class WDItemEngine(object):
             WDItemEngine.pmids.append(x['x']['value'].split('/')[-1])
 
     @staticmethod
-    def delete_items(item_list, reason, login):
+    def delete_items(item_list, reason, login, user_agent=config['USER_AGENT_DEFAULT']):
         """
         Takes a list of items and posts them for deletion by Wikidata moderators, appends at the end of the deletion
         request page.
@@ -1119,8 +1137,12 @@ class WDItemEngine(object):
             'format': 'json'
         }
 
+        headers = {
+            'User-Agent': user_agent
+        }
+
         page_text = [x['revisions'][0]['*']
-                     for x in requests.get(url=url, params=params).json()['query']['pages'].values()][0]
+                     for x in requests.get(url=url, params=params, headers=headers).json()['query']['pages'].values()][0]
 
         if not login:
             print(page_text)
@@ -1136,7 +1158,7 @@ class WDItemEngine(object):
                 'format': 'json'
             }
 
-            r = requests.post(url=url, data=params, cookies=login.get_edit_cookie())
+            r = requests.post(url=url, data=params, cookies=login.get_edit_cookie(), headers=headers)
 
             print(r.json())
 
