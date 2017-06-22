@@ -130,9 +130,6 @@ class WDItemEngine(object):
 
         self.user_agent = user_agent
 
-        if len(WDItemEngine.databases) == 0 or len(WDItemEngine.pmids) == 0:
-            WDItemEngine._init_ref_system()
-
         if data is None:
             self.data = []
         else:
@@ -384,6 +381,10 @@ class WDItemEngine(object):
                 old_item.set_qualifiers(new_item.get_qualifiers())
 
         def is_good_ref(ref_block):
+
+            if len(WDItemEngine.databases) == 0 or len(WDItemEngine.pmids) == 0:
+                WDItemEngine._init_ref_system()
+
             prop_nrs = [x.get_prop_nr() for x in ref_block]
             values = [x.get_value() for x in ref_block]
             good_ref = True
