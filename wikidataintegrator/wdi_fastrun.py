@@ -1,10 +1,8 @@
 import copy
+from collections import defaultdict
 
-# from wikidataintegrator.wdi_core import *
 from datetime import datetime
 from itertools import chain
-
-from wikidataintegrator.wdi_core import WDBaseDataType
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
 __license__ = 'AGPLv3'
@@ -39,7 +37,7 @@ class FastRunContainer(object):
         self.base_filter_string = ''
         self.prop_dt_map = {}
         self.current_qid = ''
-        self.rev_lookup = {}
+        self.rev_lookup = defaultdict(set)
         self.base_data_type = base_data_type
         self.engine = engine
         self.debug = True
@@ -114,7 +112,7 @@ class FastRunContainer(object):
                 print("{} not found in fastrun".format(prop_nr))
                 self.prop_dt_map.update({prop_nr: FastRunContainer.get_prop_datatype(prop_nr=prop_nr,
                                                                                      engine=self.engine)})
-                self._query_data(prop_nr=prop_nr)
+                self._query_data(prop_nr)
 
             # more sophisticated data types like dates and globe coordinates need special treatment here
             if self.prop_dt_map[prop_nr] == 'time':
@@ -180,23 +178,20 @@ class FastRunContainer(object):
                 continue
 
             # this is where the magic happens
-            bool_vec = [WDBaseDataType.equals(x, date, include_ref=True) and x.get_prop_nr() not in del_props for x in tmp_rs]
+            bool_vec = [x.equals(x, date, include_ref=True) and x.get_prop_nr() not in del_props for x in tmp_rs]
             if self.debug:
-                print(bool_vec)
-                bool_vec = []
+                print("bool_vec: {}".format(bool_vec))
 
                 print('-----------------------------------')
                 for x in tmp_rs:
 
                     if date == x and x.get_prop_nr() not in del_props:
-                        bool_vec.append(True)
                         print(x.get_prop_nr(), x.get_value(), [z.get_value() for z in x.get_qualifiers()])
                         print(date.get_prop_nr(), date.get_value(), [z.get_value() for z in date.get_qualifiers()])
                     else:
                         if x.get_prop_nr() == date.get_prop_nr():
                             print(x.get_prop_nr(), x.get_value(), [z.get_value() for z in x.get_qualifiers()])
                             print(date.get_prop_nr(), date.get_value(), [z.get_value() for z in date.get_qualifiers()])
-                        bool_vec.append(False)
 
             if not any(bool_vec):
                 if self.debug:
@@ -312,13 +307,14 @@ class FastRunContainer(object):
 
                 # TODO: needs check for no-value and some-value sparql results return
                 # for some-value, this json is being returned {'value': 't329541227', 'type': 'bnode'}
-                if type(i['v']) is not dict and i['v'] in self.rev_lookup:
-                    self.rev_lookup[i['v']].append(i['item'])
-                elif type(i['v']) is not dict:
-                    self.rev_lookup[i['v']] = [i['item']]
+                if type(i['v']) is not dict:
+                    self.rev_lookup[i['v']].add(i['item'])
 
             # handle ref
             if 'rval' in i:
+                if ('datatype' in i['rval'] and i['rval']['datatype'] == 'http://www.w3.org/2001/XMLSchema#dateTime' and
+                        not i['rval']['value'].startswith("+")):
+                    i['rval']['value'] = '+' + i['rval']['value']
                 if i['rval']['type'] == 'literal':
                     i['rval'] = i['rval']['value']
                 elif i['rval']['type'] == 'uri':

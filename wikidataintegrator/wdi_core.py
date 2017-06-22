@@ -1548,16 +1548,17 @@ class WDBaseDataType(object):
         If comparing references, the order of the arguments matters!!!
         The first should be the current statement, the second is the new statement.
         Allows passing in a function to use to compare the references 'fref'. Default is equality.
-        fref accepts two arguments 'oldref' and 'newref', each of which are a list of statements
+        fref accepts two arguments 'oldref' and 'newref', each of which are a list of references,
+        where each reference is a list of statements
         """
         if not include_ref:
             return this == that
         if include_ref and this != that:
             return False
         if include_ref and fref is None:
-            fref = this.refs_equal
-        oldref = this.ref
-        newref = this.old
+            fref = WDBaseDataType.refs_equal
+        oldref = this.references
+        newref = that.references
         return fref(oldref, newref)
 
     @staticmethod
@@ -1566,7 +1567,7 @@ class WDBaseDataType(object):
         See ref_equals
         """
         return len(oldrefs) == len(newrefs) and all(
-            any(oldrefs.ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs)
+            any(WDBaseDataType.ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs)
 
     @staticmethod
     def ref_equal(oldref, newref, days=180):
