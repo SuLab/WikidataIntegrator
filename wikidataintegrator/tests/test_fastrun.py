@@ -5,6 +5,10 @@ from wikidataintegrator.wdi_core import WDBaseDataType
 
 
 def test_query_data():
+    """
+    This hits wikidata and may change
+    :return:
+    """
     frc = wdi_fastrun.FastRunContainer(base_filter={'P699': ''},
                                        base_data_type=wdi_core.WDBaseDataType, engine=wdi_core.WDItemEngine)
     frc._query_data('P699')
@@ -18,7 +22,7 @@ def test_query_data():
     assert frc.prop_data['Q10874']['P699']['Q10874-7475555C-9EAB-45BB-B36B-C18AF5852FC8']['v'] == 'DOID:1432'
 
 
-def fake_query_data(_):
+def fake_query_data_doid(_):
     # all this does is set the frc.prop_data to contain one statement about blindness
     print("using fake query data")
     frc.prop_data['Q10874'] = {'P699': {
@@ -33,11 +37,28 @@ def fake_query_data(_):
 
     frc.rev_lookup = {'DOID:1432': {'Q10874'}}
 
+def fake_query_data_ensembl(_):
+    print("using fake query data")
+    frc.prop_data['Q14911732'] = {'P594': {
+        'fake statement id': {
+            'qual': set(),
+            'ref': {
+                'fake ref id': {
+                    ('P248', 'Q29458763'),
+                    ('P594', 'ENSG00000123374')}},
+            'v': 'ENSG00000123374'}}}
 
-def test_fastrun_ref():
+    frc.rev_lookup = {'DOID:1432': {'Q10874'}}
+
+
+def test_fastrun_ref_doid():
+    """
+    Uses fake_query_data. Will not change
+    :return:
+    """
     frc = wdi_fastrun.FastRunContainer(base_filter={'P699': ''},
                                        base_data_type=wdi_core.WDBaseDataType, engine=wdi_core.WDItemEngine)
-    frc._query_data = fake_query_data
+    frc._query_data = fake_query_data_doid
 
     statements = [wdi_core.WDExternalID(value='DOID:1432', prop_nr='P699')]
     assert frc.write_required(data=statements)
@@ -48,6 +69,26 @@ def test_fastrun_ref():
         wdi_core.WDTime('+2017-02-10T00:00:00Z', prop_nr='P813', is_reference=True)]
     ])]
     assert not frc.write_required(data=statements)
+
+    statements = [wdi_core.WDExternalID(value='DOID:1432', prop_nr='P699', references=[
+        [wdi_core.WDExternalID(value='DOID:1432', prop_nr='P699', is_reference=True),
+         wdi_core.WDItemID(value='Q28556593', prop_nr='P248', is_reference=True),
+         wdi_core.WDTime('+2018-02-10T00:00:00Z', prop_nr='P813', is_reference=True)]
+    ])]
+    assert frc.write_required(data=statements)
+
+def test_fastrun_ref_ensembl():
+    """
+    Uses fake_query_data. Will not change
+    :return:
+    """
+    frc = wdi_fastrun.FastRunContainer(base_filter={'P594': '', 'P703': 'Q15978631'},
+                                       base_data_type=wdi_core.WDBaseDataType, engine=wdi_core.WDItemEngine)
+    frc._query_data = fake_query_data_ensembl
+
+    statements = [wdi_core.WDExternalID(value='ENSG00000123374', prop_nr='P594')]
+    assert frc.write_required(data=statements)
+
 
 
 def test_human_protein():

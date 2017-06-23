@@ -29,7 +29,7 @@ example_Q14911732 = {'P1057':
 
 
 class FastRunContainer(object):
-    def __init__(self, base_data_type, engine, base_filter=None):
+    def __init__(self, base_data_type, engine, base_filter=None, use_refs=False, comparison_f=None):
         self.prop_data = {}
         self.loaded_langs = {}
         self.statements = []
@@ -42,6 +42,8 @@ class FastRunContainer(object):
         self.engine = engine
         self.debug = True
         self.reconstructed_statements = []
+        self.use_refs = use_refs
+        self.comparison_f = comparison_f
 
         if base_filter and any(base_filter):
             self.base_filter = base_filter
@@ -178,7 +180,8 @@ class FastRunContainer(object):
                 continue
 
             # this is where the magic happens
-            bool_vec = [x.equals(x, date, include_ref=True) and x.get_prop_nr() not in del_props for x in tmp_rs]
+            bool_vec = [x.equals(x, date, include_ref=self.use_refs, fref=self.comparison_f) and
+                        x.get_prop_nr() not in del_props for x in tmp_rs]
             if self.debug:
                 print("bool_vec: {}".format(bool_vec))
 
@@ -268,26 +271,42 @@ class FastRunContainer(object):
         return self.prop_data
 
     def _query_data(self, prop_nr):
-        query = '''
-        #Tool: wdi_core fastrun
-        select ?item ?qval ?pq ?sid ?v ?ref ?pr ?rval where {{
-          {0}
+        if self.use_refs:
+            query = '''
+                    #Tool: wdi_core fastrun
+                    select ?item ?qval ?pq ?sid ?v ?ref ?pr ?rval where {{
+                      {0}
 
-          ?item p:{1} ?sid .
+                      ?item p:{1} ?sid .
 
-          ?sid ps:{1} ?v .
-          OPTIONAL {{
-            ?sid ?pq ?qval .
-            FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/"))
-          }}
-          OPTIONAL {{
-            ?sid prov:wasDerivedFrom ?ref .
-            ?ref ?pr ?rval .
-            FILTER(STRSTARTS(STR(?pr), "http://www.wikidata.org/prop/reference/P"))
-          }}
+                      ?sid ps:{1} ?v .
+                      OPTIONAL {{
+                        ?sid ?pq ?qval .
+                        FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/"))
+                      }}
+                      OPTIONAL {{
+                        ?sid prov:wasDerivedFrom ?ref .
+                        ?ref ?pr ?rval .
+                        FILTER(STRSTARTS(STR(?pr), "http://www.wikidata.org/prop/reference/P"))
+                      }}
 
-        }}
-        '''.format(self.base_filter_string, prop_nr)
+                    }}
+                    '''.format(self.base_filter_string, prop_nr)
+        else:
+            query = '''
+                    #Tool: wdi_core fastrun
+                    select ?item ?qval ?pq ?sid ?v where {{
+                      {0}
+
+                      ?item p:{1} ?sid .
+
+                      ?sid ps:{1} ?v .
+                      OPTIONAL {{
+                        ?sid ?pq ?qval .
+                        FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/"))
+                      }}
+                    }}
+                    '''.format(self.base_filter_string, prop_nr)
         r = self.engine.execute_sparql_query(query=query, prefix=prefix)['results']['bindings']
 
         # format

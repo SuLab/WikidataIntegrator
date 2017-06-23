@@ -49,9 +49,9 @@ class WDItemEngine(object):
     logger = None
 
     def __init__(self, wd_item_id='', item_name='', domain='', data=None, server='www.wikidata.org',
-                 append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None,
-                 global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False, search_only=False,
-                 item_data=None, user_agent=config['USER_AGENT_DEFAULT']):
+                 append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
+                 comparison_f=None, global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False,
+                 search_only=False, item_data=None, user_agent=config['USER_AGENT_DEFAULT']):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -75,6 +75,16 @@ class WDItemEngine(object):
             Example: {'P352': '', 'P703': 'Q15978631'} if the basic common type of things this bot runs on is
             human proteins (specified by Uniprot IDs (P352) and 'found in taxon' homo sapiens 'Q15978631').
         :type fast_run_base_filter: dict
+        :param fast_run_use_refs: If `True`, fastrun mode will consider references in determining if a statement should
+            be updated and written to Wikidata. Otherwise, only the value and qualifiers are used. Default: False
+        :type fast_run_use_refs: bool
+        :param comparison_f: This parameter allows the user to define a function that is used to decide if a new statement
+            should be writte by comparing it with the current/existing statement. This argument should be a function
+            handle that accepts two arguments, the old/current statement (first argument) and the new/proposed/to be
+            written statement (second argument). Both arguments should be subclass of WDBaseDataType. The function
+            should return True or False, determing whether or not the new statement should be written. This is only used
+            in fastrun mode. The default is equality of value, qualifiers and all references.
+        :type comparison_f: function
         :param global_ref_mode: sets the reference handling mode for an item. Four modes are possible, 'STRICT_KEEP'
             keeps all references as they are, 'STRICT_KEEP_APPEND' keeps the references as they are and appends
             new ones. 'STRICT_OVERWRITE' overwrites all existing references for given.
@@ -118,6 +128,8 @@ class WDItemEngine(object):
 
         self.fast_run = fast_run
         self.fast_run_base_filter = fast_run_base_filter
+        self.fast_run_use_refs = fast_run_use_refs
+        self.comparison_f = comparison_f
         self.fast_run_container = None
         self.require_write = True
 
@@ -192,7 +204,8 @@ class WDItemEngine(object):
 
         if not self.fast_run_container:
             self.fast_run_container = FastRunContainer(base_filter=self.fast_run_base_filter,
-                                                       base_data_type=WDBaseDataType, engine=WDItemEngine)
+                                                       base_data_type=WDBaseDataType, engine=WDItemEngine,
+                                                       use_refs=self.fast_run_use_refs, comparison_f=self.comparison_f)
             WDItemEngine.fast_run_store.append(self.fast_run_container)
 
         self.require_write = self.fast_run_container.write_required(self.data, append_props=self.append_value,
@@ -1349,6 +1362,7 @@ class WDBaseDataType(object):
         return equal_qualifiers
 
     def __eq__(self, other):
+        print("is anything using this? __eq__ 1364")
         equal_qualifiers = self.has_equal_qualifiers(other)
         equal_values = self.get_value() == other.get_value() and self.get_prop_nr() == other.get_prop_nr()
 
@@ -1360,6 +1374,7 @@ class WDBaseDataType(object):
             return False
 
     def __ne__(self, other):
+        print("is anything using this? __eq__ 1364")
         equal_qualifiers = self.has_equal_qualifiers(other)
         nonequal_values = self.get_value() != other.get_value() or self.get_prop_nr() != other.get_prop_nr()
 
@@ -1552,6 +1567,7 @@ class WDBaseDataType(object):
         where each reference is a list of statements
         """
         if not include_ref:
+            # return the result of WDBaseDataType.__eq__, which is testing for equality of value and qualifiers
             return this == that
         if include_ref and this != that:
             return False
@@ -1563,14 +1579,17 @@ class WDBaseDataType(object):
 
     @staticmethod
     def refs_equal(oldrefs, newrefs):
-        """
-        See ref_equals
-        """
+        # tests for exactly identical references
+        def ref_equal(oldref, newref):
+            if len(oldref) != len(newref):
+                return False
+            if all(x in oldref for x in newref):
+                return True
         return len(oldrefs) == len(newrefs) and all(
-            any(WDBaseDataType.ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs)
+            any(ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs)
 
     @staticmethod
-    def ref_equal(oldref, newref, days=180):
+    def custom_ref_equal_dates(oldrefs, newrefs, days=180):
         """
         These refs are equal if:
         1. Excluding the retrieved statement, the references are equivalent
@@ -1581,29 +1600,32 @@ class WDBaseDataType(object):
 
         raise Error if newref contains more than one retrieved
         """
-        if len(oldref) != len(newref):
-            return False
-        oldref_minus_retrieved = [x for x in oldref if x.get_prop_nr() != 'P813']
-        newref_minus_retrieved = [x for x in newref if x.get_prop_nr() != 'P813']
-        if not all(x in oldref_minus_retrieved for x in newref_minus_retrieved):
-            return False
-        oldref_retrieved = [x for x in oldref if x.get_prop_nr() == 'P813']
-        newref_retrieved = [x for x in newref if x.get_prop_nr() == 'P813']
-        if len(newref_retrieved) != len(oldref_retrieved):
-            return False
-        if len(newref_retrieved) == len(oldref_retrieved) == 0:
-            return True
-        if len(newref_retrieved) != 1:
-            raise ValueError("why did you put more than one retrieved?")
-        retrieved_old = set(
-            [datetime.datetime.strptime(r.get_value()[0], '+%Y-%m-%dT%H:%M:%SZ') for r in oldref if r.get_prop_nr() == 'P813'])
-        retrieved_new = set(
-            [datetime.datetime.strptime(r.get_value()[0], '+%Y-%m-%dT%H:%M:%SZ') for r in newref if r.get_prop_nr() == 'P813'])
-        retrieved_new = list(retrieved_new)[0]
-        if all((retrieved_new - x).days >= days for x in retrieved_old):
-            return False
-        else:
-            return True
+        def ref_equal(oldref, newref):
+            if len(oldref) != len(newref):
+                return False
+            oldref_minus_retrieved = [x for x in oldref if x.get_prop_nr() != 'P813']
+            newref_minus_retrieved = [x for x in newref if x.get_prop_nr() != 'P813']
+            if not all(x in oldref_minus_retrieved for x in newref_minus_retrieved):
+                return False
+            oldref_retrieved = [x for x in oldref if x.get_prop_nr() == 'P813']
+            newref_retrieved = [x for x in newref if x.get_prop_nr() == 'P813']
+            if len(newref_retrieved) != len(oldref_retrieved):
+                return False
+            if len(newref_retrieved) == len(oldref_retrieved) == 0:
+                return True
+            if len(newref_retrieved) != 1:
+                raise ValueError("why did you put more than one retrieved?")
+            retrieved_old = set(
+                [datetime.datetime.strptime(r.get_value()[0], '+%Y-%m-%dT%H:%M:%SZ') for r in oldref if r.get_prop_nr() == 'P813'])
+            retrieved_new = set(
+                [datetime.datetime.strptime(r.get_value()[0], '+%Y-%m-%dT%H:%M:%SZ') for r in newref if r.get_prop_nr() == 'P813'])
+            retrieved_new = list(retrieved_new)[0]
+            if all((retrieved_new - x).days >= days for x in retrieved_old):
+                return False
+            else:
+                return True
+        return len(oldrefs) == len(newrefs) and all(
+            any(ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs)
 
 
 
