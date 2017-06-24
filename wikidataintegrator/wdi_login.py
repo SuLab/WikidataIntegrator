@@ -62,6 +62,7 @@ class WDLogin(object):
         self.consumer_secret = consumer_secret
         self.response_qs = None
         self.callback_url = callback_url
+        self.base_url_template = base_url_template
 
         if self.consumer_key and self.consumer_secret:
             # Oauth procedure, based on https://www.mediawiki.org/wiki/OAuth/For_Developers

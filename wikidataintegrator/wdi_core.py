@@ -51,7 +51,7 @@ class WDItemEngine(object):
     def __init__(self, wd_item_id='', item_name='', domain='', data=None, server='www.wikidata.org',
                  append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None,
                  global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False, search_only=False,
-                 item_data=None, user_agent=config['USER_AGENT_DEFAULT']):
+                 item_data=None, user_agent=config['USER_AGENT_DEFAULT'], base_url_template='https://{}/w/api.php'):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -129,6 +129,7 @@ class WDItemEngine(object):
         self.search_only = search_only
 
         self.user_agent = user_agent
+        self.base_url_template = base_url_template
 
         if data is None:
             self.data = []
@@ -846,7 +847,7 @@ class WDItemEngine(object):
         else:
             payload.update({u'id': self.wd_item_id})
 
-        base_url = 'https://' + self.server + '/w/api.php'
+        base_url = self.base_url_template.format(self.server)
 
         try:
             reply = login.get_session().post(base_url, headers=headers, data=payload)
