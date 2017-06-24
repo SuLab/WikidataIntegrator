@@ -24,10 +24,11 @@ class WDLogin(object):
 
     @wdi_backoff()
     def __init__(self, user=None, pwd=None, server='www.wikidata.org', token_renew_period=1800, use_clientlogin=False,
-                 consumer_key=None, consumer_secret=None, callback_url='oob', user_agent=config['USER_AGENT_DEFAULT']):
+                 consumer_key=None, consumer_secret=None, callback_url='oob', user_agent=config['USER_AGENT_DEFAULT'],
+                 base_url_template='https://{}/w/api.php'):
         """
-        This class handles several types of login procedures. Either use user and pwd authentication or OAuth. 
-        Wikidata clientlogin can also be used. If using one method, do NOT pass parameters for another method. 
+        This class handles several types of login procedures. Either use user and pwd authentication or OAuth.
+        Wikidata clientlogin can also be used. If using one method, do NOT pass parameters for another method.
         :param user: the username which should be used for the login
         :param pwd: the password which should be used for the login
         :param server: the wikimedia server the login should be made to
@@ -46,7 +47,7 @@ class WDLogin(object):
         """
         if server is not None:
             self.server = server
-        self.base_url = 'https://{}/w/api.php'.format(self.server)
+        self.base_url = base_url_template.format(self.server)
         self.s = requests.Session()
         self.user_agent=user_agent
         self.s.headers.update({
@@ -179,11 +180,11 @@ class WDLogin(object):
 
     def continue_oauth(self, oauth_callback_data=None):
         """
-        Continuation of OAuth procedure. Method must be explicitly called in order to complete OAuth. This allows 
+        Continuation of OAuth procedure. Method must be explicitly called in order to complete OAuth. This allows
         external entities, e.g. websites, to provide tokens through callback URLs directly.
         :param oauth_callback_data: The callback URL received to a Web app
         :type oauth_callback_data: str
-        :return: 
+        :return:
         """
         self.response_qs = oauth_callback_data
 
