@@ -158,7 +158,7 @@ class FastRunContainer(object):
         for p in append_props:
             app_data = [x for x in data if x.get_prop_nr() == p]
             rec_app_data = [x for x in tmp_rs if x.get_prop_nr() == p]
-            comp = [True for x in app_data for y in rec_app_data if x == y]
+            comp = [True for x in app_data for y in rec_app_data if x.equals(y, include_ref=self.use_refs, fref=self.comparison_f)]
             if len(comp) != len(app_data):
                 return True
 
@@ -180,11 +180,10 @@ class FastRunContainer(object):
                 continue
 
             # this is where the magic happens
-            bool_vec = [x.equals(x, date, include_ref=self.use_refs, fref=self.comparison_f) and
+            bool_vec = [x.equals(date, include_ref=self.use_refs, fref=self.comparison_f) and
                         x.get_prop_nr() not in del_props for x in tmp_rs]
             if self.debug:
                 print("bool_vec: {}".format(bool_vec))
-
                 print('-----------------------------------')
                 for x in tmp_rs:
 

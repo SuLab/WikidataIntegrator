@@ -1364,7 +1364,6 @@ class WDBaseDataType(object):
         return equal_qualifiers
 
     def __eq__(self, other):
-        print("is anything using this? __eq__ 1364")
         equal_qualifiers = self.has_equal_qualifiers(other)
         equal_values = self.get_value() == other.get_value() and self.get_prop_nr() == other.get_prop_nr()
 
@@ -1376,7 +1375,6 @@ class WDBaseDataType(object):
             return False
 
     def __ne__(self, other):
-        print("is anything using this? __eq__ 1364")
         equal_qualifiers = self.has_equal_qualifiers(other)
         nonequal_values = self.get_value() != other.get_value() or self.get_prop_nr() != other.get_prop_nr()
 
@@ -1558,30 +1556,32 @@ class WDBaseDataType(object):
         return cls(value='', snak_type='value', data_type='', is_reference=False, is_qualifier=False, references=[],
                    qualifiers=[], rank='', prop_nr=prop_nr, check_qualifier_equality=True)
 
-    @staticmethod
-    def equals(this, that, include_ref=False, fref=None):
+    def equals(self, that, include_ref=False, fref=None):
         """
         Tests for equality of two statements.
         If comparing references, the order of the arguments matters!!!
-        The first should be the current statement, the second is the new statement.
+        self is the current statement, the next argument is the new statement.
         Allows passing in a function to use to compare the references 'fref'. Default is equality.
-        fref accepts two arguments 'oldref' and 'newref', each of which are a list of references,
+        fref accepts two arguments 'oldrefs' and 'newrefs', each of which are a list of references,
         where each reference is a list of statements
         """
         if not include_ref:
             # return the result of WDBaseDataType.__eq__, which is testing for equality of value and qualifiers
-            return this == that
-        if include_ref and this != that:
+            return self == that
+        if include_ref and self != that:
             return False
         if include_ref and fref is None:
             fref = WDBaseDataType.refs_equal
-        oldref = this.references
+        oldref = self.references
         newref = that.references
         return fref(oldref, newref)
 
     @staticmethod
     def refs_equal(oldrefs, newrefs):
-        # tests for exactly identical references
+        """
+        tests for exactly identical references
+        accepts two arguments 'oldrefs' and 'newrefs', each of which are a list of references, where each reference is a list of statements
+        """
         def ref_equal(oldref, newref):
             if len(oldref) != len(newref):
                 return False
@@ -1593,12 +1593,12 @@ class WDBaseDataType(object):
     @staticmethod
     def custom_ref_equal_dates(oldrefs, newrefs, days=180):
         """
+        accepts two arguments 'oldrefs' and 'newrefs', each of which are a list of references, where each reference is a list of statements
         These refs are equal if:
         1. Excluding the retrieved statement, the references are equivalent
-        3. if newref has a retrieved P813:
-            3a. oldref does not have a retrieved
-            3b. oldref retrieved is more than `days` days older than newref
-        else: No write
+        2. if newref has a retrieved P813:
+            2a. oldref does not have a retrieved
+            2b. oldref retrieved is more than `days` days older than newref
 
         raise Error if newref contains more than one retrieved
         """
