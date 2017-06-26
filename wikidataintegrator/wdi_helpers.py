@@ -367,6 +367,8 @@ class PubmedItem(object):
             s.append(wdi_core.WDString(self.meta['issue'], self.PROPS['issue'], references=[self.reference]))
         if self.meta['doi']:
             s.append(wdi_core.WDExternalID(self.meta['doi'].upper(), self.PROPS['DOI'], references=[self.reference]))
+        if self.meta['pmcid']:
+            s.append(wdi_core.WDExternalID(self.meta['pmcid'].replace("PMC", ""), self.PROPS['PMCID'], references=[self.reference]))
 
         self.statements = s
 
