@@ -40,7 +40,7 @@ def test_interpro_item_live():
     item = wdi_core.WDItemEngine(item_name="Matrix metalloproteinase-27", domain='interpro', data=statements,
                                  append_value=["P279", "P31"],
                                  fast_run=True, fast_run_base_filter={'P2926': '', 'P279': 'Q24774044'},
-                                 fast_run_use_refs=True, comparison_f=WDBaseDataType.custom_ref_equal_dates)
+                                 fast_run_use_refs=True, ref_comparison_f=WDBaseDataType.custom_ref_equal_dates)
     assert item.require_write is False
 
     # check references, they are different
@@ -51,7 +51,7 @@ def test_interpro_item_live():
     item = wdi_core.WDItemEngine(item_name="Matrix metalloproteinase-27", domain='interpro', data=statements,
                                  append_value=["P279", "P31"],
                                  fast_run=True, fast_run_base_filter={'P2926': '', 'P279': 'Q24774044'},
-                                 fast_run_use_refs=True, comparison_f=WDBaseDataType.custom_ref_equal_dates)
+                                 fast_run_use_refs=True, ref_comparison_f=WDBaseDataType.custom_ref_equal_dates)
     assert item.require_write
 
 

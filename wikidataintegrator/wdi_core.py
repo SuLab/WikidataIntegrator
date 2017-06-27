@@ -50,7 +50,7 @@ class WDItemEngine(object):
 
     def __init__(self, wd_item_id='', item_name='', domain='', data=None, server='www.wikidata.org',
                  append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
-                 comparison_f=None, global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False,
+                 ref_comparison_f=None, global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False,
                  search_only=False, item_data=None, user_agent=config['USER_AGENT_DEFAULT'],
                  base_url_template='https://{}/w/api.php'):
         """
@@ -79,17 +79,20 @@ class WDItemEngine(object):
         :param fast_run_use_refs: If `True`, fastrun mode will consider references in determining if a statement should
             be updated and written to Wikidata. Otherwise, only the value and qualifiers are used. Default: False
         :type fast_run_use_refs: bool
-        :param comparison_f: This parameter allows the user to define a function that is used to decide if a new statement
-            should be writte by comparing it with the current/existing statement. This argument should be a function
-            handle that accepts two arguments, the old/current statement (first argument) and the new/proposed/to be
-            written statement (second argument). Both arguments should be subclass of WDBaseDataType. The function
-            should return True or False, determing whether or not the new statement should be written. This is only used
-            in fastrun mode. The default is equality of value, qualifiers and all references.
-        :type comparison_f: function
+        :param ref_comparison_f: This parameter defines a function that will determine if the references on two statements
+            (current statement and new statement/to be written) are equal. It is used to determine if a new reference
+            should be written to Wikidata. This argument should be a function handle that accepts two arguments,
+            the references from the old/current statement (first argument) and the references from the new/proposed/to be
+            written statement (second argument). The function should return True or False, determing whether or not
+            the references are equal. This function is also used in fastrun mode. The default is equality of value,
+            qualifiers and all references. If this is set, the global_ref_mode will be ignored and the ref_comparison_f
+            will be used to determine if a reference gets updated.
+        :type ref_comparison_f: function
         :param global_ref_mode: sets the reference handling mode for an item. Four modes are possible, 'STRICT_KEEP'
             keeps all references as they are, 'STRICT_KEEP_APPEND' keeps the references as they are and appends
-            new ones. 'STRICT_OVERWRITE' overwrites all existing references for given.
-        :type global_ref_mode: str of value 'STRICT_KEEP', 'STRICT_KEEP_APPEND', 'STRICT_OVERWRITE', 'KEEP_GOOD'
+            new ones. 'STRICT_OVERWRITE' overwrites all existing references for given. 'CUSTOM' will use the function
+            defined in ref_comparison_f
+        :type global_ref_mode: str of value 'STRICT_KEEP', 'STRICT_KEEP_APPEND', 'STRICT_OVERWRITE', 'KEEP_GOOD', 'CUSTOM'
         :param good_refs: This parameter lets the user define blocks of good references. It is a list of dictionaries.
             One block is a dictionary with  Wikidata properties as keys and potential values as the required value for
             a property. There can be arbitrarily many key: value pairs in one reference block.
@@ -99,7 +102,7 @@ class WDItemEngine(object):
             varies from reference to reference. In this case, only the value for the Wikidata item for the
             Uniprot database stays stable over all of these references. Key value pairs work here, as Wikidata
             references can hold only one value for one property. The number of good reference blocks is not limited.
-            This parameter OVERRIDES any other refernce mode set!!
+            This parameter OVERRIDES any other reference mode set!!
         :type good_refs: list containing dictionaries.
         :param keep_good_ref_statements: Do not delete any statement which has a good reference, either definded in the
             good_refs list or by any other referencing mode.
@@ -130,7 +133,7 @@ class WDItemEngine(object):
         self.fast_run = fast_run
         self.fast_run_base_filter = fast_run_base_filter
         self.fast_run_use_refs = fast_run_use_refs
-        self.comparison_f = comparison_f
+        self.ref_comparison_f = ref_comparison_f if ref_comparison_f else WDBaseDataType.refs_equal
         self.fast_run_container = None
         self.require_write = True
 
@@ -202,13 +205,13 @@ class WDItemEngine(object):
     def init_fastrun(self):
         for c in WDItemEngine.fast_run_store:
             if c.base_filter == self.fast_run_base_filter and c.use_refs == self.fast_run_use_refs and \
-                            c.comparison_f == self.comparison_f:
+                            c.ref_comparison_f == self.ref_comparison_f:
                 self.fast_run_container = c
 
         if not self.fast_run_container:
             self.fast_run_container = FastRunContainer(base_filter=self.fast_run_base_filter,
                                                        base_data_type=WDBaseDataType, engine=WDItemEngine,
-                                                       use_refs=self.fast_run_use_refs, comparison_f=self.comparison_f)
+                                                       use_refs=self.fast_run_use_refs, comparison_f=self.ref_comparison_f)
             WDItemEngine.fast_run_store.append(self.fast_run_container)
 
         self.require_write = self.fast_run_container.write_required(self.data, append_props=self.append_value,
@@ -465,11 +468,17 @@ class WDItemEngine(object):
                     or sum(map(lambda z: len(z), old_references)) == 0 \
                     or self.global_ref_mode == 'STRICT_OVERWRITE':
                 old_item.set_references(new_references)
+
             elif self.global_ref_mode == 'STRICT_KEEP' or new_item.statement_ref_mode == 'STRICT_KEEP':
                 pass
+
             elif self.global_ref_mode == 'STRICT_KEEP_APPEND' or new_item.statement_ref_mode == 'STRICT_KEEP_APPEND':
                 old_references.extend(new_references)
                 old_item.set_references(old_references)
+
+            elif self.global_ref_mode == 'CUSTOM' or new_item.statement_ref_mode == 'CUSTOM':
+                if not self.ref_comparison_f(old_references, new_references):
+                    old_item.set_references(new_references)
 
             elif self.global_ref_mode == 'KEEP_GOOD' or new_item.statement_ref_mode == 'KEEP_GOOD':
                 keep_block = [False for x in old_references]
@@ -1404,7 +1413,7 @@ class WDBaseDataType(object):
     @statement_ref_mode.setter
     def statement_ref_mode(self, value):
         """Set the reference mode for a statement, always overrides the global reference state."""
-        valid_values = ['STRICT_KEEP', 'STRICT_KEEP_APPEND', 'STRICT_OVERWRITE', 'KEEP_GOOD']
+        valid_values = ['STRICT_KEEP', 'STRICT_KEEP_APPEND', 'STRICT_OVERWRITE', 'KEEP_GOOD', 'CUSTOM']
         if value not in valid_values:
             raise ValueError('Not an allowed reference mode, allowed values {}'.format(' '.join(valid_values)))
 
