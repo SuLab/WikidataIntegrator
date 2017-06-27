@@ -12,8 +12,7 @@ class TestItemGenerator(unittest.TestCase):
     def test_item_generator(self):
         items = ['Q408883', 'P715', 'Q18046452']
 
-        login_obj = wdi_login.WDLogin(user='', pwd='')
-        # login_obj = None
+        login_obj = None
         item_instances = wdi_core.WDItemEngine.generate_item_instances(items=items, server='www.wikidata.org',
                                                                        login=login_obj)
 

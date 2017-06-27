@@ -10,8 +10,8 @@ def test_get_pubmed_item():
 def test_get_pubmed_item_cache():
     # this one exists
     wdid = PubmedItem(1234).get_or_create()
-    assert '1234' in PubmedItem._cache
-    assert PubmedItem._cache['1234'] == "Q27442302"
+    assert ('1234', 'MED') in PubmedItem._cache
+    assert PubmedItem._cache[('1234', 'MED')] == "Q27442302"
 
 
 def test_pubmedstub_bad_pmid():

@@ -211,7 +211,7 @@ class WDItemEngine(object):
         if not self.fast_run_container:
             self.fast_run_container = FastRunContainer(base_filter=self.fast_run_base_filter,
                                                        base_data_type=WDBaseDataType, engine=WDItemEngine,
-                                                       use_refs=self.fast_run_use_refs, comparison_f=self.ref_comparison_f)
+                                                       use_refs=self.fast_run_use_refs, ref_comparison_f=self.ref_comparison_f)
             WDItemEngine.fast_run_store.append(self.fast_run_container)
 
         self.require_write = self.fast_run_container.write_required(self.data, append_props=self.append_value,

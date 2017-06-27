@@ -29,7 +29,7 @@ example_Q14911732 = {'P1057':
 
 
 class FastRunContainer(object):
-    def __init__(self, base_data_type, engine, base_filter=None, use_refs=False, comparison_f=None):
+    def __init__(self, base_data_type, engine, base_filter=None, use_refs=False, ref_comparison_f=None):
         self.prop_data = {}
         self.loaded_langs = {}
         self.statements = []
@@ -43,7 +43,7 @@ class FastRunContainer(object):
         self.debug = False
         self.reconstructed_statements = []
         self.use_refs = use_refs
-        self.comparison_f = comparison_f
+        self.ref_comparison_f = ref_comparison_f
 
         if base_filter and any(base_filter):
             self.base_filter = base_filter
@@ -158,12 +158,12 @@ class FastRunContainer(object):
         for p in append_props:
             app_data = [x for x in data if x.get_prop_nr() == p]
             rec_app_data = [x for x in tmp_rs if x.get_prop_nr() == p]
-            comp = [True for x in app_data for y in rec_app_data if x.equals(y, include_ref=self.use_refs, fref=self.comparison_f)]
+            comp = [True for x in app_data for y in rec_app_data if x.equals(y, include_ref=self.use_refs, fref=self.ref_comparison_f)]
             if len(comp) != len(app_data):
                 return True
 
         tmp_rs = [x for x in tmp_rs if x.get_prop_nr() not in append_props and x.get_prop_nr() in data_props]
-        print("154: {}".format(tmp_rs))
+        #print("154: {}".format(tmp_rs))
 
         for date in data:
             # ensure that statements meant for deletion get handled properly
@@ -180,7 +180,7 @@ class FastRunContainer(object):
                 continue
 
             # this is where the magic happens
-            bool_vec = [x.equals(date, include_ref=self.use_refs, fref=self.comparison_f) and
+            bool_vec = [x.equals(date, include_ref=self.use_refs, fref=self.ref_comparison_f) and
                         x.get_prop_nr() not in del_props for x in tmp_rs]
             if self.debug:
                 print("bool_vec: {}".format(bool_vec))
@@ -240,7 +240,7 @@ class FastRunContainer(object):
         current_lang_data = self.loaded_langs[lang][lang_data_type]['results']['bindings']
         all_lang_strings = []
         for sresult in current_lang_data:
-            if sresult['p']['value'].split('/')[-1] == qid:
+            if sresult['item']['value'].split('/')[-1] == qid:
                 if 'label' in sresult:
                     all_lang_strings.append(sresult['label']['value'])
         if not all_lang_strings and lang_data_type in {'label', 'description'}:
@@ -382,11 +382,11 @@ class FastRunContainer(object):
 
         query = '''
         #Tool: wdi_core fastrun
-        SELECT ?p ?label WHERE {{
+        SELECT ?item ?label WHERE {{
             {0}
 
             OPTIONAL {{
-                ?p {1} ?label FILTER (lang(?label) = "{2}") .
+                ?item {1} ?label FILTER (lang(?label) = "{2}") .
             }}
         }}
         '''.format(self.base_filter_string, lang_data_type_dict[lang_data_type], lang)

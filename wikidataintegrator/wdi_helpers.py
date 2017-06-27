@@ -408,7 +408,8 @@ class PubmedItem(object):
         # make statements without the existing authors
         self.make_statements(ordinals)
 
-        item = wdi_core.WDItemEngine(wd_item_id=qid, data=self.statements, domain="scientific_article")
+        item = wdi_core.WDItemEngine(wd_item_id=qid, data=self.statements, domain="scientific_article",
+                                     global_ref_mode='CUSTOM', ref_comparison_f=wdi_core.WDBaseDataType.custom_ref_equal_dates)
         item.set_label(self.meta['title'])
         description = ', '.join(self.descriptions[x] for x in self.meta['pubtype_qid'])
         if item.get_description() == '':

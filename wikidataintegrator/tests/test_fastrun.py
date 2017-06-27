@@ -190,7 +190,7 @@ def test_fastrun_ref_doid():
     # check references with a custom function that checks the retrieved date
     frc = frc_fake_query_data_doid(base_filter={'P699': ''},
                                    base_data_type=wdi_core.WDBaseDataType, engine=wdi_core.WDItemEngine,
-                                   use_refs=True, comparison_f=WDBaseDataType.custom_ref_equal_dates)
+                                   use_refs=True, ref_comparison_f=WDBaseDataType.custom_ref_equal_dates)
     assert frc.write_required(data=[statement_no_ref])
     assert frc.write_required(data=[statement_diff_value_no_ref])
     assert not frc.write_required(data=[statement_current_ref])
@@ -203,7 +203,7 @@ def test_fastrun_ref_doid():
     frc = frc_fake_query_data_doid(base_filter={'P699': ''},
                                    base_data_type=wdi_core.WDBaseDataType, engine=wdi_core.WDItemEngine,
                                    use_refs=True,
-                                   comparison_f=partial(WDBaseDataType.custom_ref_equal_dates, days=2 * 365))
+                                   ref_comparison_f=partial(WDBaseDataType.custom_ref_equal_dates, days=2 * 365))
     assert frc.write_required(data=[statement_no_ref])
     assert frc.write_required(data=[statement_diff_value_no_ref])
     assert not frc.write_required(data=[statement_current_ref])
