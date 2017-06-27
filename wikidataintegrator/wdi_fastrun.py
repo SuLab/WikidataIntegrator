@@ -40,7 +40,7 @@ class FastRunContainer(object):
         self.rev_lookup = defaultdict(set)
         self.base_data_type = base_data_type
         self.engine = engine
-        self.debug = True
+        self.debug = False
         self.reconstructed_statements = []
         self.use_refs = use_refs
         self.comparison_f = comparison_f

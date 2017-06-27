@@ -3,9 +3,11 @@ from functools import partial
 from wikidataintegrator import wdi_core, wdi_fastrun
 from wikidataintegrator.wdi_core import WDBaseDataType
 
+wdi_fastrun.FastRunContainer.debug = True
+
 
 def test_query_data():
-    # This hits wikidata and may change
+    # This hits live wikidata and may change !!
     frc = wdi_fastrun.FastRunContainer(base_filter={'P699': ''},
                                        base_data_type=wdi_core.WDBaseDataType, engine=wdi_core.WDItemEngine)
     frc._query_data('P699')
@@ -17,6 +19,40 @@ def test_query_data():
     d = frc.prop_data['Q10874']['P699']['Q10874-7475555C-9EAB-45BB-B36B-C18AF5852FC8']
     assert all(x in d for x in {'qual', 'ref', 'v'})
     assert frc.prop_data['Q10874']['P699']['Q10874-7475555C-9EAB-45BB-B36B-C18AF5852FC8']['v'] == 'DOID:1432'
+
+
+def test_interpro_item_live():
+    # This hits live wikidata and may change !!
+
+    # dont check references. values are the same
+    statements = [wdi_core.WDExternalID(value="IPR028732", prop_nr="P2926"),
+                  wdi_core.WDItemID("Q24774044", "P279")]
+    item = wdi_core.WDItemEngine(item_name="Matrix metalloproteinase-27", domain='interpro', data=statements,
+                                 append_value=["P279", "P31"],
+                                 fast_run=True, fast_run_base_filter={'P2926': '', 'P279': 'Q24774044'})
+    assert item.require_write is False
+
+    # check references, they are the same
+    ref = [[wdi_core.WDItemID("Q29947749", "P248", is_reference=True),
+            wdi_core.WDExternalID("IPR028732", "P2926", is_reference=True)]]
+    statements = [wdi_core.WDExternalID(value="IPR028732", prop_nr="P2926", references=ref),
+                  wdi_core.WDItemID("Q24774044", "P279", references=ref)]
+    item = wdi_core.WDItemEngine(item_name="Matrix metalloproteinase-27", domain='interpro', data=statements,
+                                 append_value=["P279", "P31"],
+                                 fast_run=True, fast_run_base_filter={'P2926': '', 'P279': 'Q24774044'},
+                                 fast_run_use_refs=True, comparison_f=WDBaseDataType.custom_ref_equal_dates)
+    assert item.require_write is False
+
+    # check references, they are different
+    ref = [[wdi_core.WDItemID("Q999999999", "P248", is_reference=True),
+            wdi_core.WDExternalID("IPR028732", "P2926", is_reference=True)]]
+    statements = [wdi_core.WDExternalID(value="IPR028732", prop_nr="P2926", references=ref),
+                  wdi_core.WDItemID("Q24774044", "P279", references=ref)]
+    item = wdi_core.WDItemEngine(item_name="Matrix metalloproteinase-27", domain='interpro', data=statements,
+                                 append_value=["P279", "P31"],
+                                 fast_run=True, fast_run_base_filter={'P2926': '', 'P279': 'Q24774044'},
+                                 fast_run_use_refs=True, comparison_f=WDBaseDataType.custom_ref_equal_dates)
+    assert item.require_write
 
 
 class frc_fake_query_data_ensembl(wdi_fastrun.FastRunContainer):

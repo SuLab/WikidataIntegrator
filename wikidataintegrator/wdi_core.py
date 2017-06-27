@@ -201,7 +201,8 @@ class WDItemEngine(object):
 
     def init_fastrun(self):
         for c in WDItemEngine.fast_run_store:
-            if c.base_filter == self.fast_run_base_filter:
+            if c.base_filter == self.fast_run_base_filter and c.use_refs == self.fast_run_use_refs and \
+                            c.comparison_f == self.comparison_f:
                 self.fast_run_container = c
 
         if not self.fast_run_container:
@@ -340,7 +341,7 @@ class WDItemEngine(object):
                                                          u'"{}"'.format(data_point)),
                         }
                         headers = {
-                           'User-Agent': self.user_agent
+                            'User-Agent': self.user_agent
                         }
 
                         reply = requests.get(url, params=params, headers=headers)
@@ -1582,11 +1583,13 @@ class WDBaseDataType(object):
         tests for exactly identical references
         accepts two arguments 'oldrefs' and 'newrefs', each of which are a list of references, where each reference is a list of statements
         """
+
         def ref_equal(oldref, newref):
             if len(oldref) != len(newref):
                 return False
             if all(x in oldref for x in newref):
                 return True
+
         return len(oldrefs) == len(newrefs) and all(
             any(ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs)
 
@@ -1602,6 +1605,7 @@ class WDBaseDataType(object):
 
         raise Error if newref contains more than one retrieved
         """
+
         def ref_equal(oldref, newref):
             if len(oldref) != len(newref):
                 return False
@@ -1618,17 +1622,19 @@ class WDBaseDataType(object):
             if len(newref_retrieved) != 1:
                 raise ValueError("why did you put more than one retrieved?")
             retrieved_old = set(
-                [datetime.datetime.strptime(r.get_value()[0], '+%Y-%m-%dT%H:%M:%SZ') for r in oldref if r.get_prop_nr() == 'P813'])
+                [datetime.datetime.strptime(r.get_value()[0], '+%Y-%m-%dT%H:%M:%SZ') for r in oldref if
+                 r.get_prop_nr() == 'P813'])
             retrieved_new = set(
-                [datetime.datetime.strptime(r.get_value()[0], '+%Y-%m-%dT%H:%M:%SZ') for r in newref if r.get_prop_nr() == 'P813'])
+                [datetime.datetime.strptime(r.get_value()[0], '+%Y-%m-%dT%H:%M:%SZ') for r in newref if
+                 r.get_prop_nr() == 'P813'])
             retrieved_new = list(retrieved_new)[0]
             if all((retrieved_new - x).days >= days for x in retrieved_old):
                 return False
             else:
                 return True
+
         return len(oldrefs) == len(newrefs) and all(
             any(ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs)
-
 
 
 class WDString(WDBaseDataType):
