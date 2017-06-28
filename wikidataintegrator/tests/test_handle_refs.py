@@ -129,7 +129,7 @@ def test_no_change():
     orig = item.wd_json_representation['claims']['P2249']
     item.update(data=statements)
     new = item.wd_json_representation['claims']['P2249']
-    require_write = not all(any(x.equals(y, include_ref=True) for y in item.original_statments) for x in item.statements)
+    require_write = not all(any(x.equals(y, include_ref=True) for y in item.original_statements) for x in item.statements)
     assert not require_write
 
 def test_change_value():
@@ -143,7 +143,7 @@ def test_change_value():
     orig = item.wd_json_representation['claims']['P2249']
     item.update(data=statements)
     new = item.wd_json_representation['claims']['P2249']
-    require_write = not all(any(x.equals(y, include_ref=True) for y in item.original_statments) for x in item.statements)
+    require_write = not all(any(x.equals(y, include_ref=True) for y in item.original_statements) for x in item.statements)
     assert require_write
 
 def test_month_ref():
@@ -157,7 +157,7 @@ def test_month_ref():
     orig = item.wd_json_representation['claims']['P2249']
     item.update(data=statements)
     new = item.wd_json_representation['claims']['P2249']
-    require_write = not all(any(x.equals(y, include_ref=True) for y in item.original_statments) for x in item.statements)
+    require_write = not all(any(x.equals(y, include_ref=True) for y in item.original_statements) for x in item.statements)
     assert not require_write
 
 def test_year_ref():
@@ -171,5 +171,5 @@ def test_year_ref():
     orig = item.wd_json_representation['claims']['P2249']
     item.update(data=statements)
     new = item.wd_json_representation['claims']['P2249']
-    require_write = not all(any(x.equals(y, include_ref=True) for y in item.original_statments) for x in item.statements)
+    require_write = not all(any(x.equals(y, include_ref=True) for y in item.original_statements) for x in item.statements)
     assert require_write

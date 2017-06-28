@@ -126,7 +126,7 @@ class WDItemEngine(object):
         self.server = server
         self.use_sparql = use_sparql
         self.statements = []
-        self.original_statments = []
+        self.original_statements = []
         self.entity_metadata = {}
         self.item_data = item_data
 
@@ -262,7 +262,7 @@ class WDItemEngine(object):
                 self.statements.append(statement)
 
         self.wd_json_representation = wd_data
-        self.original_statments = copy.deepcopy(self.statements)
+        self.original_statements = copy.deepcopy(self.statements)
 
         return wd_data
 
@@ -601,7 +601,7 @@ class WDItemEngine(object):
             self.append_value.extend(append_value)
 
         self.data.extend(data)
-        self.statements = copy.deepcopy(self.original_statments)
+        self.statements = copy.deepcopy(self.original_statements)
 
         if not __debug__:
             print(self.data)
