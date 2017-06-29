@@ -400,3 +400,11 @@ class FastRunContainer(object):
     def get_prop_datatype(prop_nr, engine):
         item = engine(wd_item_id=prop_nr)
         return item.entity_metadata['datatype']
+
+    def clear(self):
+        """
+        convinience function to empty this fastrun container
+        """
+        self.prop_dt_map = dict()
+        self.prop_data = dict()
+        self.rev_lookup = defaultdict(set)
