@@ -378,7 +378,11 @@ class PubmedItem(object):
             if not qid:
                 raise ValueError("item doesn't exist")
 
-        self.get_metadata()
+        try:
+            self.get_metadata()
+        except Exception as e:
+            print(e)
+            return None
 
         # we need the json of the item to grab any existing authors
         url = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids={}&format=json".format(qid)
@@ -475,7 +479,11 @@ class PubmedItem(object):
         # additional check, its possible the item exists in wikidata, but not with this ID type
         # for example, PubmedItem may have been constructed with a PMCID, the wikidata item may have a PMID but not
         # a PMCID, so check the other external IDs
-        self.get_metadata()
+        try:
+            self.get_metadata()
+        except Exception as e:
+            print(e)
+            return None
         ids = {"MED": self.meta['pmid'],
                "PMC": self.meta['pmcid'],
                "DOI": self.meta['doi']}
