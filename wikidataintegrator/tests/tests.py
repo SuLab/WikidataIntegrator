@@ -115,7 +115,7 @@ class TestFastRun(unittest.TestCase):
 
         assert item.get_label('en') == "Earth"
         descr = item.get_description('en')
-        assert type(descr) == str and len(descr)>2
+        assert len(descr)>3
         aliases = item.get_aliases()
         assert "Terra" in aliases
 
