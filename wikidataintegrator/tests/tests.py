@@ -114,9 +114,38 @@ class TestFastRun(unittest.TestCase):
         frc.debug=True
 
         assert item.get_label('en') == "Earth"
-        assert item.fast_run_container.get_language_data("Q2", 'en', 'label')[0] == "Earth"
+        descr = item.get_description('en')
+        assert type(descr) == str and len(descr)>2
+        aliases = item.get_aliases()
+        assert "Terra" in aliases
+
+        assert list(item.fast_run_container.get_language_data("Q2", 'en', 'label'))[0] == "Earth"
         assert item.fast_run_container.check_language_data("Q2", ['not the Earth'], 'en', 'label')
         assert "Terra" in item.get_aliases()
         assert "planet" in item.get_description()
 
         assert item.get_label("es") == "Tierra"
+
+        item.set_description(descr)
+        item.set_description("fghjkl")
+        assert item.wd_json_representation['descriptions']['en'] == {'language': 'en', 'value': 'fghjkl'}
+        item.set_label("Earth")
+        item.set_label("xfgfdsg")
+        assert item.wd_json_representation['labels']['en'] == {'language': 'en', 'value': 'xfgfdsg'}
+        item.set_aliases(["fake alias"], append=True)
+        assert {'language': 'en', 'value': 'fake alias'} in item.wd_json_representation['aliases']['en']
+
+        # something thats empty (for now.., can change, so this just makes sure no exception is thrown)
+        frc.check_language_data("Q2", ['Ewiase'], 'ak', 'label')
+        frc.check_language_data("Q2", ['not Ewiase'], 'ak', 'label')
+        frc.check_language_data("Q2", [''], 'ak', 'description')
+        frc.check_language_data("Q2", [], 'ak', 'aliases')
+        frc.check_language_data("Q2", ['sdf', 'sdd'], 'ak', 'aliases')
+
+        item.get_label("ak")
+        item.get_description("ak")
+        item.get_aliases("ak")
+        item.set_label("label", lang="ak")
+        item.set_description("d", lang="ak")
+        item.set_aliases(["a"], lang="ak", append=True)
+

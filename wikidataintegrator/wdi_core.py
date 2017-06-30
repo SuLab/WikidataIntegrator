@@ -681,7 +681,7 @@ class WDItemEngine(object):
         :return: returns the label in the specified language, an empty string if the label does not exist
         """
         if self.fast_run:
-            return self.fast_run_container.get_language_data(self.wd_item_id, lang, 'label')[0]
+            return list(self.fast_run_container.get_language_data(self.wd_item_id, lang, 'label'))[0]
         try:
             return self.wd_json_representation['labels'][lang]['value']
         except KeyError:
@@ -719,7 +719,7 @@ class WDItemEngine(object):
         :return: Returns a list of aliases, an empty list if none exist for the specified language
         """
         if self.fast_run:
-            return self.fast_run_container.get_language_data(self.wd_item_id, lang, 'aliases')
+            return list(self.fast_run_container.get_language_data(self.wd_item_id, lang, 'aliases'))
 
         alias_list = []
         if 'aliases' in self.wd_json_representation and lang in self.wd_json_representation['aliases']:
@@ -773,7 +773,7 @@ class WDItemEngine(object):
         :return: Returns the description string
         """
         if self.fast_run:
-            return self.fast_run_container.get_language_data(self.wd_item_id, lang, 'description')[0]
+            return list(self.fast_run_container.get_language_data(self.wd_item_id, lang, 'description'))[0]
         if 'descriptions' not in self.wd_json_representation or lang not in self.wd_json_representation['descriptions']:
             return ''
         else:
@@ -2014,7 +2014,7 @@ class WDTime(WDBaseDataType):
             if self.precision < 0 or self.precision > 14:
                 raise ValueError('Invalid value for time precision, '
                                  'see https://www.mediawiki.org/wiki/Wikibase/DataModel/JSON#time')
-            if not self.time.startswith("+"):
+            if not (self.time.startswith("+") or self.time.startswith("-")):
                 self.time = "+" + self.time
             try:
                 if self.time[6:8] != '00' and self.time[9:11] != '00':

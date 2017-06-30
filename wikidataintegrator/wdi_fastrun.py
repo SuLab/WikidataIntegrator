@@ -224,8 +224,9 @@ class FastRunContainer(object):
             self.loaded_langs[lang] = {}
 
         if lang_data_type not in self.loaded_langs[lang]:
-            self.loaded_langs[lang].update({lang_data_type: self._query_lang(lang=lang,
-                                                                             lang_data_type=lang_data_type)})
+            result = self._query_lang(lang=lang, lang_data_type=lang_data_type)
+            data = self._process_lang(result)
+            self.loaded_langs[lang].update({lang_data_type: data})
 
     def get_language_data(self, qid, lang, lang_data_type):
         """
@@ -237,12 +238,8 @@ class FastRunContainer(object):
         """
         self.init_language_data(lang, lang_data_type)
 
-        current_lang_data = self.loaded_langs[lang][lang_data_type]['results']['bindings']
-        all_lang_strings = []
-        for sresult in current_lang_data:
-            if sresult['item']['value'].split('/')[-1] == qid:
-                if 'label' in sresult:
-                    all_lang_strings.append(sresult['label']['value'])
+        current_lang_data = self.loaded_langs[lang][lang_data_type]
+        all_lang_strings = current_lang_data.get(qid, [])
         if not all_lang_strings and lang_data_type in {'label', 'description'}:
             all_lang_strings = ['']
         return all_lang_strings
@@ -331,7 +328,7 @@ class FastRunContainer(object):
             # handle ref
             if 'rval' in i:
                 if ('datatype' in i['rval'] and i['rval']['datatype'] == 'http://www.w3.org/2001/XMLSchema#dateTime' and
-                        not i['rval']['value'].startswith("+")):
+                        not (i['rval']['value'].startswith("+") or i['rval']['value'].startswith("-"))):
                     i['rval']['value'] = '+' + i['rval']['value']
                 if i['rval']['type'] == 'literal':
                     i['rval'] = i['rval']['value']
@@ -394,7 +391,17 @@ class FastRunContainer(object):
         if self.debug:
             print(query)
 
-        return self.engine.execute_sparql_query(query=query, prefix=prefix)
+        return self.engine.execute_sparql_query(query=query, prefix=prefix)['results']['bindings']
+
+    @staticmethod
+    def _process_lang(result):
+        data = defaultdict(set)
+        for r in result:
+            qid = r['item']['value'].split("/")[-1]
+            if 'label' in r:
+                data[qid].add(r['label']['value'])
+        return data
+
 
     @staticmethod
     def get_prop_datatype(prop_nr, engine):
