@@ -372,10 +372,11 @@ class PubmedItem(object):
 
         self.statements = s
 
-    def update(self, login):
-        qid = self.check_if_exists()
+    def update(self, login, qid=None):
         if not qid:
-            raise ValueError("item doesn't exist")
+            qid = self.check_if_exists()
+            if not qid:
+                raise ValueError("item doesn't exist")
 
         self.get_metadata()
 
@@ -456,6 +457,7 @@ class PubmedItem(object):
     def get_or_create(self, login=None):
         """
         Returns wdid if item exists or is created
+        If the item exists, but not with the external ID provided, the item is updated
         returns None if the pmid is not found
         returns None and logs the exception if there is a write failure
 
@@ -469,6 +471,21 @@ class PubmedItem(object):
         qid_if_exists = self.check_if_exists()
         if qid_if_exists:
             return qid_if_exists
+
+        # additional check, its possible the item exists in wikidata, but not with this ID type
+        # for example, PubmedItem may have been constructed with a PMCID, the wikidata item may have a PMID but not
+        # a PMCID, so check the other external IDs
+        self.get_metadata()
+        ids = {"MED": self.meta['pmid'],
+               "PMC": self.meta['pmcid'],
+               "DOI": self.meta['doi']}
+        for id_type, i in ids.items():
+            if id_type == self.id_type:
+                # dont check the one we already checked
+                continue
+            qid = prop2qid(self.PROPS[id_type], i)
+            if qid:
+                return self.update(login, qid=qid)
 
         # item doesn't exist.
         return self.create(login=login)
