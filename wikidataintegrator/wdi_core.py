@@ -136,6 +136,7 @@ class WDItemEngine(object):
         self.ref_comparison_f = ref_comparison_f if ref_comparison_f else WDBaseDataType.refs_equal
         self.fast_run_container = None
         self.require_write = True
+        self.sitelinks = dict()
 
         self.global_ref_mode = global_ref_mode
         self.good_refs = good_refs
@@ -250,9 +251,11 @@ class WDItemEngine(object):
         :type wd_json: A Python Json representation of a WD item
         :return: returns the json representation containing 'labels', 'descriptions', 'claims', 'aliases', 'sitelinks'.
         """
-        wd_data = {x: wd_json[x] for x in ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks') if x in wd_json}
+        wd_data = {x: wd_json[x] for x in ('labels', 'descriptions', 'claims', 'aliases') if x in wd_json}
+        wd_data['sitelinks'] = dict()
         self.entity_metadata = {x: wd_json[x] for x in wd_json if x not in
                                 ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks')}
+        self.sitelinks = wd_json.get('sitelinks', dict())
 
         self.statements = []
         for prop in wd_data['claims']:
@@ -812,14 +815,13 @@ class WDItemEngine(object):
         :param badges: An iterable containing Wikipedia badge strings.
         :return:
         """
-        if 'sitelinks' not in self.wd_json_representation:
-            self.wd_json_representation['sitelinks'] = {}
-
-        self.wd_json_representation['sitelinks'][site] = {
+        sitelink = {
             'site': site,
             'title': title,
             'badges': badges
         }
+        self.wd_json_representation['sitelinks'][site] = sitelink
+        self.sitelinks[site] = sitelink
 
     def get_sitelink(self, site):
         """
@@ -827,11 +829,8 @@ class WDItemEngine(object):
         :param site: The Wikipedia site the interwiki/sitelink should be returned for
         :return: The interwiki/sitelink string for the specified Wikipedia will be returned.
         """
-        if "sitelinks" in self.wd_json_representation.keys():
-            if site in self.wd_json_representation['sitelinks']:
-                return self.wd_json_representation['sitelinks'][site]
-            else:
-                return None
+        if site in self.sitelinks:
+            return self.sitelinks[site]
         else:
             return None
 
