@@ -229,7 +229,7 @@ class WDItemEngine(object):
         :rtype: dict
         :return: python complex dictionary represenation of a json
         """
-        url = 'https://{}/w/api.php'.format(self.server)
+        url = self.base_url_template.format(self.server)
         params = {
             'action': 'wbgetentities',
             'sites': 'enwiki',
@@ -834,7 +834,7 @@ class WDItemEngine(object):
         else:
             return None
 
-    def write(self, login, bot_account=True, edit_summary=''):
+    def write(self, login, bot_account=True, edit_summary='', payload_type=u'item'):
         """
         Writes the WD item Json to WD and after successful write, updates the object with new ids and hashes generated
         by WD. For new items, also returns the new QIDs.
@@ -844,6 +844,7 @@ class WDItemEngine(object):
         :type bot_account: bool
         :param edit_summary: A short (max 250 characters) summary of the purpose of the edit. This will be displayed as
             the revision summary of the Wikidata item.
+        :param payload_type: Decides wether the object will become an item (default) or a property (with u'property')
         :type edit_summary: str
         :return: the WD QID on sucessful write
         """
@@ -854,19 +855,21 @@ class WDItemEngine(object):
             'content-type': 'application/x-www-form-urlencoded',
             'charset': 'utf-8'
         }
+        self.wd_json_representation['datatype'] = 'string'
+
         payload = {
             'action': 'wbeditentity',
             'data': json.JSONEncoder().encode(self.wd_json_representation),
             'format': 'json',
             'token': login.get_edit_token(),
-            'summary': edit_summary
+            'summary': edit_summary,
         }
 
         if bot_account:
             payload.update({'bot': ''})
 
         if self.create_new_item:
-            payload.update({u'new': u'item'})
+            payload.update({u'new': payload_type})
         else:
             payload.update({u'id': self.wd_item_id})
 
