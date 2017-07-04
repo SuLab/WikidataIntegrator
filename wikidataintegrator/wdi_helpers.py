@@ -1,3 +1,4 @@
+import difflib
 import datetime
 import json
 from collections import defaultdict, Counter
@@ -400,6 +401,12 @@ class PubmedItem(object):
             for claim in claims['P50']:
                 assert len(claim['qualifiers']['P1545']) == 1
                 ordinals.append(int(claim['qualifiers']['P1545'][0]['datavalue']['value']))
+        try:
+            current_label = dc['entities'][qid]['labels']['en']['value']
+        except KeyError:
+            current_label = ''
+        if difflib.SequenceMatcher(None, current_label, self.meta['title']).ratio() > 0.90:
+            self.meta['title'] = current_label
 
         # validate pmid is on item
         if 'P698' not in claims:
