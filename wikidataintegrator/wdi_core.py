@@ -754,7 +754,7 @@ class WDItemEngine(object):
         for alias in aliases:
             found = False
             for current_aliases in self.wd_json_representation['aliases'][lang]:
-                if alias.lower() != current_aliases['value'].lower():
+                if alias.strip().lower() != current_aliases['value'].strip().lower():
                     continue
                 else:
                     found = True

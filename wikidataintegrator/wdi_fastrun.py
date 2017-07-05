@@ -235,6 +235,10 @@ class FastRunContainer(object):
         :param lang: language code
         :param lang_data_type: 'label', 'description' or 'aliases'
         :return: list of strings
+        If nothing is found:
+            If lang_data_type == label: returns ['']
+            If lang_data_type == description: returns ['']
+            If lang_data_type == aliases: returns []
         """
         self.init_language_data(lang, lang_data_type)
 
@@ -254,11 +258,11 @@ class FastRunContainer(object):
         :param lang_data_type: What kind of data is it? 'label', 'description' or 'aliases'?
         :return:
         """
-        all_lang_strings = self.get_language_data(qid, lang, lang_data_type)
+        all_lang_strings = set(x.strip().lower() for x in self.get_language_data(qid, lang, lang_data_type))
 
         for s in lang_data:
-            if s not in all_lang_strings:
-                print('fastrun failed at label: ', lang_data_type)
+            if s.strip().lower() not in all_lang_strings:
+                print('fastrun failed at label: {}, string: {}'.format(lang_data_type, s))
                 return True
 
         return False
