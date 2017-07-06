@@ -834,7 +834,7 @@ class WDItemEngine(object):
         else:
             return None
 
-    def write(self, login, bot_account=True, edit_summary='', payload_type=u'item'):
+    def write(self, login, bot_account=True, edit_summary='', payload_type=u'item', property_datatype='string'):
         """
         Writes the WD item Json to WD and after successful write, updates the object with new ids and hashes generated
         by WD. For new items, also returns the new QIDs.
@@ -845,6 +845,7 @@ class WDItemEngine(object):
         :param edit_summary: A short (max 250 characters) summary of the purpose of the edit. This will be displayed as
             the revision summary of the Wikidata item.
         :param payload_type: Decides wether the object will become an item (default) or a property (with u'property')
+        :param property_datatype: When payload_type==u'property' then this parameter set the datatype for the property
         :type edit_summary: str
         :return: the WD QID on sucessful write
         """
@@ -855,7 +856,8 @@ class WDItemEngine(object):
             'content-type': 'application/x-www-form-urlencoded',
             'charset': 'utf-8'
         }
-        self.wd_json_representation['datatype'] = 'string'
+        if payload_type == u'property':
+            self.wd_json_representation['datatype'] = property_datatype
 
         payload = {
             'action': 'wbeditentity',
