@@ -71,7 +71,7 @@ class FastRunContainer(object):
                 for q in d['qual']:
                     f = [x for x in self.base_data_type.__subclasses__() if x.DTYPE ==
                          self.prop_dt_map[q[0]]][0]
-                    qualifiers.append(f(value=q[1], prop_nr=q[0], is_qualifier=True))
+                    qualifiers.append(f(q[1], prop_nr=q[0], is_qualifier=True))
 
                 references = []
                 for ref_id, refs in d['ref'].items():
@@ -84,7 +84,7 @@ class FastRunContainer(object):
 
                 f = [x for x in self.base_data_type.__subclasses__() if x.DTYPE ==
                      self.prop_dt_map[prop_nr]][0]
-                reconstructed_statements.append(f(value=d['v'], prop_nr=prop_nr,
+                reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
                                                   qualifiers=qualifiers, references=references))
 
         self.reconstructed_statements = reconstructed_statements
