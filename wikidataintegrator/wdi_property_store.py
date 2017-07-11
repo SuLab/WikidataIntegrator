@@ -485,6 +485,6 @@ wd_properties = {
         'datatype': 'string',
         'name': 'PMC ID',
         'domain': ['scientific_article'],
-        'core_id': 'False'
+        'core_id': 'True'
     }
 }
