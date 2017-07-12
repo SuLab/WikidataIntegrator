@@ -29,7 +29,7 @@ example_Q14911732 = {'P1057':
 
 
 class FastRunContainer(object):
-    def __init__(self, base_data_type, engine, base_filter=None, use_refs=False, ref_comparison_f=None):
+    def __init__(self, base_data_type, engine, base_filter=None, use_refs=False, ref_handler=None):
         self.prop_data = {}
         self.loaded_langs = {}
         self.statements = []
@@ -43,7 +43,7 @@ class FastRunContainer(object):
         self.debug = False
         self.reconstructed_statements = []
         self.use_refs = use_refs
-        self.ref_comparison_f = ref_comparison_f
+        self.ref_handler = ref_handler
 
         if base_filter and any(base_filter):
             self.base_filter = base_filter
@@ -132,6 +132,7 @@ class FastRunContainer(object):
                 temp_set = set(self.rev_lookup[current_value])
             else:
                 if self.debug:
+                    print(current_value)
                     print('no matches for rev lookup')
                 return True
             match_sets.append(temp_set)
@@ -156,10 +157,24 @@ class FastRunContainer(object):
 
         # handle append properties
         for p in append_props:
-            app_data = [x for x in data if x.get_prop_nr() == p]
-            rec_app_data = [x for x in tmp_rs if x.get_prop_nr() == p]
-            comp = [True for x in app_data for y in rec_app_data if x.equals(y, include_ref=self.use_refs, fref=self.ref_comparison_f)]
+            app_data = [x for x in data if x.get_prop_nr() == p]  # new statements
+            rec_app_data = [x for x in tmp_rs if x.get_prop_nr() == p]  # orig statements
+            comp = []
+            for x in app_data:
+                for y in rec_app_data:
+                    if x.get_value() == y.get_value():
+                        if self.use_refs and self.ref_handler:
+                            to_be = copy.deepcopy(y)
+                            self.ref_handler(to_be, x)
+                        else:
+                            to_be = x
+                        if y.equals(to_be, include_ref=self.use_refs):
+                            comp.append(True)
+
+            #comp = [True for x in app_data for y in rec_app_data if x.equals(y, include_ref=self.use_refs)]
             if len(comp) != len(app_data):
+                if self.debug:
+                    print("failed append: {}".format(p))
                 return True
 
         tmp_rs = [x for x in tmp_rs if x.get_prop_nr() not in append_props and x.get_prop_nr() in data_props]
@@ -173,15 +188,34 @@ class FastRunContainer(object):
                     print('returned from delete prop handling')
                 return True
             elif not date.value or not date.data_type:
-                # Ignore the deletion statements which are not in the reconstituted statements.
+                # Ignore the deletion statements which are not in the reconstructed statements.
                 continue
 
             if date.get_prop_nr() in append_props:
                 continue
 
             # this is where the magic happens
+            # date is a new statement, proposed to be written
+            # tmp_rs are the reconstructed statements == current state of the item
+            bool_vec = []
+            for x in tmp_rs:
+                if x.get_value() == date.get_value() and x.get_prop_nr() not in del_props:
+                    if self.use_refs and self.ref_handler:
+                        to_be = copy.deepcopy(x)
+                        self.ref_handler(to_be, date)
+                    else:
+                        to_be = date
+                    if x.equals(to_be, include_ref=self.use_refs):
+                        bool_vec.append(True)
+                    else:
+                        bool_vec.append(False)
+                else:
+                    bool_vec.append(False)
+            """
             bool_vec = [x.equals(date, include_ref=self.use_refs, fref=self.ref_comparison_f) and
-                        x.get_prop_nr() not in del_props for x in tmp_rs]
+            x.get_prop_nr() not in del_props for x in tmp_rs]
+            """
+
             if self.debug:
                 print("bool_vec: {}".format(bool_vec))
                 print('-----------------------------------')
@@ -210,7 +244,6 @@ class FastRunContainer(object):
                     print('xxx', x.get_prop_nr(), x.get_value(), [z.get_value() for z in x.get_qualifiers()])
                 print('failed because not zero--END')
             write_required = True
-
         return write_required
 
     def init_language_data(self, lang, lang_data_type):

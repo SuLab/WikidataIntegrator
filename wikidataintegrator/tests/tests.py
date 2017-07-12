@@ -1,6 +1,10 @@
 import unittest
 import pprint
+
+import copy
+
 from wikidataintegrator import wdi_core, wdi_fastrun, wdi_login
+from wikidataintegrator.wdi_core import WDBaseDataType
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
 __license__ = 'AGPLv3'
@@ -168,3 +172,30 @@ def test_nositelinks():
     item.set_sitelink("enwiki", "something")
     assert item.get_sitelink("enwiki")['title'] == "something"
     assert "enwiki" in item.wd_json_representation['sitelinks']
+
+####
+## tests for statement equality, with and without refs
+####
+def test_ref_equals():
+    # statements are identical
+    oldref = [wdi_core.WDExternalID(value='P58742', prop_nr='P352'),
+              wdi_core.WDItemID(value='Q24784025', prop_nr='P527'),
+              wdi_core.WDTime('+2001-12-31T12:01:13Z', prop_nr='P813')]
+    olditem = wdi_core.WDItemID("123", "P123", references=[oldref])
+    newitem = copy.deepcopy(olditem)
+    assert olditem.equals(newitem, include_ref=False)
+    assert olditem.equals(newitem, include_ref=True)
+
+    # dates are a month apart
+    newitem = copy.deepcopy(olditem)
+    newitem.references[0][2] = wdi_core.WDTime('+2002-1-31T12:01:13Z', prop_nr='P813')
+    assert olditem.equals(newitem, include_ref=False)
+    assert not olditem.equals(newitem, include_ref=True)
+
+    # multiple refs
+    newitem = copy.deepcopy(olditem)
+    newitem.references.append([wdi_core.WDExternalID(value='99999', prop_nr='P352')])
+    assert olditem.equals(newitem, include_ref=False)
+    assert not olditem.equals(newitem, include_ref=True)
+    olditem.references.append([wdi_core.WDExternalID(value='99999', prop_nr='P352')])
+    assert olditem.equals(newitem, include_ref=True)

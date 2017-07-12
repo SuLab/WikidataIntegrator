@@ -50,7 +50,7 @@ class WDItemEngine(object):
 
     def __init__(self, wd_item_id='', item_name='', domain='', data=None, server='www.wikidata.org',
                  append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
-                 ref_comparison_f=None, global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False,
+                 ref_handler=None, global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False,
                  search_only=False, item_data=None, user_agent=config['USER_AGENT_DEFAULT'],
                  base_url_template='https://{}/w/api.php'):
         """
@@ -79,19 +79,17 @@ class WDItemEngine(object):
         :param fast_run_use_refs: If `True`, fastrun mode will consider references in determining if a statement should
             be updated and written to Wikidata. Otherwise, only the value and qualifiers are used. Default: False
         :type fast_run_use_refs: bool
-        :param ref_comparison_f: This parameter defines a function that will determine if the references on two statements
-            (current statement and new statement/to be written) are equal. It is used to determine if a new reference
-            should be written to Wikidata. This argument should be a function handle that accepts two arguments,
-            the references from the old/current statement (first argument) and the references from the new/proposed/to be
-            written statement (second argument). The function should return True or False, determing whether or not
-            the references are equal. This function is also used in fastrun mode. The default is equality of value,
-            qualifiers and all references. If this is set, the global_ref_mode will be ignored and the ref_comparison_f
-            will be used to determine if a reference gets updated.
-        :type ref_comparison_f: function
+        :param ref_handler: This parameter defines a function that will manage the reference handling in a custom
+            manner. This argument should be a function handle that accepts two arguments, the old/current statement
+            (first argument) and new/proposed/to be written statement (second argument), both of type: a subclass of
+            WDBaseDataType. The function should return an new item that is the item to be written. The item's values
+            properties or qualifiers should not be modified; only references. This function is also used in fastrun mode.
+            This will only be used if the ref_mode is set to "CUSTOM".
+        :type ref_handler: function
         :param global_ref_mode: sets the reference handling mode for an item. Four modes are possible, 'STRICT_KEEP'
             keeps all references as they are, 'STRICT_KEEP_APPEND' keeps the references as they are and appends
             new ones. 'STRICT_OVERWRITE' overwrites all existing references for given. 'CUSTOM' will use the function
-            defined in ref_comparison_f
+            defined in ref_handler
         :type global_ref_mode: str of value 'STRICT_KEEP', 'STRICT_KEEP_APPEND', 'STRICT_OVERWRITE', 'KEEP_GOOD', 'CUSTOM'
         :param good_refs: This parameter lets the user define blocks of good references. It is a list of dictionaries.
             One block is a dictionary with  Wikidata properties as keys and potential values as the required value for
@@ -133,12 +131,16 @@ class WDItemEngine(object):
         self.fast_run = fast_run
         self.fast_run_base_filter = fast_run_base_filter
         self.fast_run_use_refs = fast_run_use_refs
-        self.ref_comparison_f = ref_comparison_f if ref_comparison_f else WDBaseDataType.refs_equal
+        self.ref_handler = ref_handler
+        if self.ref_handler:
+            assert callable(self.ref_handler)
         self.fast_run_container = None
         self.require_write = True
         self.sitelinks = dict()
 
         self.global_ref_mode = global_ref_mode
+        if self.global_ref_mode == "CUSTOM" and self.ref_handler is None:
+            raise ValueError("If using a custom ref mode, ref_handler must be set")
         self.good_refs = good_refs
 
         self.keep_good_ref_statements = keep_good_ref_statements
@@ -206,13 +208,14 @@ class WDItemEngine(object):
     def init_fastrun(self):
         for c in WDItemEngine.fast_run_store:
             if c.base_filter == self.fast_run_base_filter and c.use_refs == self.fast_run_use_refs and \
-                            c.ref_comparison_f == self.ref_comparison_f:
+                            c.ref_handler == self.ref_handler:
                 self.fast_run_container = c
 
         if not self.fast_run_container:
             self.fast_run_container = FastRunContainer(base_filter=self.fast_run_base_filter,
                                                        base_data_type=WDBaseDataType, engine=WDItemEngine,
-                                                       use_refs=self.fast_run_use_refs, ref_comparison_f=self.ref_comparison_f)
+                                                       use_refs=self.fast_run_use_refs,
+                                                       ref_handler=self.ref_handler)
             WDItemEngine.fast_run_store.append(self.fast_run_container)
 
         self.require_write = self.fast_run_container.write_required(self.data, append_props=self.append_value,
@@ -477,8 +480,7 @@ class WDItemEngine(object):
                 old_item.set_references(old_references)
 
             elif self.global_ref_mode == 'CUSTOM' or new_item.statement_ref_mode == 'CUSTOM':
-                if not self.ref_comparison_f(old_references, new_references):
-                    old_item.set_references(new_references)
+                self.ref_handler(old_item, new_item)
 
             elif self.global_ref_mode == 'KEEP_GOOD' or new_item.statement_ref_mode == 'KEEP_GOOD':
                 keep_block = [False for x in old_references]
@@ -554,7 +556,6 @@ class WDItemEngine(object):
                         setattr(i, 'retain', '')
                         if hasattr(i, 'remove'):
                             delattr(i, 'remove')
-
                         handle_references(old_item=i, new_item=stat)
                         handle_qualifiers(old_item=i, new_item=stat)
 
@@ -974,7 +975,8 @@ class WDItemEngine(object):
         cls.logger.log(level=log_levels[level], msg=message)
 
     @classmethod
-    def generate_item_instances(cls, items, server='www.wikidata.org', login=None, user_agent=config['USER_AGENT_DEFAULT']):
+    def generate_item_instances(cls, items, server='www.wikidata.org', login=None,
+                                user_agent=config['USER_AGENT_DEFAULT']):
         """
         A method which allows for retrieval of a list of Wikidata items or properties. The method generates a list of
         tuples where the first value in the tuple is the QID or property ID, whereas the second is the new instance of
@@ -1058,7 +1060,8 @@ class WDItemEngine(object):
         return response.json()
 
     @staticmethod
-    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts='', user_agent=config['USER_AGENT_DEFAULT']):
+    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts='',
+                    user_agent=config['USER_AGENT_DEFAULT']):
         """
         A static method to merge two Wikidata items
         :param from_id: The QID which should be merged into another item
@@ -1169,7 +1172,8 @@ class WDItemEngine(object):
         }
 
         page_text = [x['revisions'][0]['*']
-                     for x in requests.get(url=url, params=params, headers=headers).json()['query']['pages'].values()][0]
+                     for x in requests.get(url=url, params=params, headers=headers).json()['query']['pages'].values()][
+            0]
 
         if not login:
             print(page_text)
@@ -1231,7 +1235,7 @@ class JsonParser(object):
 
                             self.references[count].append(copy.deepcopy(ref_class))
 
-                # print(self.references)
+                            # print(self.references)
             if 'qualifiers' in json_representation:
                 for prop in json_representation['qualifiers-order']:
                     for qual in json_representation['qualifiers'][prop]:
@@ -1245,7 +1249,7 @@ class JsonParser(object):
                         qual_class.set_hash(qual_hash)
                         self.qualifiers.append(qual_class)
 
-                # print(self.qualifiers)
+                        # print(self.qualifiers)
             mainsnak = self.get_class_representation(json_representation['mainsnak'])
             mainsnak.set_references(self.references)
             mainsnak.set_qualifiers(self.qualifiers)
@@ -1583,68 +1587,21 @@ class WDBaseDataType(object):
             return False
         if include_ref and fref is None:
             fref = WDBaseDataType.refs_equal
-        oldref = self.references
-        newref = that.references
-        return fref(oldref, newref)
+        return fref(self, that)
 
     @staticmethod
-    def refs_equal(oldrefs, newrefs):
+    def refs_equal(olditem, newitem):
         """
         tests for exactly identical references
-        accepts two arguments 'oldrefs' and 'newrefs', each of which are a list of references, where each reference is a list of statements
         """
+        oldrefs = olditem.references
+        newrefs = newitem.references
 
-        def ref_equal(oldref, newref):
-            if len(oldref) != len(newref):
-                return False
-            if all(x in oldref for x in newref):
-                return True
-
-        return len(oldrefs) == len(newrefs) and all(
-            any(ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs)
-
-    @staticmethod
-    def custom_ref_equal_dates(oldrefs, newrefs, days=180):
-        """
-        accepts two arguments 'oldrefs' and 'newrefs', each of which are a list of references, where each reference is a list of statements
-        These refs are equal if:
-        1. Excluding the retrieved statement, the references are equivalent
-        2. if newref has a retrieved P813:
-            2a. oldref does not have a retrieved
-            2b. oldref retrieved is more than `days` days older than newref
-
-        raise Error if newref contains more than one retrieved
-        """
-
-        def ref_equal(oldref, newref):
-            if len(oldref) != len(newref):
-                return False
-            oldref_minus_retrieved = [x for x in oldref if x.get_prop_nr() != 'P813']
-            newref_minus_retrieved = [x for x in newref if x.get_prop_nr() != 'P813']
-            if not all(x in oldref_minus_retrieved for x in newref_minus_retrieved):
-                return False
-            oldref_retrieved = [x for x in oldref if x.get_prop_nr() == 'P813']
-            newref_retrieved = [x for x in newref if x.get_prop_nr() == 'P813']
-            if len(newref_retrieved) != len(oldref_retrieved):
-                return False
-            if len(newref_retrieved) == len(oldref_retrieved) == 0:
-                return True
-            if len(newref_retrieved) != 1:
-                raise ValueError("why did you put more than one retrieved?")
-            retrieved_old = set(
-                [datetime.datetime.strptime(r.get_value()[0], '+%Y-%m-%dT%H:%M:%SZ') for r in oldref if
-                 r.get_prop_nr() == 'P813'])
-            retrieved_new = set(
-                [datetime.datetime.strptime(r.get_value()[0], '+%Y-%m-%dT%H:%M:%SZ') for r in newref if
-                 r.get_prop_nr() == 'P813'])
-            retrieved_new = list(retrieved_new)[0]
-            if all((retrieved_new - x).days >= days for x in retrieved_old):
-                return False
-            else:
-                return True
-
-        return len(oldrefs) == len(newrefs) and all(
-            any(ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs)
+        ref_equal = lambda oldref, newref: True if (len(oldref) == len(newref)) and all(x in oldref for x in newref) else False
+        if len(oldrefs) == len(newrefs) and all(any(ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs):
+            return True
+        else:
+            return False
 
 
 class WDString(WDBaseDataType):
