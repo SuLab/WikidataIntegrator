@@ -337,7 +337,9 @@ class WDItemEngine(object):
 
             if wd_property in wdi_property_store.wd_properties:
                 # check if the property is a core_id and should be unique for every WD item
-                if wdi_property_store.wd_properties[wd_property]['core_id'] == 'True':
+                assert all(isinstance(v['core_id'], bool) for k, v in wdi_property_store.wd_properties.items()), \
+                    "wd_properties 'core_id' must be a bool"
+                if wdi_property_store.wd_properties[wd_property]['core_id'] is True:
                     tmp_qids = []
 
                     if not self.use_sparql:
@@ -634,11 +636,11 @@ class WDItemEngine(object):
         :return: boolean True if test passed
         """
         # generate a set containing all property number of the item currently loaded
-        core_props_list = set([
-                                  x.get_prop_nr()
-                                  for x in self.statements if x.get_prop_nr() in wdi_property_store.wd_properties and
-                                  wdi_property_store.wd_properties[x.get_prop_nr()]['core_id'] == 'True'
-                                  ])
+        assert all(isinstance(v['core_id'], bool) for k,v in wdi_property_store.wd_properties.items()), \
+            "wd_properties 'core_id' must be a bool"
+        core_props_list = set([x.get_prop_nr() for x in self.statements if
+                               x.get_prop_nr() in wdi_property_store.wd_properties and
+                               wdi_property_store.wd_properties[x.get_prop_nr()]['core_id'] is True])
 
         # compare the claim values of the currently loaded QIDs to the data provided in self.data
         count_existing_ids = 0
@@ -1597,8 +1599,10 @@ class WDBaseDataType(object):
         oldrefs = olditem.references
         newrefs = newitem.references
 
-        ref_equal = lambda oldref, newref: True if (len(oldref) == len(newref)) and all(x in oldref for x in newref) else False
-        if len(oldrefs) == len(newrefs) and all(any(ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs):
+        ref_equal = lambda oldref, newref: True if (len(oldref) == len(newref)) and all(
+            x in oldref for x in newref) else False
+        if len(oldrefs) == len(newrefs) and all(
+                any(ref_equal(oldref, newref) for oldref in oldrefs) for newref in newrefs):
             return True
         else:
             return False
