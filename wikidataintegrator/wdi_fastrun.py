@@ -56,6 +56,9 @@ class FastRunContainer(object):
 
     def reconstruct_statements(self, qid):
         reconstructed_statements = []
+        if qid not in self.prop_data:
+            self.reconstructed_statements = reconstructed_statements
+            return reconstructed_statements
         for prop_nr, dt in self.prop_data[qid].items():
             # get datatypes for qualifier props
             q_props = set(chain(*[[x[0] for x in d['qual']] for d in dt.values()]))
@@ -87,6 +90,7 @@ class FastRunContainer(object):
                 reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
                                                   qualifiers=qualifiers, references=references))
 
+        # this isn't used. done for debugging purposes
         self.reconstructed_statements = reconstructed_statements
         return reconstructed_statements
 
