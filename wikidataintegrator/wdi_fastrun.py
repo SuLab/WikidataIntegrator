@@ -315,7 +315,7 @@ class FastRunContainer(object):
                       ?sid ps:{1} ?v .
                       OPTIONAL {{
                         ?sid ?pq ?qval .
-                        FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/"))
+                        FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/P"))
                       }}
                       OPTIONAL {{
                         ?sid prov:wasDerivedFrom ?ref .
