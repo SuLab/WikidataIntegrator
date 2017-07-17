@@ -23,7 +23,9 @@ try:
     f = open(version_file, 'w')
     f.write("{}.{}.{}".format(MAJOR_VERSION, MINOR_VERSION, MICRO_VERSION))
     f.close()
-except:
+except Exception as e:
+
+    print(e)
     if os.path.isfile(version_file):
         f = open(version_file, 'rt')
         version_string = f.readline()
