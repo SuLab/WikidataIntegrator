@@ -49,7 +49,7 @@ setup(
     author='Sebastian Burgstaller-Muehlbacher, Greg Stupp, Andra Waagmeester',
     author_email='sburgs@scripps.edu',
     description='Python package for reading and writing to/from Wikidata',
-    license='AGPLv3',
+    license='MIT',
     keywords='Wikidata biology chemistry medicine',
     url=REPO_URL,
     download_url='https://github.com/sebotic/WikidataIntegrator/tarball/0.0.325',
