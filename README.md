@@ -36,6 +36,9 @@ Details on the different tasks can be found on [the bot's Wikidata page](https:/
 
 Compared to Pywikibot, WikidataIntegrator currently is not a full Python wrapper for the MediaWiki API but is solely focused on providing an easy means to generate Python based Wikidata bots, it therefore resembles a basic database connector like JDBC or ODBC. 
 
+## Note: Rate Limits ##
+New users may hit rate limits (of 8 edits per minute) when editing or creating items. [Autoconfirmed users](https://www.wikidata.org/wiki/Wikidata:User_access_levels#Autoconfirmed_users), (an account with at least 4 days of age and at least 50 edits), should not need to worry about hitting these limits. Users who anticipate making large numbers of edits to Wikidata should create a separate [bot](https://www.wikidata.org/wiki/Wikidata:Bots) account and [request approval](https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot). 
+
 # The Core Parts #
 
 wdi_core supports two modes it can be operated in, a normal mode, updating each item at a time and a 'fastrun' mode, which is pre-loading data locally and then just updating items if the new data provided is differing from what is in Wikidata. The latter mode allows for great speedups (measured up to 9x) when tens of thousand of Wikidata 
