@@ -54,7 +54,7 @@ setup(
     url=REPO_URL,
     download_url='https://github.com/sebotic/WikidataIntegrator/tarball/0.0.325',
     # packages=find_packages(),
-    packages=['wikidataintegrator', 'wikidataintegrator.backoff'],
+    packages=['wikidataintegrator', 'wikidataintegrator.backoff', 'wikidataintegrator.ref_handlers'],
     include_package_data=True,
     # long_description=read('README.md'),
     classifiers=[
