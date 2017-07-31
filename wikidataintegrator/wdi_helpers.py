@@ -7,6 +7,7 @@ from time import gmtime, strftime
 import requests
 from dateutil import parser as du
 
+from wikidataintegrator.ref_handlers import update_retrieved_if_new
 from . import wdi_core
 from .wdi_core import WDItemEngine, WDApiError
 from wikidataintegrator.wdi_config import config
@@ -421,7 +422,7 @@ class PubmedItem(object):
         self.make_statements(ordinals)
 
         item = wdi_core.WDItemEngine(wd_item_id=qid, data=self.statements, domain="scientific_article",
-                                     global_ref_mode='CUSTOM', ref_comparison_f=wdi_core.WDBaseDataType.custom_ref_equal_dates)
+                                     global_ref_mode='CUSTOM', ref_handler=update_retrieved_if_new)
         item.set_label(self.meta['title'])
         description = ', '.join(self.descriptions[x] for x in self.meta['pubtype_qid'])
         if item.get_description() == '':
