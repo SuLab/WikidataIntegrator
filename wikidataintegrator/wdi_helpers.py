@@ -211,6 +211,8 @@ class PubmedItem(object):
             'pubtypes': None,
             'pubtype_qid': None
         }
+        if self.id_type == "PMC" and self.ext_id.startswith("PMC"):
+            self.ext_id = self.ext_id.replace("PMC", "")
 
         self.reference = None
         self.statements = None
@@ -220,7 +222,7 @@ class PubmedItem(object):
 
     def get_article_info(self):
         if self.id_type == "PMC":
-            url = 'http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:{}&resulttype=core&format=json'
+            url = 'http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:PMC{}&resulttype=core&format=json'
             url = url.format(self.ext_id)
         elif self.id_type == "DOI":
             url = "http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:%22{}%22&resulttype=core&format=json"
@@ -245,7 +247,7 @@ class PubmedItem(object):
             self.get_article_info()
 
         self.meta['pmid'] = self.article['pmid']
-        self.meta['pmcid'] = self.article.get('pmcid')
+        self.meta['pmcid'] = self.article.get('pmcid', '').replace("PMC", "")
         self.meta['title'] = self.article['title'][:249]
         if 'pubTypeList' in self.article:
             pubtypes = self.article['pubTypeList']['pubType']
@@ -309,8 +311,11 @@ class PubmedItem(object):
     def make_reference(self):
         if 'pmid' not in self.meta:
             self.get_metadata()
+        if 'pmcid' in self.meta and self.meta['pmcid']:
+            pmid = wdi_core.WDString(value=self.meta['pmcid'], prop_nr='P932', is_reference=True)
+        else:
+            pmid = wdi_core.WDString(value=self.meta['pmid'], prop_nr='P698', is_reference=True)
         stated_in = wdi_core.WDItemID(value='Q5412157', prop_nr='P248', is_reference=True)
-        pmid = wdi_core.WDString(value=self.meta['pmid'], prop_nr='P698', is_reference=True)
         retrieved = wdi_core.WDTime(strftime("+%Y-%m-%dT00:00:00Z", gmtime()), prop_nr='P813', is_reference=True)
         self.reference = [stated_in, pmid, retrieved]
 
