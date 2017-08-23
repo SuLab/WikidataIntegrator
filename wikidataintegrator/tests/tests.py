@@ -110,7 +110,7 @@ class TestFastRun(unittest.TestCase):
     def test_fastrun_label(self):
         # tests fastrun label, description and aliases, and label in another language
         data = [wdi_core.WDExternalID('/m/02j71', 'P646')]
-        fast_run_base_filter = {'P361': 'Q18652267'}
+        fast_run_base_filter = {'P361': 'Q18589965'}
         item = wdi_core.WDItemEngine(wd_item_id="Q2", data=data, fast_run=True,
                                      fast_run_base_filter=fast_run_base_filter)
 
