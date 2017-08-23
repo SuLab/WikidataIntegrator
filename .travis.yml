@@ -10,5 +10,5 @@ deploy:
   user: sebotic
   password:
     secure: Na3lOrk1O4a0xHYoxpTPNzO/j3s4iO7f8iwWhKwzefBHmOcjpWnm7HOlNlLD9Hs24opa4JjftvmYkpgA3zVvHsrxkddcXIUZiUvkFwSAyGnrflXMSrpP+NkTtXnF8gaxR7AnqQxDCh9M+fQ/PPyAtxSSP3rYC/uAYQDuZV4ShrjefW+Q0bmGeoi4e72Pg3kFB2oNO8KshJKF4gYvjM6ENXd6YAz/UoLxGghnx3eakzHfrJrXKUxnki+zJ/XNthGtyJTSVUMk9MZv6I4nBdek7x5fMRaLhmNldCCyoSl4q6pSJOVGPQ9l9eVAfzKZ39UyNn7Fbd8l8yWCdnlt/HhSmXoMkl7ZAjNJYbyVCS0VdnV6fRkmB4wakPUO3KCRUhK/uw3E8rPChRE+3yaQk89sKpZ6iOR/ZeymT273BU37VxESFh4gW5XSpsdRuUcOZc0GJYdxHxY8SF0eTTpgxf32LZn3Eu+G8vwTk8l+q6oXEGWZapqs4GJXrGtl2lbxer2mwdmHa/TRHEwxXzhnb/Jevv92cKvYlDwmAyO+6VXGr8+foh7g3s0KwGzFmi7XRDktgKXC5WxW/xyPIUCx5dbge/TM5TmMcD7p1VnaqNkykH0qCih4Bh2VtDd8QTInWDRueeAAyK37/fkdUWCnHg/c/mSZNKiKYYOmZlBko5o9hYM=
-on:
-  tags: true
+  on:
+    tags: true
