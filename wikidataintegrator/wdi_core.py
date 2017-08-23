@@ -864,7 +864,8 @@ class WDItemEngine(object):
             'data': json.JSONEncoder().encode(self.wd_json_representation),
             'format': 'json',
             'token': login.get_edit_token(),
-            'summary': edit_summary
+            'summary': edit_summary,
+            'maxlag': config['MAXLAG']
         }
 
         if bot_account:
@@ -884,6 +885,15 @@ class WDItemEngine(object):
             json_data = reply.json()
 
             # pprint.pprint(json_data)
+
+            # deal with maxlag
+            if 'error' in json_data.keys() and 'code' in json_data['error'] \
+                    and json_data['error']['code'] == 'maxlag':
+                lag = json_data['error']['lag']
+                time.sleep(lag)
+                del payload['maxlag']
+                reply = login.get_session().post(base_url, headers=headers, data=payload)
+                json_data = reply.json()
 
             if 'error' in json_data.keys() and 'code' in json_data['error'] \
                     and json_data['error']['code'] == 'readonly':
