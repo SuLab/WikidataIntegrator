@@ -11,6 +11,9 @@ BACKOFF_MAX_VALUE: maximum number of seconds to wait before retrying. wait time 
 USER_AGENT_DEFAULT: default user agent string used for http requests. Both to wikibase api, query service and others.
 """
 
-config = {'BACKOFF_MAX_TRIES': None,
-          'BACKOFF_MAX_VALUE': 3600,
-          'USER_AGENT_DEFAULT': 'wikidataintegrator: github.com/SuLab/WikidataIntegrator'}
+config = {
+    'BACKOFF_MAX_TRIES': None,
+    'BACKOFF_MAX_VALUE': 3600,
+    'USER_AGENT_DEFAULT': 'wikidataintegrator: github.com/SuLab/WikidataIntegrator',
+    'MAXLAG': 5,
+}
