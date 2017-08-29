@@ -1144,14 +1144,25 @@ class WDItemEngine(object):
             if 'wd_prop' in x:
                 WDItemEngine.databases[db_qid].append(x['wd_prop']['value'].split('/')[-1])
 
-        pmid_query = '''
-        SELECT DISTINCT ?x WHERE {
-            ?x wdt:P698 [] .
-        }
-        '''
+        count = 0
 
-        for x in WDItemEngine.execute_sparql_query(pmid_query)['results']['bindings']:
-            WDItemEngine.pmids.append(x['x']['value'].split('/')[-1])
+        while True:
+            pmid_query = '''
+            SELECT DISTINCT ?x WHERE {{
+                ?x wdt:P698 [] .
+            }}
+            OFFSET {0}
+            LIMIT 500000
+            '''
+
+            results = WDItemEngine.execute_sparql_query(pmid_query.format(count * 100000))['results']['bindings']
+            count += 1
+
+            if len(results) == 0:
+                break
+
+            for x in results:
+                WDItemEngine.pmids.append(x['x']['value'].split('/')[-1])
 
     @staticmethod
     def delete_items(item_list, reason, login, user_agent=config['USER_AGENT_DEFAULT']):
