@@ -272,13 +272,18 @@ class WDItemEngine(object):
         return wd_data
 
     @staticmethod
-    def get_wd_search_results(search_string='', server='www.wikidata.org', user_agent=config['USER_AGENT_DEFAULT']):
+    def get_wd_search_results(search_string='', server='www.wikidata.org', user_agent=config['USER_AGENT_DEFAULT'],
+                              max_results=500):
         """
         Performs a search in WD for a certain WD search string
         :param search_string: a string which should be searched for in WD
         :type search_string: str
         :param server: Specify the server the WikiBase instance is running on.
         :type server: str
+        :param user_agent: The user agent string transmitted in the http header
+        :type user_agent: str
+        :param max_results: The maximum number of search results returned. Default 500
+        :type max_results: int
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         """
         url = 'https://{}/w/api.php'.format(server)
@@ -286,28 +291,41 @@ class WDItemEngine(object):
             'action': 'wbsearchentities',
             'language': 'en',
             'search': search_string,
-            'format': 'json'
+            'format': 'json',
+            'limit': 50
         }
+
         headers = {
             'User-Agent': user_agent
         }
 
-        reply = requests.get(url, params=params, headers=headers)
-        reply.raise_for_status()
-        search_results = reply.json()
+        cont_count = 1
+        id_list = []
+        id_labels = []
 
-        if search_results['success'] != 1:
-            raise WDSearchError('WD search failed')
-        elif len(search_results['search']) == 0:
-            return []
-        else:
-            id_list = []
-            id_labels = []
-            for i in search_results['search']:
-                id_list.append(i['id'])
-                id_labels.append(i['label'])
+        while cont_count > 0:
+            params.update({'continue': 0 if cont_count == 1 else cont_count})
 
-            return id_list
+            reply = requests.get(url, params=params, headers=headers)
+            reply.raise_for_status()
+            search_results = reply.json()
+
+            if search_results['success'] != 1:
+                raise WDSearchError('WD search failed')
+            else:
+                for i in search_results['search']:
+                    id_list.append(i['id'])
+                    id_labels.append(i['label'])
+
+            if 'search-continue' not in search_results:
+                cont_count = 0
+            else:
+                cont_count = search_results['search-continue']
+
+            if cont_count > max_results:
+                break
+
+        return id_list
 
     def get_property_list(self):
         """
