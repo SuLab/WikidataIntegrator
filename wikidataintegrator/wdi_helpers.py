@@ -375,7 +375,8 @@ class PubmedItem(object):
         if self.meta['doi']:
             s.append(wdi_core.WDExternalID(self.meta['doi'].upper(), self.PROPS['DOI'], references=[self.reference]))
         if self.meta['pmcid']:
-            s.append(wdi_core.WDExternalID(self.meta['pmcid'].replace("PMC", ""), self.PROPS['PMCID'], references=[self.reference]))
+            s.append(wdi_core.WDExternalID(self.meta['pmcid'].replace("PMC", ""), self.PROPS['PMCID'],
+                                           references=[self.reference]))
 
         self.statements = s
 
@@ -563,7 +564,18 @@ def format_msg(external_id, external_id_prop, wdid, msg, msg_type=None, delimite
     :return: str
     """
     fmt = ('{}' + delimiter) * 4 + '{}'  # '{};{};{};{};{}'
-    s = fmt.format(external_id, external_id_prop, wdid, msg, msg_type)
+    d = {'external_id': external_id,
+         'external_id_prop': external_id_prop,
+         'wdid': wdid,
+         'msg': msg,
+         'msg_type': msg_type}
+    for k, v in d.items():
+        if isinstance(v, str) and delimiter in v and '"' in v:
+            v = v.replace('"', "'")
+        if isinstance(v, str) and delimiter in v:
+            d[k] = '"' + v + '"'
+
+    s = fmt.format(d['external_id'], d['external_id_prop'], d['wdid'], d['msg'], d['msg_type'])
     return s
 
 
