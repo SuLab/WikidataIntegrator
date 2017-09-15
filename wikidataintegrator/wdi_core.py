@@ -273,7 +273,7 @@ class WDItemEngine(object):
 
     @staticmethod
     def get_wd_search_results(search_string='', server='www.wikidata.org', user_agent=config['USER_AGENT_DEFAULT'],
-                              max_results=500):
+                              max_results=500, language='en'):
         """
         Performs a search in WD for a certain WD search string
         :param search_string: a string which should be searched for in WD
@@ -284,12 +284,14 @@ class WDItemEngine(object):
         :type user_agent: str
         :param max_results: The maximum number of search results returned. Default 500
         :type max_results: int
+        :param language: The language in which to perform the search. Default 'en'
+        :type language: str
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         """
         url = 'https://{}/w/api.php'.format(server)
         params = {
             'action': 'wbsearchentities',
-            'language': 'en',
+            'language': language,
             'search': search_string,
             'format': 'json',
             'limit': 50

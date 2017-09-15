@@ -139,8 +139,9 @@ and always use the same number of fields, as this allows you to load the log fil
 
 ## Wikidata Search ##
  The method wdi_core.WDItemEngine.get_wd_search_results() allows for string search in
- Wikidata. This means that labels, descriptions and aliases can be searched for a string of interest. The method takes two arguments:
- The actual search string (search_string) and an optional server, in case the Wikibase instance used is not Wikidata.
+ Wikidata. This means that labels, descriptions and aliases can be searched for a string of interest. The method takes five arguments:
+ The actual search string (search_string), an optional server (in case the Wikibase instance used is not Wikidata), an optional user_agent, an
+ optional max_results (default 500), and an optional language (default 'en').
  
 ## Merge Wikidata items ##
 Sometimes, Wikidata items need to be merged. An API call exists for that, and wdi_core implements a method accordingly.
