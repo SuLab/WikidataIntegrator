@@ -50,9 +50,9 @@ class FastRunContainer(object):
 
             for k, v in self.base_filter.items():
                 if v:
-                    self.base_filter_string += '?item p:{0}/ps:{0} wd:{1} . \n'.format(k, v)
+                    self.base_filter_string += '?item wdt:{0} wd:{1} . \n'.format(k, v)
                 else:
-                    self.base_filter_string += '?item p:{0}/ps:{0} ?zz . \n'.format(k)
+                    self.base_filter_string += '?item wdt:{0} ?zz . \n'.format(k)
 
     def reconstruct_statements(self, qid):
         reconstructed_statements = []
@@ -175,14 +175,14 @@ class FastRunContainer(object):
                         if y.equals(to_be, include_ref=self.use_refs):
                             comp.append(True)
 
-            #comp = [True for x in app_data for y in rec_app_data if x.equals(y, include_ref=self.use_refs)]
+            # comp = [True for x in app_data for y in rec_app_data if x.equals(y, include_ref=self.use_refs)]
             if len(comp) != len(app_data):
                 if self.debug:
                     print("failed append: {}".format(p))
                 return True
 
         tmp_rs = [x for x in tmp_rs if x.get_prop_nr() not in append_props and x.get_prop_nr() in data_props]
-        #print("154: {}".format(tmp_rs))
+        # print("154: {}".format(tmp_rs))
 
         for date in data:
             # ensure that statements meant for deletion get handled properly
@@ -307,46 +307,9 @@ class FastRunContainer(object):
     def get_all_data(self):
         return self.prop_data
 
-    def _query_data(self, prop_nr):
-        if self.use_refs:
-            query = '''
-                    #Tool: wdi_core fastrun
-                    select ?item ?qval ?pq ?sid ?v ?ref ?pr ?rval where {{
-                      {0}
-
-                      ?item p:{1} ?sid .
-
-                      ?sid ps:{1} ?v .
-                      OPTIONAL {{
-                        ?sid ?pq ?qval .
-                        FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/P"))
-                      }}
-                      OPTIONAL {{
-                        ?sid prov:wasDerivedFrom ?ref .
-                        ?ref ?pr ?rval .
-                        FILTER(STRSTARTS(STR(?pr), "http://www.wikidata.org/prop/reference/P"))
-                      }}
-
-                    }}
-                    '''.format(self.base_filter_string, prop_nr)
-        else:
-            query = '''
-                    #Tool: wdi_core fastrun
-                    select ?item ?qval ?pq ?sid ?v where {{
-                      {0}
-
-                      ?item p:{1} ?sid .
-
-                      ?sid ps:{1} ?v .
-                      OPTIONAL {{
-                        ?sid ?pq ?qval .
-                        FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/"))
-                      }}
-                    }}
-                    '''.format(self.base_filter_string, prop_nr)
-        r = self.engine.execute_sparql_query(query=query, prefix=prefix)['results']['bindings']
-
-        # format
+    def format_query_results(self, r):
+        # r is the results of the sparql query in _query_data
+        # r is modified in place
         for i in r:
             for value in {'item', 'sid', 'qval', 'pq', 'pr', 'ref'}:
                 if value in i:
@@ -379,7 +342,9 @@ class FastRunContainer(object):
                     else:
                         i['rval'] = i['rval']['value']
 
-        # udpate frc
+    def update_frc_from_query(self, r, prop_nr):
+        # r is the output of format_query_results
+        # this updates the frc from the query (result of _query_data)
         for i in r:
             qid = i['item']
             if qid not in self.prop_data:
@@ -403,6 +368,77 @@ class FastRunContainer(object):
                 if i['ref'] not in self.prop_data[qid][prop_nr][i['sid']]['ref']:
                     self.prop_data[qid][prop_nr][i['sid']]['ref'][i['ref']] = set()
                 self.prop_data[qid][prop_nr][i['sid']]['ref'][i['ref']].add((i['pr'], i['rval']))
+
+    def _query_data_refs(self, prop_nr):
+        page_size = 10000
+        page_count = 0
+        num_pages = None
+        if self.debug:
+            # get the number of pages/queries so we can show a progress bar
+            query = """SELECT (COUNT(?item) as ?c) where {{
+                  {0}
+                  ?item p:{1} ?sid .
+            }}""".format(self.base_filter_string, prop_nr)
+            count = int(self.engine.execute_sparql_query(query)['results']['bindings'][0]['c']['value'])
+            num_pages = (int(count) // page_size) + 1
+            print("Query {}: {}/{}".format(prop_nr, page_count, num_pages))
+        while True:
+            query = """
+                #Tool: wdi_core fastrun
+                SELECT ?item ?qval ?pq ?sid ?v ?ref ?pr ?rval WHERE {
+                  {
+                    SELECT ?item ?v ?sid where {
+                      **base_filter_string**
+                      ?item p:**prop_nr** ?sid .
+                      ?sid ps:**prop_nr** ?v .
+                    } GROUP BY ?item ?v ?sid
+                    ORDER BY ?sid
+                    OFFSET **offset**
+                    LIMIT **page_size**
+                  }
+                  OPTIONAL {
+                    ?sid ?pq ?qval .
+                    [] wikibase:qualifier ?pq
+                  }
+                  OPTIONAL {
+                    ?sid prov:wasDerivedFrom ?ref .
+                    ?ref ?pr ?rval .
+                    [] wikibase:reference ?pr
+                  }
+                }""".replace("**offset**", str(page_count * page_size)). \
+                replace("**base_filter_string**", self.base_filter_string). \
+                replace("**prop_nr**", prop_nr).replace("**page_size**", str(page_size))
+
+            results = self.engine.execute_sparql_query(query)['results']['bindings']
+            self.format_query_results(results)
+            self.update_frc_from_query(results, prop_nr)
+            page_count += 1
+            if num_pages:
+                print("Query {}: {}/{}".format(prop_nr, page_count, num_pages))
+            if len(results) == 0:
+                break
+
+    def _query_data(self, prop_nr):
+        if self.use_refs:
+            self._query_data_refs(prop_nr)
+        else:
+            query = '''
+                #Tool: wdi_core fastrun
+                select ?item ?qval ?pq ?sid ?v where {{
+                  {0}
+
+                  ?item p:{1} ?sid .
+
+                  ?sid ps:{1} ?v .
+                  OPTIONAL {{
+                    ?sid ?pq ?qval .
+                    FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/"))
+                  }}
+                }}
+                '''.format(self.base_filter_string, prop_nr)
+            r = self.engine.execute_sparql_query(query=query, prefix=prefix)['results']['bindings']
+            self.format_query_results(r)
+            self.update_frc_from_query(r, prop_nr)
 
     def _query_lang(self, lang, lang_data_type):
         """
@@ -442,7 +478,6 @@ class FastRunContainer(object):
             if 'label' in r:
                 data[qid].add(r['label']['value'])
         return data
-
 
     @staticmethod
     def get_prop_datatype(prop_nr, engine):
