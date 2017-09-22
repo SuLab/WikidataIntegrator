@@ -102,7 +102,7 @@ class WDItemEngine(object):
             references can hold only one value for one property. The number of good reference blocks is not limited.
             This parameter OVERRIDES any other reference mode set!!
         :type good_refs: list containing dictionaries.
-        :param keep_good_ref_statements: Do not delete any statement which has a good reference, either definded in the
+        :param keep_good_ref_statements: Do not delete any statement which has a good reference, either defined in the
             good_refs list or by any other referencing mode.
         :type keep_good_ref_statements: bool
         :param search_only: If this flag is set to True, the data provided will only be used to search for the
@@ -426,7 +426,7 @@ class WDItemEngine(object):
 
         def is_good_ref(ref_block):
 
-            if len(WDItemEngine.databases) == 0 or len(WDItemEngine.pmids) == 0:
+            if len(WDItemEngine.databases) == 0:
                 WDItemEngine._init_ref_system()
 
             prop_nrs = [x.get_prop_nr() for x in ref_block]
@@ -454,7 +454,7 @@ class WDItemEngine(object):
             ref_properties = ['P248', 'P1476', 'P813']  # 'P407' language of work,
 
             for v in values:
-                if prop_nrs[values.index(v)] == 'P248' and v in WDItemEngine.pmids:
+                if prop_nrs[values.index(v)] == 'P248':
                     return True
                 elif v == 'P698':
                     return True
@@ -1164,25 +1164,25 @@ class WDItemEngine(object):
             if 'wd_prop' in x:
                 WDItemEngine.databases[db_qid].append(x['wd_prop']['value'].split('/')[-1])
 
-        count = 0
-
-        while True:
-            pmid_query = '''
-            SELECT DISTINCT ?x WHERE {{
-                ?x wdt:P698 [] .
-            }}
-            OFFSET {0}
-            LIMIT 500000
-            '''
-
-            results = WDItemEngine.execute_sparql_query(pmid_query.format(count * 100000))['results']['bindings']
-            count += 1
-
-            if len(results) == 0:
-                break
-
-            for x in results:
-                WDItemEngine.pmids.append(x['x']['value'].split('/')[-1])
+        # count = 0
+        #
+        # while True:
+        #     pmid_query = '''
+        #     SELECT DISTINCT ?x WHERE {{
+        #         ?x wdt:P698 [] .
+        #     }}
+        #     OFFSET {0}
+        #     LIMIT 500000
+        #     '''
+        #
+        #     results = WDItemEngine.execute_sparql_query(pmid_query.format(count * 500000))['results']['bindings']
+        #     count += 1
+        #
+        #     if len(results) == 0:
+        #         break
+        #
+        #     for x in results:
+        #         WDItemEngine.pmids.append(x['x']['value'].split('/')[-1])
 
     @staticmethod
     def delete_items(item_list, reason, login, user_agent=config['USER_AGENT_DEFAULT']):
