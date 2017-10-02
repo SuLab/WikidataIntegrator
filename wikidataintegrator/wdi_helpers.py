@@ -258,7 +258,7 @@ class PubmedItem(object):
             self.meta['pubtypes'] = ['research-article']
             self.warnings.append("unknown publication type, assuming scientific article")
             print("unknown publication type, assuming scientific article")
-        self.meta['pubtype_qid'] = list(set(self.pubtypes[x] for x in self.meta['pubtypes'] if x in self.pubtypes))
+        self.meta['pubtype_qid'] = list(set(self.pubtypes.get(x, "Q13442814") for x in self.meta['pubtypes']))
         if len(self.meta['pubtype_qid']) < 1:
             self.errors.append("unknown publication type: {}".format(self.meta['pubtypes']))
             raise ValueError("unknown publication type: {}".format(self.meta['pubtypes']))
