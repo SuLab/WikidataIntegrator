@@ -543,7 +543,7 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=Tru
     try:
         if write:
             wd_item.write(login=login, edit_summary=edit_summary)
-        wdi_core.WDItemEngine.log("INFO", format_msg(record_id, record_prop, wd_item.wd_item_id, msg))
+        wdi_core.WDItemEngine.log("INFO", format_msg(record_id, record_prop, wd_item.wd_item_id, msg) + ";" + str(wd_item.lastrevid))
     except WDApiError as e:
         print(e)
         wdi_core.WDItemEngine.log("ERROR",
@@ -556,7 +556,6 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=Tru
         return e
 
     return True
-
 
 def format_msg(external_id, external_id_prop, wdid, msg, msg_type=None, delimiter=";"):
     """
