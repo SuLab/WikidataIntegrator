@@ -137,6 +137,12 @@ The method wdi_core.WDItemEngine.log() allows for using the Python built in logg
 It takes two parameters, the log level (level) and the log message (message). It is advisable to separate log file columns by colons
 and always use the same number of fields, as this allows you to load the log file into databases or dataframes of R or Python.
 
+There is a helper method wdi_helpers.try_write() which allows both writing and logging at the same time. Calling this function with the WDItemEngine item to be written,
+will call the write() method on the item and log the action in a standard format in a log file, while capturing all exceptions and writing them to the log as well. This
+method uses wdi_helpers.format_msg internally to format the logging. 
+
+If logs are written using wdi_helpers.try_write() they can be automatically parsed by an external tool called '[Bot Log Parser](https://github.com/SuLab/scheduled-bots/blob/master/scheduled_bots/logger/bot_log_parser.py)', which generates a clickable html output for easy viewing and sharing. See [example output](http://jenkins.sulab.org/job/Disease_Ontology/21/artifact/Disease_Ontology/logs/DOIDBot-20171002_23%3A00.html).
+
 ## Wikidata Search ##
  The method wdi_core.WDItemEngine.get_wd_search_results() allows for string search in
  Wikidata. This means that labels, descriptions and aliases can be searched for a string of interest. The method takes five arguments:
