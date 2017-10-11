@@ -441,18 +441,23 @@ class PubmedItem(object):
             return None
 
     def create(self, login=None):
-        # create new item
+        """
+        Attempt to create new item. Returns `None` if creation fails.
+        """
         if login is None:
             raise ValueError("login required to create item")
 
         try:
             self.get_metadata()
+            self.make_statements()
+            item = wdi_core.WDItemEngine(item_name=self.meta['title'], data=self.statements,
+                                         domain="scientific_article")
         except Exception as e:
-            print(e)
+            msg = format_msg(self.ext_id, self.id_type, None, str(e), type(e))
+            print(msg)
+            wdi_core.WDItemEngine.log("ERROR", msg)
             return None
-        self.make_statements()
 
-        item = wdi_core.WDItemEngine(item_name=self.meta['title'], data=self.statements, domain="scientific_article")
         item.set_label(self.meta['title'])
         description = ', '.join(self.descriptions[x] for x in self.meta['pubtype_qid'])
         item.set_description(description, lang='en')
@@ -543,7 +548,8 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=Tru
     try:
         if write:
             wd_item.write(login=login, edit_summary=edit_summary)
-        wdi_core.WDItemEngine.log("INFO", format_msg(record_id, record_prop, wd_item.wd_item_id, msg) + ";" + str(wd_item.lastrevid))
+        wdi_core.WDItemEngine.log("INFO", format_msg(record_id, record_prop, wd_item.wd_item_id, msg) + ";" + str(
+            wd_item.lastrevid))
     except WDApiError as e:
         print(e)
         wdi_core.WDItemEngine.log("ERROR",
@@ -556,6 +562,7 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=Tru
         return e
 
     return True
+
 
 def format_msg(external_id, external_id_prop, wdid, msg, msg_type=None, delimiter=";"):
     """
