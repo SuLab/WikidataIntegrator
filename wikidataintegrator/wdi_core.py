@@ -116,49 +116,41 @@ class WDItemEngine(object):
         :param user_agent: The user agent string to use when making http requests
         :type user_agent: str
         """
-        self.wd_json_representation = {}
         self.wd_item_id = wd_item_id
         self.item_name = item_name
-        self.create_new_item = False
         self.domain = domain
+        self.data = [] if data is None else data
         self.server = server
+        self.append_value = [] if append_value is None else append_value
         self.use_sparql = use_sparql
-        self.statements = []
-        self.original_statements = []
-        self.entity_metadata = {}
-        self.item_data = item_data
-
         self.fast_run = fast_run
         self.fast_run_base_filter = fast_run_base_filter
         self.fast_run_use_refs = fast_run_use_refs
         self.ref_handler = ref_handler
-        if self.ref_handler:
-            assert callable(self.ref_handler)
-        self.fast_run_container = None
-        self.require_write = True
-        self.sitelinks = dict()
-
         self.global_ref_mode = global_ref_mode
-        if self.global_ref_mode == "CUSTOM" and self.ref_handler is None:
-            raise ValueError("If using a custom ref mode, ref_handler must be set")
         self.good_refs = good_refs
-
         self.keep_good_ref_statements = keep_good_ref_statements
-
         self.search_only = search_only
-
+        self.item_data = item_data
         self.user_agent = user_agent
         self.base_url_template = base_url_template
 
-        if data is None:
-            self.data = []
-        else:
-            self.data = data
+        self.create_new_item = False
+        self.wd_json_representation = {}
+        self.statements = []
+        self.original_statements = []
+        self.entity_metadata = {}
+        self.fast_run_container = None
+        self.require_write = True
+        self.sitelinks = dict()
+        self.lastrevid = None  # stores last revisionid after a write occurs
 
-        if append_value is None:
-            self.append_value = []
-        else:
-            self.append_value = append_value
+        if self.ref_handler:
+            assert callable(self.ref_handler)
+        if self.global_ref_mode == "CUSTOM" and self.ref_handler is None:
+            raise ValueError("If using a custom ref mode, ref_handler must be set")
+
+        ## done setting
 
         if self.fast_run:
             self.init_fastrun()
@@ -897,6 +889,7 @@ class WDItemEngine(object):
             payload.update({u'id': self.wd_item_id})
 
         base_url = self.base_url_template.format(self.server)
+        lastrevid = None
 
         try:
             reply = login.get_session().post(base_url, headers=headers, data=payload)
@@ -905,6 +898,8 @@ class WDItemEngine(object):
             json_data = reply.json()
 
             # pprint.pprint(json_data)
+            if "success" in json_data and "entity" in json_data and "lastrevid" in json_data["entity"]:
+                lastrevid = json_data["entity"]["lastrevid"]
 
             # deal with maxlag
             if 'error' in json_data.keys() and 'code' in json_data['error'] \
@@ -938,11 +933,13 @@ class WDItemEngine(object):
         self.wd_item_id = json_data['entity']['id']
         self.parse_wd_json(wd_json=json_data['entity'])
         self.data = []
+        self.lastrevid = lastrevid
 
         return self.wd_item_id
 
     @classmethod
-    def setup_logging(cls, log_dir="./logs", log_name=None, header=None, delimiter=";", logger_name='WD_logger'):
+    def setup_logging(cls, log_dir="./logs", log_name=None, header=None, names=None,
+                      delimiter=";", logger_name='WD_logger'):
         """
         A static method which initiates log files compatible to .csv format, allowing for easy further analysis.
         :param log_dir: allows for setting relative or absolute path for logging, default is ./logs.
@@ -952,9 +949,13 @@ class WDItemEngine(object):
         :type log_name: str
         :param header: Log file will be prepended with header if given
         :type header: str
+        :param names: Column names for the log file
+        :type names: list
         :param delimiter: Log file will be delimited with `delimiter`
         :type delimiter: str
         """
+        names = ["level", "timestamp", "external_id", "external_id_prop", "wdid", "msg", "msg_type", "revid"] if names is None else names
+
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
@@ -973,9 +974,10 @@ class WDItemEngine(object):
         fmt = '%(levelname)s{delimiter}%(asctime)s{delimiter}%(message)s'.format(delimiter=delimiter)
         if header:
             header = header if header.startswith("#") else "#" + header
+            header += "\n" + delimiter.join(names)
             formatter = FormatterWithHeader(header, fmt=fmt, datefmt='%m/%d/%Y %H:%M:%S')
         else:
-            formatter = logging.Formatter(fmt=fmt, datefmt='%m/%d/%Y %H:%M:%S')
+            formatter = FormatterWithHeader(delimiter.join(names), fmt=fmt, datefmt='%m/%d/%Y %H:%M:%S')
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
