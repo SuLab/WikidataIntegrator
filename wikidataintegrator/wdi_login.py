@@ -184,7 +184,7 @@ class WDLogin(object):
         Continuation of OAuth procedure. Method must be explicitly called in order to complete OAuth. This allows
         external entities, e.g. websites, to provide tokens through callback URLs directly.
         :param oauth_callback_data: The callback URL received to a Web app
-        :type oauth_callback_data: str
+        :type oauth_callback_data: bytes
         :return:
         """
         self.response_qs = oauth_callback_data
@@ -194,7 +194,7 @@ class WDLogin(object):
             self.response_qs = input("Callback URL: ")
 
         # input the url from redirect after authorization
-        response_qs = self.response_qs.split("?")[-1]
+        response_qs = self.response_qs.split(b'?')[-1]
 
         # Step 3: Complete -- obtain authorized key/secret for "resource owner"
         access_token = self.handshaker.complete(self.request_token, response_qs)
