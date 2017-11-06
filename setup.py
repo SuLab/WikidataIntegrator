@@ -4,7 +4,7 @@ from subprocess import check_output
 
 MAJOR_VERSION = 0
 MINOR_VERSION = 0
-MICRO_VERSION = 489
+MICRO_VERSION = 490
 
 REPO_URL = 'https://github.com/sulab/WikidataIntegrator'
 

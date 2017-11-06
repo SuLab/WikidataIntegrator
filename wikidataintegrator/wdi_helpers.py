@@ -182,9 +182,12 @@ class PubmedItem(object):
         'series ordinal': 'P1545',
         'PMCID': 'P932',
         'PMC': 'P932',
+        'reference URL': 'P854'
     }
 
-    id_types = {"MED", "PMC", "EUROPEPMC", "PAT", "NBK", "HIR", "ETH", "CTX", "CBA", "AGR", "DOI"}
+    id_types = {"MED": "PubMed ID",
+                "PMC": "PMC",
+                "DOI": "DOI"}
 
     pubtypes = {"research-article": "Q13442814",  # scientific article
                 "Journal Article": "Q13442814",  # scientific article
@@ -209,7 +212,8 @@ class PubmedItem(object):
             'pages': None,
             'authors': None,
             'pubtypes': None,
-            'pubtype_qid': None
+            'pubtype_qid': None,
+            'parsed': False
         }
         if self.id_type == "PMC" and self.ext_id.startswith("PMC"):
             self.ext_id = self.ext_id.replace("PMC", "")
@@ -227,11 +231,9 @@ class PubmedItem(object):
         elif self.id_type == "DOI":
             url = "http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:%22{}%22&resulttype=core&format=json"
             url = url.format(self.ext_id)
-        elif self.id_type != "DOI":
+        else:
             url = 'http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{}%20AND%20SRC:{}&resulttype=core&format=json'
             url = url.format(self.ext_id, self.id_type)
-        else:
-            raise ValueError()
         headers = {
             'User-Agent': self.user_agent
         }
@@ -242,11 +244,11 @@ class PubmedItem(object):
             raise ValueError("No results")
         self.article = d['resultList']['result'][0]
 
-    def get_metadata(self):
+    def parse_metadata(self):
         if not self.article:
             self.get_article_info()
 
-        self.meta['pmid'] = self.article['pmid']
+        self.meta['pmid'] = self.article.get('pmid','')
         self.meta['pmcid'] = self.article.get('pmcid', '').replace("PMC", "")
         self.meta['title'] = self.article['title'][:249]
         if 'pubTypeList' in self.article:
@@ -303,21 +305,33 @@ class PubmedItem(object):
         self.meta['issue'] = self.article['journalInfo'].get('issue')
         self.meta['pages'] = self.article.get('pageInfo')
         self.meta['doi'] = self.article.get('doi')
+        self.meta['parsed'] = True
 
     @staticmethod
     def lookup_author(orcid_id):
         return prop2qid("P496", orcid_id)
 
     def make_reference(self):
-        if 'pmid' not in self.meta:
-            self.get_metadata()
+        if not self.meta['parsed']:
+            self.parse_metadata()
         if 'pmcid' in self.meta and self.meta['pmcid']:
-            pmid = wdi_core.WDString(value=self.meta['pmcid'], prop_nr='P932', is_reference=True)
+            extid = wdi_core.WDString(value=self.meta['pmcid'], prop_nr=self.PROPS['PMCID'], is_reference=True)
+            ref_url = wdi_core.WDUrl("http://europepmc.org/abstract/{}/{}".format("PMC", self.meta['pmcid']),
+                                     self.PROPS['reference URL'], is_reference=True)
+        elif 'pmid' in self.meta and self.meta['pmid']:
+            extid = wdi_core.WDString(value=self.meta['pmid'], prop_nr=self.PROPS['PubMed ID'], is_reference=True)
+            ref_url = wdi_core.WDUrl("http://europepmc.org/abstract/{}/{}".format("MED", self.meta['pmid']),
+                                     self.PROPS['reference URL'], is_reference=True)
+        elif 'doi' in self.meta and self.meta['doi']:
+            extid = wdi_core.WDString(value=self.meta['doi'], prop_nr=self.PROPS['DOI'], is_reference=True)
+            ref_url = None
         else:
-            pmid = wdi_core.WDString(value=self.meta['pmid'], prop_nr='P698', is_reference=True)
+            raise ValueError("ref needs a pmcid, pmid, or doi")
         stated_in = wdi_core.WDItemID(value='Q5412157', prop_nr='P248', is_reference=True)
         retrieved = wdi_core.WDTime(strftime("+%Y-%m-%dT00:00:00Z", gmtime()), prop_nr='P813', is_reference=True)
-        self.reference = [stated_in, pmid, retrieved]
+        self.reference = [stated_in, extid, retrieved]
+        if ref_url:
+            self.reference.append(ref_url)
 
     def make_author_statements(self, ordinals=None):
         """
@@ -357,7 +371,6 @@ class PubmedItem(object):
         s = []
 
         ### Required statements
-        s.append(wdi_core.WDExternalID(self.meta['pmid'], self.PROPS['PubMed ID'], references=[self.reference]))
         for pubtype in self.meta['pubtype_qid']:
             s.append(wdi_core.WDItemID(pubtype, self.PROPS['instance of'], references=[self.reference]))
         s.append(wdi_core.WDMonolingualText(self.meta['title'], self.PROPS['title'], references=[self.reference]))
@@ -366,6 +379,8 @@ class PubmedItem(object):
         s.extend(self.make_author_statements(ordinals=ordinals))
 
         ### Optional statements
+        if self.meta['pmid']:
+            s.append(wdi_core.WDExternalID(self.meta['pmid'], self.PROPS['PubMed ID'], references=[self.reference]))
         if self.meta['volume']:
             s.append(wdi_core.WDString(self.meta['volume'], self.PROPS['volume'], references=[self.reference]))
         if self.meta['pages']:
@@ -387,7 +402,7 @@ class PubmedItem(object):
                 raise ValueError("item doesn't exist")
 
         try:
-            self.get_metadata()
+            self.parse_metadata()
         except Exception as e:
             print(e)
             return None
@@ -415,15 +430,6 @@ class PubmedItem(object):
         if difflib.SequenceMatcher(None, current_label, self.meta['title']).ratio() > 0.90:
             self.meta['title'] = current_label
 
-        # validate pmid is on item
-        if 'P698' not in claims:
-            raise ValueError("unknown pubmed id")
-        if len(claims['P698']) != 1:
-            raise ValueError("more than one pmid")
-        item_pmid = claims['P698'][0]['mainsnak']['datavalue']['value']
-        if item_pmid != self.meta['pmid']:
-            raise ValueError("pmids don't match")
-
         # make statements without the existing authors
         self.make_statements(ordinals)
 
@@ -433,7 +439,7 @@ class PubmedItem(object):
         description = ', '.join(self.descriptions[x] for x in self.meta['pubtype_qid'])
         if item.get_description() == '':
             item.set_description(description, lang='en')
-        write_success = try_write(item, self.meta['pmid'], 'P698', login)
+        write_success = try_write(item, self.ext_id, self.PROPS[self.id_types[self.id_type]], login)
         if write_success:
             self._cache[(self.ext_id, self.id_type)] = item.wd_item_id
             return item.wd_item_id
@@ -448,7 +454,7 @@ class PubmedItem(object):
             raise ValueError("login required to create item")
 
         try:
-            self.get_metadata()
+            self.parse_metadata()
             self.make_statements()
             item = wdi_core.WDItemEngine(item_name=self.meta['title'], data=self.statements,
                                          domain="scientific_article")
@@ -461,7 +467,7 @@ class PubmedItem(object):
         item.set_label(self.meta['title'])
         description = ', '.join(self.descriptions[x] for x in self.meta['pubtype_qid'])
         item.set_description(description, lang='en')
-        write_success = try_write(item, self.meta['pmid'], 'P698', login)
+        write_success = try_write(item, self.ext_id, self.PROPS[self.id_types[self.id_type]], login)
         if write_success:
             self._cache[(self.ext_id, self.id_type)] = item.wd_item_id
             return item.wd_item_id
@@ -499,7 +505,7 @@ class PubmedItem(object):
         # for example, PubmedItem may have been constructed with a PMCID, the wikidata item may have a PMID but not
         # a PMCID, so check the other external IDs
         try:
-            self.get_metadata()
+            self.parse_metadata()
         except Exception as e:
             print(e)
             return None
