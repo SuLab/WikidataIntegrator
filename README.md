@@ -167,6 +167,9 @@ for more information.
 
 # Examples (in normal mode) #
 
+## An Example Bot ##
+https://github.com/stuppie/wikidatacon_wdi_demo
+
 ## A Minimal Bot ##
 In order to create a minimal bot based on wdi_core, three things are required:
 
