@@ -226,13 +226,13 @@ class PubmedItem(object):
 
     def get_article_info(self):
         if self.id_type == "PMC":
-            url = 'http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:PMC{}&resulttype=core&format=json'
+            url = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:PMC{}&resulttype=core&format=json'
             url = url.format(self.ext_id)
         elif self.id_type == "DOI":
-            url = "http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:%22{}%22&resulttype=core&format=json"
+            url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:%22{}%22&resulttype=core&format=json"
             url = url.format(self.ext_id)
         else:
-            url = 'http://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{}%20AND%20SRC:{}&resulttype=core&format=json'
+            url = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{}%20AND%20SRC:{}&resulttype=core&format=json'
             url = url.format(self.ext_id, self.id_type)
         headers = {
             'User-Agent': self.user_agent
