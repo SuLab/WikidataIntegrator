@@ -270,4 +270,4 @@ The full example:
         wd_item.write(login_instance)
 ```
 
-FYI: Fastrun mode checks for equality of property/value pairs, qualifers, labels, aliases and description, but it ignores references!
+Note: Fastrun mode checks for equality of property/value pairs, qualifers (not including qualifier attributes), labels, aliases and description, but it ignores references by default! References can be checked in fastrun mode by setting `fast_run_use_refs` to `True`.
