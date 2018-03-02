@@ -432,7 +432,7 @@ class FastRunContainer(object):
                   ?sid ps:{1} ?v .
                   OPTIONAL {{
                     ?sid ?pq ?qval .
-                    FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/"))
+                    [] wikibase:qualifier ?pq
                   }}
                 }}
                 '''.format(self.base_filter_string, prop_nr)
