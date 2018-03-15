@@ -52,7 +52,7 @@ def test_release_new_item_no_write():
 
 def test_id_mapper():
     # get all uniprot to wdid, where taxon is human
-    d = id_mapper("P352",(("P703", "Q15978631"),))
+    d = id_mapper("P352", (("P703", "Q15978631"),))
     assert 100000 > len(d) > 20000
 
     d = id_mapper("P683", raise_on_duplicate=False, return_as_set=True)
@@ -66,3 +66,22 @@ def test_id_mapper():
     except ValueError:
         raised = True
     assert raised
+
+
+def test_id_mapper_mrt():
+    # this may break if it changes in wikidata ....
+    d = id_mapper("P486", prefer_exact_match=True)
+    assert d['D000998'] == 'Q40207875'
+    assert d['D000037'] == 'Q388113'
+    assert 'D000033' not in d
+
+    d = id_mapper("P486", prefer_exact_match=True, return_as_set=True)
+    assert d['D000998'] == {'Q40207875'}
+    assert d['D000037'] == {'Q388113'}
+    assert 'D000033' not in d
+
+    d = id_mapper("P486", prefer_exact_match=False, return_as_set=True)
+    # unique value constraint
+    assert d['D000998'] == {'Q40207875', 'Q846227'}
+    # single value constraint
+    assert d['D000037'] == d['D000033'] == {'Q388113'}

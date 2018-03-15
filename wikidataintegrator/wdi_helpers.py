@@ -4,6 +4,7 @@ import json
 from collections import defaultdict, Counter
 from time import gmtime, strftime
 
+import pandas as pd
 import requests
 from dateutil import parser as du
 
@@ -12,6 +13,12 @@ from . import wdi_core
 from .wdi_core import WDItemEngine, WDApiError
 from wikidataintegrator.wdi_config import config
 
+# https://www.wikidata.org/wiki/Property:P4390
+RELATIONS = {'close': 'Q39893184',
+             'exact': 'Q39893449',
+             'related': 'Q39894604',
+             'broad': 'Q39894595',
+             'narrow': 'Q39893967'}
 
 class Release(object):
     """
@@ -615,7 +622,7 @@ def prop2qid(prop, value):
         return result[0]['item']['value'].split("/")[-1]
 
 
-def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False):
+def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False, prefer_exact_match=False):
     """
     Get all wikidata ID <-> prop <-> value mappings
     Example: id_mapper("P352") -> { 'A0KH68': 'Q23429083',
@@ -630,10 +637,16 @@ def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False)
         This is equivalent to the Distinct values constraint. e.g.: http://tinyurl.com/ztpncyb
         Note that a wikidata item can have more than one ID. This is not checked for
         True: raise ValueError
-        False: only one of the values is kept if there are duplicates
+        False: only one of the values is kept if there are duplicates (unless return_as_set if True)
     :type raise_on_duplicate: bool
     :param return_as_set: If True, all values in the returned dict will be a set of strings
     :type return_as_set: bool
+    :param prefer_exact_match: If True, the mapping relation type qualifier will be queried. If an ID mapping has
+    multiple values, the ones marked as an 'exactMatch' will be returned while the others discarded. If none have
+    an exactMatch qualifier, all will be returned. If multiple has 'exactMatch', they will not be discarded.
+    https://www.wikidata.org/wiki/Property:P4390
+    :type prefer_exact_match: bool
+
 
     If `raise_on_duplicate` is False and `return_as_set` is True, the following can be returned:
     { 'A0KH68': {'Q23429083'}, 'B023F44': {'Q237623', 'Q839742'} }
@@ -641,26 +654,61 @@ def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False)
     :return: dict
 
     """
-    query = "SELECT * WHERE {"
-    query += "?item wdt:{} ?id .\n".format(prop)
+    query = "SELECT ?id ?item ?mrt WHERE {"
+    query += "?item p:{} ?s .\n?s ps:{} ?id .\n".format(prop, prop)
+    query += "OPTIONAL {?s pq:P4390 ?mrt}\n"
     if filters:
         for f in filters:
             query += "?item wdt:{} wd:{} .\n".format(f[0], f[1])
     query = query + "}"
     results = WDItemEngine.execute_sparql_query(query)['results']['bindings']
+    results = [{k: v['value'] for k, v in x.items()} for x in results]
+    for r in results:
+        r['item'] = r['item'].split('/')[-1]
+        if 'mrt' in r:
+            r['mrt'] = r['mrt'].split('/')[-1]
     if not results:
         return None
 
-    ids = [x['id']['value'] for x in results]
-    if raise_on_duplicate and len(ids) != len(set(ids)):
-        dupe_ids = [x for x, count in Counter(ids).items() if count > 1]
-        raise ValueError("duplicate ids: {}".format(
-            [(x['id']['value'], x['item']['value']) for x in results if x['id']['value'] in dupe_ids]))
+    if prefer_exact_match:
+        df = pd.DataFrame(results)
+        if 'mrt' not in df:
+            df['mrt'] = ''
+        df.mrt = df.mrt.fillna('')
+        df['keep'] = True
+
+        # check if a QID has more than one extID
+        # i.e single value constraint
+        # example: https://www.wikidata.org/w/index.php?title=Q3840916&oldid=645203228#P486 (D018311)
+        # example 2: https://www.wikidata.org/w/index.php?title=Q388113&oldid=648588555#P486 (D000037, D000033)
+        df.sort_values("item", inplace=True)
+        dupe_df = df[df.duplicated(subset=["item"], keep=False)]
+        for item, subdf in dupe_df.groupby("item"):
+            # if there is one with exact match, take it, otherwise, skip
+            if sum(subdf.mrt == RELATIONS['exact']) == 1:
+                df.loc[(df.item == item) & (df.mrt != RELATIONS['exact']), 'keep'] = False
+
+        # check if a extID has more than one QID
+        # example: https://www.wikidata.org/w/index.php?title=Q846227&oldid=648565663#P486
+                    # https://www.wikidata.org/w/index.php?title=Q40207875&oldid=648565770#P486
+        df.sort_values("id", inplace=True)
+        dupe_df = df[df.duplicated(subset=["id"], keep=False)]
+        for ext_id, subdf in dupe_df.groupby("id"):
+            # if there is one with exact match, take it, otherwise, skip
+            if sum(subdf.mrt == RELATIONS['exact']) == 1:
+                df.loc[(df.id == ext_id) & (df.mrt != RELATIONS['exact']), 'keep'] = False
+
+        df = df[df.keep]
+        results = df.to_dict("records")
+
+    id_qid = defaultdict(set)
+    for r in results:
+        id_qid[r['id']].add(r['item'])
+    dupe = {k:v for k,v in id_qid.items() if len(v)>1}
+    if raise_on_duplicate and dupe:
+        raise ValueError("duplicate ids: {}".format(dupe))
 
     if return_as_set:
-        d = defaultdict(set)
-        for x in results:
-            d[x['id']['value']].add(x['item']['value'].split('/')[-1])
-        return dict(d)
+        return dict(id_qid)
     else:
-        return {x['id']['value']: x['item']['value'].split('/')[-1] for x in results}
+        return {x['id']: x['item'] for x in results}
