@@ -1,10 +1,8 @@
-import os
 from setuptools import setup, find_packages
-from subprocess import check_output
 
 MAJOR_VERSION = 0
 MINOR_VERSION = 0
-MICRO_VERSION = 491
+MICRO_VERSION = 498
 
 REPO_URL = 'https://github.com/sulab/WikidataIntegrator'
 
@@ -35,6 +33,7 @@ setup(
     ],
     install_requires=[
         'requests',
+        'pandas',
         'python-dateutil',
         'simplejson',
         'mwoauth',
