@@ -33,7 +33,6 @@ setup(
     ],
     install_requires=[
         'requests',
-        'pandas',
         'python-dateutil',
         'simplejson',
         'mwoauth',
