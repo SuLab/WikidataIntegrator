@@ -151,12 +151,12 @@ If logs are written using wdi_helpers.try_write() they can be automatically pars
  
 ## Merge Wikidata items ##
 Sometimes, Wikidata items need to be merged. An API call exists for that, and wdi_core implements a method accordingly.
-wdi_core.WDItemEngine.merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts='') takes five
-arguments, the QID of the item which should be merged into another item (from_id), the QID of the item the first item should be
+`wdi_core.WDItemEngine.merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts='')` takes five
+arguments: the QID of the item which should be merged into another item (from_id), the QID of the item the first item should be
 merged into (to_id), a login object of type wdi_login.WDLogin() (login_obj) to provide the API call with the required authentication
 information, a server (server) if the Wikibase instance is not Wikidata and a flag for ignoring merge conflicts (ignore_conflicts).
- The last parameter will do a partial merge for all statements which do not conflict. This should generally be avoided because it 
- leaves a crippled item in Wikidata. Before a merge, any potential conflicts should be resolved first.
+The last parameter will do a partial merge for all statements which do not conflict. This should generally be avoided because it 
+leaves a crippled item in Wikidata. Before a merge, any potential conflicts should be resolved first.
 
 ## Pubmed Articles ##
 The class wdi_core.wdi_helpers.PubmedItem allows you to create article items. Given a PMID, it will create an item representing this journal article. It can also retrieve existing items. This is useful for quickly creating items to use in reference statements.
