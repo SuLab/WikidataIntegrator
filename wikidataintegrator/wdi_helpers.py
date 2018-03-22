@@ -258,6 +258,10 @@ class PubmedItem(object):
         self.meta['pmid'] = self.article.get('pmid','')
         self.meta['pmcid'] = self.article.get('pmcid', '').replace("PMC", "")
         self.meta['title'] = self.article['title'][:249]
+        original_title=self.meta['title'] # to remove trailing dot
+        if original_title[-1]=='.' and original_title[-3]!='.a': # to exclude abbreviations such as U.S.A.
+            self.meta['title'] = original_title[:-1] # drop the trailing dot
+
         if 'pubTypeList' in self.article:
             pubtypes = self.article['pubTypeList']['pubType']
             if not isinstance(pubtypes, list):
