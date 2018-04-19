@@ -5,7 +5,6 @@ import logging
 import os
 import re
 import time
-import sys
 import requests
 import json
 
@@ -35,7 +34,7 @@ You should have received a copy of the GNU General Public License
 along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__author__ = 'Sebastian Burgstaller, Andra Waagmeester'
+__author__ = 'Sebastian Burgstaller, Andra Waagmeester, Gregory Stupp'
 __license__ = 'AGPLv3'
 
 
@@ -48,11 +47,12 @@ class WDItemEngine(object):
 
     logger = None
 
-    def __init__(self, wd_item_id='', item_name='', domain='', data=None, server='www.wikidata.org',
+    def __init__(self, wd_item_id='', item_name='', domain='', data=None,
+                 mediawiki_api_url='https://www.wikidata.org/w/api.php',
+                 sparql_endpoint_url='https://query.wikidata.org/sparql',
                  append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
                  ref_handler=None, global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False,
-                 search_only=False, item_data=None, user_agent=config['USER_AGENT_DEFAULT'],
-                 base_url_template='https://{}/w/api.php'):
+                 search_only=False, item_data=None, user_agent=config['USER_AGENT_DEFAULT']):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -119,8 +119,9 @@ class WDItemEngine(object):
         self.wd_item_id = wd_item_id
         self.item_name = item_name
         self.domain = domain
+        self.mediawiki_api_url = mediawiki_api_url
+        self.sparql_endpoint_url = sparql_endpoint_url
         self.data = [] if data is None else data
-        self.server = server
         self.append_value = [] if append_value is None else append_value
         self.use_sparql = use_sparql
         self.fast_run = fast_run
@@ -133,7 +134,6 @@ class WDItemEngine(object):
         self.search_only = search_only
         self.item_data = item_data
         self.user_agent = user_agent
-        self.base_url_template = base_url_template
 
         self.create_new_item = False
         self.wd_json_representation = {}
@@ -199,13 +199,14 @@ class WDItemEngine(object):
 
     def init_fastrun(self):
         for c in WDItemEngine.fast_run_store:
-            if c.base_filter == self.fast_run_base_filter and c.use_refs == self.fast_run_use_refs and \
-                            c.ref_handler == self.ref_handler:
+            if (c.base_filter == self.fast_run_base_filter) and (c.use_refs == self.fast_run_use_refs) and \
+                    (c.ref_handler == self.ref_handler) and (c.sparql_endpoint_url == self.sparql_endpoint_url):
                 self.fast_run_container = c
 
         if not self.fast_run_container:
             self.fast_run_container = FastRunContainer(base_filter=self.fast_run_base_filter,
-                                                       base_data_type=WDBaseDataType, engine=WDItemEngine,
+                                                       base_data_type=WDBaseDataType, engine=self.__class__,
+                                                       sparql_endpoint_url=self.sparql_endpoint_url,
                                                        use_refs=self.fast_run_use_refs,
                                                        ref_handler=self.ref_handler)
             WDItemEngine.fast_run_store.append(self.fast_run_container)
@@ -223,7 +224,6 @@ class WDItemEngine(object):
         :rtype: dict
         :return: python complex dictionary represenation of a json
         """
-        url = self.base_url_template.format(self.server)
         params = {
             'action': 'wbgetentities',
             'sites': 'enwiki',
@@ -234,7 +234,7 @@ class WDItemEngine(object):
             'User-Agent': self.user_agent
         }
 
-        reply = requests.get(url, params=params, headers=headers)
+        reply = requests.get(self.mediawiki_api_url, params=params, headers=headers)
         reply.raise_for_status()
         return self.parse_wd_json(wd_json=reply.json()['entities'][self.wd_item_id])
 
@@ -264,14 +264,15 @@ class WDItemEngine(object):
         return wd_data
 
     @staticmethod
-    def get_wd_search_results(search_string='', server='www.wikidata.org', user_agent=config['USER_AGENT_DEFAULT'],
+    def get_wd_search_results(search_string='', mediawiki_api_url='https://www.wikidata.org/w/api.php',
+                              user_agent=config['USER_AGENT_DEFAULT'],
                               max_results=500, language='en'):
         """
         Performs a search in WD for a certain WD search string
         :param search_string: a string which should be searched for in WD
         :type search_string: str
-        :param server: Specify the server the WikiBase instance is running on.
-        :type server: str
+        :param mediawiki_api_url: Specify the mediawiki_api_url.
+        :type mediawiki_api_url: str
         :param user_agent: The user agent string transmitted in the http header
         :type user_agent: str
         :param max_results: The maximum number of search results returned. Default 500
@@ -280,7 +281,6 @@ class WDItemEngine(object):
         :type language: str
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         """
-        url = 'https://{}/w/api.php'.format(server)
         params = {
             'action': 'wbsearchentities',
             'language': language,
@@ -300,7 +300,7 @@ class WDItemEngine(object):
         while cont_count > 0:
             params.update({'continue': 0 if cont_count == 1 else cont_count})
 
-            reply = requests.get(url, params=params, headers=headers)
+            reply = requests.get(mediawiki_api_url, params=params, headers=headers)
             reply.raise_for_status()
             search_results = reply.json()
 
@@ -370,7 +370,7 @@ class WDItemEngine(object):
                         tmp_qids = reply.json()['items']
                     else:
                         query = statement.sparql_query.format(wd_property, data_point)
-                        results = WDItemEngine.execute_sparql_query(query=query)
+                        results = WDItemEngine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)
 
                         for i in results['results']['bindings']:
                             qid = i['item_id']['value'].split('/')[-1]
@@ -648,7 +648,7 @@ class WDItemEngine(object):
         :return: boolean True if test passed
         """
         # generate a set containing all property number of the item currently loaded
-        assert all(isinstance(v['core_id'], bool) for k,v in wdi_property_store.wd_properties.items()), \
+        assert all(isinstance(v['core_id'], bool) for k, v in wdi_property_store.wd_properties.items()), \
             "wd_properties 'core_id' must be a bool"
         core_props_list = set([x.get_prop_nr() for x in self.statements if
                                x.get_prop_nr() in wdi_property_store.wd_properties and
@@ -888,11 +888,11 @@ class WDItemEngine(object):
         else:
             payload.update({u'id': self.wd_item_id})
 
-        base_url = self.base_url_template.format(self.server)
+        url = self.mediawiki_api_url
         lastrevid = None
 
         try:
-            reply = login.get_session().post(base_url, headers=headers, data=payload)
+            reply = login.get_session().post(url, headers=headers, data=payload)
 
             # if the server does not reply with a string which can be parsed into a json, an error will be raised.
             json_data = reply.json()
@@ -907,7 +907,7 @@ class WDItemEngine(object):
                 lag = json_data['error']['lag']
                 time.sleep(lag)
                 del payload['maxlag']
-                reply = login.get_session().post(base_url, headers=headers, data=payload)
+                reply = login.get_session().post(url, headers=headers, data=payload)
                 json_data = reply.json()
 
             if 'error' in json_data.keys() and 'code' in json_data['error'] \
@@ -954,7 +954,8 @@ class WDItemEngine(object):
         :param delimiter: Log file will be delimited with `delimiter`
         :type delimiter: str
         """
-        names = ["level", "timestamp", "external_id", "external_id_prop", "wdid", "msg", "msg_type", "revid"] if names is None else names
+        names = ["level", "timestamp", "external_id", "external_id_prop", "wdid", "msg", "msg_type",
+                 "revid"] if names is None else names
 
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
@@ -1009,7 +1010,7 @@ class WDItemEngine(object):
         cls.logger.log(level=log_levels[level], msg=message)
 
     @classmethod
-    def generate_item_instances(cls, items, server='www.wikidata.org', login=None,
+    def generate_item_instances(cls, items, mediawiki_api_url='https://www.wikidata.org/w/api.php', login=None,
                                 user_agent=config['USER_AGENT_DEFAULT']):
         """
         A method which allows for retrieval of a list of Wikidata items or properties. The method generates a list of
@@ -1017,8 +1018,8 @@ class WDItemEngine(object):
         WDItemEngine containing all the data of the item. This is most useful for mass retrieval of WD items.
         :param items: A list of QIDs or property IDs
         :type items: list
-        :param server: A string denoting the server, without a http(s) prefix
-        :type server: str
+        :param mediawiki_api_url: The MediaWiki url which should be used
+        :type mediawiki_api_url: str
         :param login: An object of type WDLogin, which holds the credentials/session cookies required for >50 item bulk
             retrieval of items.
         :type login: wdi_login.WDLogin
@@ -1027,7 +1028,7 @@ class WDItemEngine(object):
         """
         assert type(items) == list
 
-        url = 'https://{}/w/api.php'.format(server)
+        url = mediawiki_api_url
         params = {
             'action': 'wbgetentities',
             'ids': '|'.join(items),
@@ -1044,14 +1045,15 @@ class WDItemEngine(object):
 
         item_instances = []
         for qid, v in reply.json()['entities'].items():
-            ii = cls(wd_item_id=qid, item_data=v, server=server)
+            ii = cls(wd_item_id=qid, item_data=v)
+            ii.mediawiki_api_url = mediawiki_api_url
             item_instances.append((qid, ii))
 
         return item_instances
 
     @staticmethod
     @wdi_backoff()
-    def execute_sparql_query(prefix='', query='', endpoint='https://query.wikidata.org/sparql',
+    def execute_sparql_query(query, prefix=None, endpoint='https://query.wikidata.org/sparql',
                              user_agent=config['USER_AGENT_DEFAULT']):
         """
         Static method which can be used to execute any SPARQL query
@@ -1063,24 +1065,14 @@ class WDItemEngine(object):
         :return: The results of the query are returned in JSON format
         """
 
-        # standard prefixes for the Wikidata SPARQL endpoint
-        # PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> has been removed for performance reasons
-        wd_standard_prefix = '''
-            PREFIX wd: <http://www.wikidata.org/entity/>
-            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-            PREFIX wikibase: <http://wikiba.se/ontology#>
-            PREFIX p: <http://www.wikidata.org/prop/>
-            PREFIX v: <http://www.wikidata.org/prop/statement/>
-            PREFIX q: <http://www.wikidata.org/prop/qualifier/>
-            PREFIX ps: <http://www.wikidata.org/prop/statement/>
+        if not endpoint:
+            endpoint = 'https://query.wikidata.org/sparql'
 
-        '''
-
-        if prefix == '':
-            prefix = wd_standard_prefix
+        if prefix:
+            query = prefix + '\n' + query
 
         params = {
-            'query': prefix + '\n#Tool: PBB_core fastrun\n' + query,
+            'query': '#Tool: PBB_core fastrun\n' + query,
             'format': 'json'
         }
 
@@ -1094,7 +1086,8 @@ class WDItemEngine(object):
         return response.json()
 
     @staticmethod
-    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts='',
+    def merge_items(from_id, to_id, login_obj, mediawiki_api_url='https://www.wikidata.org/w/api.php',
+                    ignore_conflicts='',
                     user_agent=config['USER_AGENT_DEFAULT']):
         """
         A static method to merge two Wikidata items
@@ -1104,13 +1097,13 @@ class WDItemEngine(object):
         :type to_id: string with 'Q' prefix
         :param login_obj: The object containing the login credentials and cookies
         :type login_obj: instance of PBB_login.WDLogin
-        :param server: The MediaWiki server which should be used, default: 'https://www.wikidata.org'
-        :type server: str
+        :param mediawiki_api_url: The MediaWiki url which should be used
+        :type mediawiki_api_url: str
         :param ignore_conflicts: A string with the values 'description', 'statement' or 'sitelink', separated
                 by a pipe ('|') if using more than one of those.
         :type ignore_conflicts: str
         """
-        url = server + '/w/api.php'
+        url = mediawiki_api_url
 
         headers = {
             'content-type': 'application/x-www-form-urlencoded',
@@ -1143,8 +1136,8 @@ class WDItemEngine(object):
 
         return merge_reply.json()
 
-    @staticmethod
-    def _init_ref_system():
+    @classmethod
+    def _init_ref_system(cls, sparql_endpoint_url=None):
         db_query = '''
         SELECT DISTINCT ?db ?wd_prop WHERE {
             {?db wdt:P31 wd:Q2881060 . } UNION
@@ -1158,36 +1151,17 @@ class WDItemEngine(object):
         }
         '''
 
-        for x in WDItemEngine.execute_sparql_query(db_query)['results']['bindings']:
+        for x in cls.execute_sparql_query(db_query, endpoint=sparql_endpoint_url)['results']['bindings']:
             db_qid = x['db']['value'].split('/')[-1]
-            if db_qid not in WDItemEngine.databases:
-                WDItemEngine.databases.update({db_qid: []})
+            if db_qid not in cls.databases:
+                cls.databases.update({db_qid: []})
 
             if 'wd_prop' in x:
-                WDItemEngine.databases[db_qid].append(x['wd_prop']['value'].split('/')[-1])
-
-        # count = 0
-        #
-        # while True:
-        #     pmid_query = '''
-        #     SELECT DISTINCT ?x WHERE {{
-        #         ?x wdt:P698 [] .
-        #     }}
-        #     OFFSET {0}
-        #     LIMIT 500000
-        #     '''
-        #
-        #     results = WDItemEngine.execute_sparql_query(pmid_query.format(count * 500000))['results']['bindings']
-        #     count += 1
-        #
-        #     if len(results) == 0:
-        #         break
-        #
-        #     for x in results:
-        #         WDItemEngine.pmids.append(x['x']['value'].split('/')[-1])
+                cls.databases[db_qid].append(x['wd_prop']['value'].split('/')[-1])
 
     @staticmethod
-    def delete_items(item_list, reason, login, user_agent=config['USER_AGENT_DEFAULT']):
+    def delete_items(item_list, reason, login, mediawiki_api_url='https://www.wikidata.org/w/api.php',
+                     user_agent=config['USER_AGENT_DEFAULT']):
         """
         Takes a list of items and posts them for deletion by Wikidata moderators, appends at the end of the deletion
         request page.
@@ -1199,7 +1173,7 @@ class WDItemEngine(object):
         :type login: wdi_login.WDLogin
         """
 
-        url = 'https://www.wikidata.org/w/api.php'
+        url = mediawiki_api_url
         bulk_deletion_string = '\n==Bulk deletion request==\n'
         bulk_deletion_string += '{{{{subst:Rfd group | {0} | reason = {1} }}}}'.format(' | '.join(item_list), reason)
 
@@ -1237,6 +1211,26 @@ class WDItemEngine(object):
             r = requests.post(url=url, data=params, cookies=login.get_edit_cookie(), headers=headers)
 
             print(r.json())
+
+    @classmethod
+    def wikibase_item_engine_factory(cls, mediawiki_api_url, sparql_endpoint_url, name='LocalItemEngine'):
+        """
+        Helper function for creating a WDItemEngine class with arguments set for a different Wikibase instance than
+        Wikidata.
+        :param mediawiki_api_url: Mediawiki api url. For wikidata, this is: 'https://www.wikidata.org/w/api.php'
+        :param sparql_endpoint_url: sparql endpoint url. For wikidata, this is: 'https://query.wikidata.org/sparql'
+        :param name: name of the resulting class
+        :return: a subclass of WDItemEngine with the mediawiki_api_url and sparql_endpoint_url arguments set
+        """
+
+        class SubCls(cls):
+            def __init__(self, *args, **kwargs):
+                kwargs['mediawiki_api_url'] = mediawiki_api_url
+                kwargs['sparql_endpoint_url'] = sparql_endpoint_url
+                super(SubCls, self).__init__(*args, **kwargs)
+
+        SubCls.__name__ = name
+        return SubCls
 
 
 class JsonParser(object):
@@ -2331,7 +2325,8 @@ class WDGlobeCoordinate(WDBaseDataType):
     """
     DTYPE = 'globe-coordinate'
 
-    def __init__(self, latitude, longitude, precision, prop_nr, is_reference=False, is_qualifier=False,
+    def __init__(self, latitude, longitude, precision, prop_nr, globe='http://www.wikidata.org/entity/Q2',
+                 is_reference=False, is_qualifier=False,
                  snak_type='value', references=None, qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
@@ -2359,6 +2354,7 @@ class WDGlobeCoordinate(WDBaseDataType):
         # TODO: implement globe parameter, so it becomes clear which globe the coordinates are referring to
         value = (latitude, longitude, precision)
         self.latitude, self.longitude, self.precision = value
+        self.globe = globe
 
         super(WDGlobeCoordinate, self) \
             .__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
@@ -2377,7 +2373,7 @@ class WDGlobeCoordinate(WDBaseDataType):
                 'latitude': self.latitude,
                 'longitude': self.longitude,
                 'precision': self.precision,
-                'globe': "http://www.wikidata.org/entity/Q2"
+                'globe': self.globe
             },
             'type': 'globecoordinate'
         }

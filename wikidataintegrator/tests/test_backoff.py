@@ -56,11 +56,11 @@ def bad_request():
 
 
 def bad_login():
-    wdi_login.WDLogin("name", "pass", server="www.wikidataaaaaaaaa.org")
+    wdi_login.WDLogin("name", "pass", mediawiki_api_url="www.wikidataaaaaaaaa.org")
 
 
 def item():
-    wd_item = WDItemEngine(wd_item_id="Q14911732", server='www.wikidataaaaaaaaa.org', search_only=True)
+    wd_item = WDItemEngine(wd_item_id="Q14911732", mediawiki_api_url='https://www.wikidataaaaaa.org/w/api.php', search_only=True)
     print(wd_item.get_label('en'))
 
 

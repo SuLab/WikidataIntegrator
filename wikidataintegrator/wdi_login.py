@@ -6,8 +6,7 @@ from mwoauth import ConsumerToken, Handshaker
 from requests_oauthlib import OAuth1
 from wikidataintegrator.wdi_config import config
 
-
-from wikidataintegrator.backoff.wdi_backoff import wdi_backoff, get_config
+from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher, Tim Putman, Andra Waagmeester'
 __license__ = 'AGPLv3'
@@ -23,15 +22,14 @@ class WDLogin(object):
     """
 
     @wdi_backoff()
-    def __init__(self, user=None, pwd=None, server='www.wikidata.org', token_renew_period=1800, use_clientlogin=False,
-                 consumer_key=None, consumer_secret=None, callback_url='oob', user_agent=config['USER_AGENT_DEFAULT'],
-                 base_url_template='https://{}/w/api.php'):
+    def __init__(self, user=None, pwd=None, mediawiki_api_url='https://www.wikidata.org/w/api.php',
+                 token_renew_period=1800, use_clientlogin=False,
+                 consumer_key=None, consumer_secret=None, callback_url='oob', user_agent=config['USER_AGENT_DEFAULT']):
         """
         This class handles several types of login procedures. Either use user and pwd authentication or OAuth.
         Wikidata clientlogin can also be used. If using one method, do NOT pass parameters for another method.
         :param user: the username which should be used for the login
         :param pwd: the password which should be used for the login
-        :param server: the wikimedia server the login should be made to
         :param token_renew_period: Seconds after which a new token should be requested from the Wikidata server
         :type token_renew_period: int
         :param use_clientlogin: use authmanager based login method instead of standard login.
@@ -45,11 +43,10 @@ class WDLogin(object):
         :type callback_url: str
         :return: None
         """
-        if server is not None:
-            self.server = server
-        self.base_url = base_url_template.format(self.server)
+        self.base_url = mediawiki_api_url
+        print(self.base_url)
         self.s = requests.Session()
-        self.user_agent=user_agent
+        self.user_agent = user_agent
         self.s.headers.update({
             'User-Agent': self.user_agent
         })
@@ -62,7 +59,6 @@ class WDLogin(object):
         self.consumer_secret = consumer_secret
         self.response_qs = None
         self.callback_url = callback_url
-        self.base_url_template = base_url_template
 
         if self.consumer_key and self.consumer_secret:
             # Oauth procedure, based on https://www.mediawiki.org/wiki/OAuth/For_Developers
@@ -71,7 +67,8 @@ class WDLogin(object):
             self.consumer_token = ConsumerToken(self.consumer_key, self.consumer_secret)
 
             # Construct handshaker with wiki URI and consumer
-            self.handshaker = Handshaker(self.mw_url, self.consumer_token, callback=self.callback_url, user_agent=self.user_agent)
+            self.handshaker = Handshaker(self.mw_url, self.consumer_token, callback=self.callback_url,
+                                         user_agent=self.user_agent)
 
             # Step 1: Initialize -- ask MediaWiki for a temp key/secret for user
             # redirect -> authorization -> callback url

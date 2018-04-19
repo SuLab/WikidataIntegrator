@@ -20,6 +20,7 @@ RELATIONS = {'close': 'Q39893184',
              'broad': 'Q39894595',
              'narrow': 'Q39893967'}
 
+
 class Release(object):
     """
     Create a release item
@@ -45,6 +46,7 @@ class Release(object):
 
     _release_cache = defaultdict(dict)
     _database_cache = dict()
+    endpoint = 'https://query.wikidata.org/sparql'
 
     def __init__(self, title, description, edition, edition_of=None, edition_of_wdid=None, archive_url=None,
                  pub_date=None, date_precision=11):
@@ -96,7 +98,7 @@ class Release(object):
                     ?item wdt:P31 wd:Q4117139 .
                     SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
                 }"""
-        results = WDItemEngine.execute_sparql_query(query)
+        results = WDItemEngine.execute_sparql_query(query, endpoint=cls.endpoint)
         db_item_map = {x['itemLabel']['value']: x['item']['value'].replace('http://www.wikidata.org/entity/', '') for x
                        in results['results']['bindings']}
         if edition_of not in db_item_map:
@@ -255,7 +257,7 @@ class PubmedItem(object):
         if not self.article:
             self.get_article_info()
 
-        self.meta['pmid'] = self.article.get('pmid','')
+        self.meta['pmid'] = self.article.get('pmid', '')
         self.meta['pmcid'] = self.article.get('pmcid', '').replace("PMC", "")
         self.meta['title'] = self.article['title'][:249]
         original_title=self.meta['title'] # to remove trailing dot
@@ -602,7 +604,7 @@ def format_msg(external_id, external_id_prop, wdid, msg, msg_type=None, delimite
     return s
 
 
-def prop2qid(prop, value):
+def prop2qid(prop, value, endpoint='https://query.wikidata.org/sparql'):
     """
     Lookup a wikidata item ID from a property and string value. For example, get the item QID for the
      item with the entrez gene id (P351): "899959"
@@ -615,7 +617,7 @@ def prop2qid(prop, value):
     """
     arguments = '?item wdt:{} "{}"'.format(prop, value)
     query = 'SELECT * WHERE {{{}}}'.format(arguments)
-    results = WDItemEngine.execute_sparql_query(query)
+    results = WDItemEngine.execute_sparql_query(query, endpoint=endpoint)
     result = results['results']['bindings']
     if len(result) == 0:
         # not found
@@ -626,7 +628,8 @@ def prop2qid(prop, value):
         return result[0]['item']['value'].split("/")[-1]
 
 
-def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False, prefer_exact_match=False):
+def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False, prefer_exact_match=False,
+              endpoint='https://query.wikidata.org/sparql'):
     """
     Get all wikidata ID <-> prop <-> value mappings
     Example: id_mapper("P352") -> { 'A0KH68': 'Q23429083',
@@ -665,7 +668,7 @@ def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False,
         for f in filters:
             query += "?item wdt:{} wd:{} .\n".format(f[0], f[1])
     query = query + "}"
-    results = WDItemEngine.execute_sparql_query(query)['results']['bindings']
+    results = WDItemEngine.execute_sparql_query(query, endpoint=endpoint)['results']['bindings']
     results = [{k: v['value'] for k, v in x.items()} for x in results]
     for r in results:
         r['item'] = r['item'].split('/')[-1]
@@ -692,9 +695,9 @@ def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False,
             if sum(subdf.mrt == RELATIONS['exact']) == 1:
                 df.loc[(df.item == item) & (df.mrt != RELATIONS['exact']), 'keep'] = False
 
-        # check if a extID has more than one QID
-        # example: https://www.wikidata.org/w/index.php?title=Q846227&oldid=648565663#P486
-                    # https://www.wikidata.org/w/index.php?title=Q40207875&oldid=648565770#P486
+                # check if a extID has more than one QID
+                # example: https://www.wikidata.org/w/index.php?title=Q846227&oldid=648565663#P486
+                # https://www.wikidata.org/w/index.php?title=Q40207875&oldid=648565770#P486
         df.sort_values("id", inplace=True)
         dupe_df = df[df.duplicated(subset=["id"], keep=False)]
         for ext_id, subdf in dupe_df.groupby("id"):
@@ -708,7 +711,7 @@ def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False,
     id_qid = defaultdict(set)
     for r in results:
         id_qid[r['id']].add(r['item'])
-    dupe = {k:v for k,v in id_qid.items() if len(v)>1}
+    dupe = {k: v for k, v in id_qid.items() if len(v) > 1}
     if raise_on_duplicate and dupe:
         raise ValueError("duplicate ids: {}".format(dupe))
 

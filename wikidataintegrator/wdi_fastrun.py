@@ -7,16 +7,6 @@ from itertools import chain
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
 __license__ = 'AGPLv3'
 
-prefix = '''
-    PREFIX wd: <http://www.wikidata.org/entity/>
-    PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-    PREFIX p: <http://www.wikidata.org/prop/>
-    PREFIX ps: <http://www.wikidata.org/prop/statement/>
-    PREFIX pq: <http://www.wikidata.org/prop/qualifier/>
-    PREFIX skos:<http://www.w3.org/2004/02/skos/core#>
-    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    '''
-
 example_Q14911732 = {'P1057':
                          {'Q14911732-23F268EB-2848-4A82-A248-CF4DF6B256BC':
                               {'v': 'Q847102',
@@ -29,7 +19,7 @@ example_Q14911732 = {'P1057':
 
 
 class FastRunContainer(object):
-    def __init__(self, base_data_type, engine, base_filter=None, use_refs=False, ref_handler=None):
+    def __init__(self, base_data_type, engine, sparql_endpoint_url=None, base_filter=None, use_refs=False, ref_handler=None):
         self.prop_data = {}
         self.loaded_langs = {}
         self.statements = []
@@ -40,6 +30,7 @@ class FastRunContainer(object):
         self.rev_lookup = defaultdict(set)
         self.base_data_type = base_data_type
         self.engine = engine
+        self.sparql_endpoint_url = sparql_endpoint_url if sparql_endpoint_url else getattr(engine, 'sparql_endpoint_url', None)
         self.debug = False
         self.reconstructed_statements = []
         self.use_refs = use_refs
@@ -379,7 +370,8 @@ class FastRunContainer(object):
                   {0}
                   ?item p:{1} ?sid .
             }}""".format(self.base_filter_string, prop_nr)
-            count = int(self.engine.execute_sparql_query(query)['results']['bindings'][0]['c']['value'])
+            r = self.engine.execute_sparql_query(query, endpoint=self.sparql_endpoint_url)['results']['bindings']
+            count = int(r[0]['c']['value'])
             num_pages = (int(count) // page_size) + 1
             print("Query {}: {}/{}".format(prop_nr, page_count, num_pages))
         while True:
@@ -409,7 +401,7 @@ class FastRunContainer(object):
                 replace("**base_filter_string**", self.base_filter_string). \
                 replace("**prop_nr**", prop_nr).replace("**page_size**", str(page_size))
 
-            results = self.engine.execute_sparql_query(query)['results']['bindings']
+            results = self.engine.execute_sparql_query(query, endpoint=self.sparql_endpoint_url)['results']['bindings']
             self.format_query_results(results)
             self.update_frc_from_query(results, prop_nr)
             page_count += 1
@@ -436,7 +428,7 @@ class FastRunContainer(object):
                   }}
                 }}
                 '''.format(self.base_filter_string, prop_nr)
-            r = self.engine.execute_sparql_query(query=query, prefix=prefix)['results']['bindings']
+            r = self.engine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)['results']['bindings']
             self.format_query_results(r)
             self.update_frc_from_query(r, prop_nr)
 
@@ -468,7 +460,7 @@ class FastRunContainer(object):
         if self.debug:
             print(query)
 
-        return self.engine.execute_sparql_query(query=query, prefix=prefix)['results']['bindings']
+        return self.engine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)['results']['bindings']
 
     @staticmethod
     def _process_lang(result):
