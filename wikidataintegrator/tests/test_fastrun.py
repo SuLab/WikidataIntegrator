@@ -12,7 +12,12 @@ def test_query_data():
     """
     frc = wdi_fastrun.FastRunContainer(base_filter={'P699': ''},
                                        base_data_type=wdi_core.WDBaseDataType, engine=wdi_core.WDItemEngine)
+    # get a string value
     frc._query_data('P699')
+    # wikidata-item value
+    frc._query_data('P31')
+    # uri value
+    frc._query_data('P1709')
 
     # https://www.wikidata.org/wiki/Q10874
     assert 'Q10874' in frc.prop_data
@@ -23,6 +28,13 @@ def test_query_data():
     # d looks like: {'qual': set(), 'ref': {}, 'v': 'DOID:1432'}
     assert all(x in d for x in {'qual', 'ref', 'v'})
     assert frc.prop_data['Q10874']['P699'][statement_id]['v'].startswith('DOID:')
+
+    # item
+    assert list(frc.prop_data['Q10874']['P31'].values())[0]['v'] == "Q12136"
+
+    # uri
+    v = set([x['v'] for x in frc.prop_data['Q18211153']['P1709'].values()])
+    assert all(y.startswith("http") for y in v)
 
 
 def test_query_data_ref():

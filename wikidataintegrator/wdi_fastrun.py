@@ -1,6 +1,5 @@
 import copy
 from collections import defaultdict
-
 from datetime import datetime
 from itertools import chain
 
@@ -298,25 +297,24 @@ class FastRunContainer(object):
     def get_all_data(self):
         return self.prop_data
 
-    def format_query_results(self, r):
+    def format_query_results(self, r, prop_nr):
         # r is the results of the sparql query in _query_data
         # r is modified in place
+        # prop_nr is needed to get the property datatype to determine how to format the value
+        prop_dt = FastRunContainer.get_prop_datatype(prop_nr=prop_nr, engine=self.engine)
         for i in r:
             for value in {'item', 'sid', 'qval', 'pq', 'pr', 'ref'}:
                 if value in i:
                     i[value] = i[value]['value'].split('/')[-1]
 
             if 'v' in i:
-                if i['v']['type'] == 'literal':
+                if i['v']['type'] == 'uri' and prop_dt == 'wikibase-item':
+                    i['v'] = i['v']['value'].split('/')[-1]
+                else:
                     i['v'] = i['v']['value']
-                elif i['v']['type'] == 'uri':
-                    if 'www.wikidata.org/entity/' in i['v']['value']:
-                        i['v'] = i['v']['value'].split('/')[-1]
-                    else:
-                        i['v'] = i['v']['value']
 
-                # TODO: needs check for no-value and some-value sparql results return
-                # for some-value, this json is being returned {'value': 't329541227', 'type': 'bnode'}
+                # Note: no-value and some-value don't actually show up in the results here
+                # see for example: select * where { wd:Q7207 p:P40 ?c . ?c ?d ?e }
                 if type(i['v']) is not dict:
                     self.rev_lookup[i['v']].add(i['item'])
 
@@ -402,7 +400,7 @@ class FastRunContainer(object):
                 replace("**prop_nr**", prop_nr).replace("**page_size**", str(page_size))
 
             results = self.engine.execute_sparql_query(query, endpoint=self.sparql_endpoint_url)['results']['bindings']
-            self.format_query_results(results)
+            self.format_query_results(results, prop_nr)
             self.update_frc_from_query(results, prop_nr)
             page_count += 1
             if num_pages:
@@ -429,7 +427,7 @@ class FastRunContainer(object):
                 }}
                 '''.format(self.base_filter_string, prop_nr)
             r = self.engine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)['results']['bindings']
-            self.format_query_results(r)
+            self.format_query_results(r, prop_nr)
             self.update_frc_from_query(r, prop_nr)
 
     def _query_lang(self, lang, lang_data_type):
