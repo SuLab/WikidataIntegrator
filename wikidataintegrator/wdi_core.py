@@ -2078,7 +2078,7 @@ class WDUrl(WDBaseDataType):
         if value is None:
             self.value = None
         else:
-            protocols = ['http://', 'https://', 'ftp://', 'irc://']
+            protocols = ['http://', 'https://', 'ftp://', 'irc://', 'mailto:']
             if True not in [True for x in protocols if value.startswith(x)]:
                 raise ValueError('Invalid URL')
 
