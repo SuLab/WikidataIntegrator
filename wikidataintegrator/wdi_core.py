@@ -867,7 +867,8 @@ class WDItemEngine(object):
         }
         if entity_type == 'property':
             self.wd_json_representation['datatype'] = property_datatype
-            del self.wd_json_representation['sitelinks']
+            if 'sitelinks' in self.wd_json_representation:
+                del self.wd_json_representation['sitelinks']
 
         payload = {
             'action': 'wbeditentity',
