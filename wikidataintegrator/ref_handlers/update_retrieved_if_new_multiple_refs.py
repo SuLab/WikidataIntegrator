@@ -8,7 +8,7 @@
 from datetime import datetime
 
 
-def update_retrieved_if_new_multiple_refs(olditem, newitem, days=180):
+def update_retrieved_if_new_multiple_refs(olditem, newitem, days=180, retrieved_pid='P813'):
     """
     # modifies olditem in place
     # any ref that does not exactly match the new proposed reference (not including retrieved) is kept
@@ -23,12 +23,12 @@ def update_retrieved_if_new_multiple_refs(olditem, newitem, days=180):
         """
         if len(oldref) != len(newref):
             return False
-        oldref_minus_retrieved = [x for x in oldref if x.get_prop_nr() != 'P813']
-        newref_minus_retrieved = [x for x in newref if x.get_prop_nr() != 'P813']
+        oldref_minus_retrieved = [x for x in oldref if x.get_prop_nr() != retrieved_pid]
+        newref_minus_retrieved = [x for x in newref if x.get_prop_nr() != retrieved_pid]
         if not all(x in oldref_minus_retrieved for x in newref_minus_retrieved):
             return False
-        oldref_retrieved = [x for x in oldref if x.get_prop_nr() == 'P813']
-        newref_retrieved = [x for x in newref if x.get_prop_nr() == 'P813']
+        oldref_retrieved = [x for x in oldref if x.get_prop_nr() == retrieved_pid]
+        newref_retrieved = [x for x in newref if x.get_prop_nr() == retrieved_pid]
         if (len(newref_retrieved) != len(oldref_retrieved)):
             return False
         return True
@@ -41,18 +41,18 @@ def update_retrieved_if_new_multiple_refs(olditem, newitem, days=180):
         """
         if len(oldref) != len(newref):
             return True
-        oldref_minus_retrieved = [x for x in oldref if x.get_prop_nr() != 'P813']
-        newref_minus_retrieved = [x for x in newref if x.get_prop_nr() != 'P813']
+        oldref_minus_retrieved = [x for x in oldref if x.get_prop_nr() != retrieved_pid]
+        newref_minus_retrieved = [x for x in newref if x.get_prop_nr() != retrieved_pid]
         if not all(x in oldref_minus_retrieved for x in newref_minus_retrieved):
             return True
-        oldref_retrieved = [x for x in oldref if x.get_prop_nr() == 'P813']
-        newref_retrieved = [x for x in newref if x.get_prop_nr() == 'P813']
+        oldref_retrieved = [x for x in oldref if x.get_prop_nr() == retrieved_pid]
+        newref_retrieved = [x for x in newref if x.get_prop_nr() == retrieved_pid]
         if (len(newref_retrieved) != len(oldref_retrieved)) or not (
                         len(newref_retrieved) == len(oldref_retrieved) == 1):
             return True
         datefmt = '+%Y-%m-%dT%H:%M:%SZ'
-        retold = list([datetime.strptime(r.get_value()[0], datefmt) for r in oldref if r.get_prop_nr() == 'P813'])[0]
-        retnew = list([datetime.strptime(r.get_value()[0], datefmt) for r in newref if r.get_prop_nr() == 'P813'])[0]
+        retold = list([datetime.strptime(r.get_value()[0], datefmt) for r in oldref if r.get_prop_nr() == retrieved_pid])[0]
+        retnew = list([datetime.strptime(r.get_value()[0], datefmt) for r in newref if r.get_prop_nr() == retrieved_pid])[0]
         return (retnew - retold).days >= days
 
     newrefs = newitem.references
