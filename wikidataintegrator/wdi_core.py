@@ -183,12 +183,11 @@ class WDItemEngine(object):
             qids_by_props = ''
             try:
                 qids_by_props = self.__select_wd_item()
-
             except WDSearchError as e:
                 self.log('ERROR', str(e))
 
             if qids_by_props:
-                self.wd_item_id = 'Q{}'.format(qids_by_props)
+                self.wd_item_id = qids_by_props
                 self.wd_json_representation = self.get_wd_entity()
                 self.__check_integrity()
 
@@ -374,8 +373,6 @@ class WDItemEngine(object):
 
                         for i in results['results']['bindings']:
                             qid = i['item_id']['value'].split('/')[-1]
-                            # remove 'Q' prefix
-                            qid = qid[1:]
                             tmp_qids.append(qid)
 
                     qid_list.append(tmp_qids)
@@ -870,6 +867,7 @@ class WDItemEngine(object):
         }
         if entity_type == 'property':
             self.wd_json_representation['datatype'] = property_datatype
+            del self.wd_json_representation['sitelinks']
 
         payload = {
             'action': 'wbeditentity',
