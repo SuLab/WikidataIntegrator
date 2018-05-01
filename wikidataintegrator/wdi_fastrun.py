@@ -1,10 +1,7 @@
 import copy
 from collections import defaultdict
-from datetime import datetime
+from functools import lru_cache
 from itertools import chain
-
-__author__ = 'Sebastian Burgstaller-Muehlbacher'
-__license__ = 'AGPLv3'
 
 example_Q14911732 = {'P1057':
                          {'Q14911732-23F268EB-2848-4A82-A248-CF4DF6B256BC':
@@ -18,7 +15,8 @@ example_Q14911732 = {'P1057':
 
 
 class FastRunContainer(object):
-    def __init__(self, base_data_type, engine, sparql_endpoint_url=None, base_filter=None, use_refs=False, ref_handler=None):
+    def __init__(self, base_data_type, engine, sparql_endpoint_url=None,
+                 base_filter=None, use_refs=False, ref_handler=None):
         self.prop_data = {}
         self.loaded_langs = {}
         self.statements = []
@@ -29,7 +27,8 @@ class FastRunContainer(object):
         self.rev_lookup = defaultdict(set)
         self.base_data_type = base_data_type
         self.engine = engine
-        self.sparql_endpoint_url = sparql_endpoint_url if sparql_endpoint_url else getattr(engine, 'sparql_endpoint_url', None)
+        self.sparql_endpoint_url = sparql_endpoint_url if sparql_endpoint_url else \
+            getattr(engine,'sparql_endpoint_url', None)
         self.debug = False
         self.reconstructed_statements = []
         self.use_refs = use_refs
@@ -323,13 +322,11 @@ class FastRunContainer(object):
                 if ('datatype' in i['rval'] and i['rval']['datatype'] == 'http://www.w3.org/2001/XMLSchema#dateTime' and
                         not (i['rval']['value'].startswith("+") or i['rval']['value'].startswith("-"))):
                     i['rval']['value'] = '+' + i['rval']['value']
-                if i['rval']['type'] == 'literal':
+                ref_prop_dt = FastRunContainer.get_prop_datatype(prop_nr=i['pr'], engine=self.engine)
+                if i['rval']['type'] == 'uri' and ref_prop_dt == 'wikibase-item':
+                    i['rval'] = i['rval']['value'].split('/')[-1]
+                else:
                     i['rval'] = i['rval']['value']
-                elif i['rval']['type'] == 'uri':
-                    if 'www.wikidata.org/entity/' in i['rval']['value']:
-                        i['rval'] = i['rval']['value'].split('/')[-1]
-                    else:
-                        i['rval'] = i['rval']['value']
 
     def update_frc_from_query(self, r, prop_nr):
         # r is the output of format_query_results
@@ -470,6 +467,7 @@ class FastRunContainer(object):
         return data
 
     @staticmethod
+    @lru_cache(maxsize=10000)
     def get_prop_datatype(prop_nr, engine):
         item = engine(wd_item_id=prop_nr)
         return item.entity_metadata['datatype']
