@@ -206,6 +206,7 @@ class WDItemEngine(object):
             self.fast_run_container = FastRunContainer(base_filter=self.fast_run_base_filter,
                                                        base_data_type=WDBaseDataType, engine=self.__class__,
                                                        sparql_endpoint_url=self.sparql_endpoint_url,
+                                                       mediawiki_api_url=self.mediawiki_api_url,
                                                        use_refs=self.fast_run_use_refs,
                                                        ref_handler=self.ref_handler)
             WDItemEngine.fast_run_store.append(self.fast_run_container)

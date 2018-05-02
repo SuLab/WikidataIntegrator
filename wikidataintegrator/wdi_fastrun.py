@@ -15,7 +15,7 @@ example_Q14911732 = {'P1057':
 
 
 class FastRunContainer(object):
-    def __init__(self, base_data_type, engine, sparql_endpoint_url=None,
+    def __init__(self, base_data_type, engine, sparql_endpoint_url=None, mediawiki_api_url=None,
                  base_filter=None, use_refs=False, ref_handler=None):
         self.prop_data = {}
         self.loaded_langs = {}
@@ -28,7 +28,9 @@ class FastRunContainer(object):
         self.base_data_type = base_data_type
         self.engine = engine
         self.sparql_endpoint_url = sparql_endpoint_url if sparql_endpoint_url else \
-            getattr(engine,'sparql_endpoint_url', None)
+            'https://query.wikidata.org/sparql'
+        self.mediawiki_api_url = mediawiki_api_url if mediawiki_api_url else \
+            'https://www.wikidata.org/w/api.php'
         self.debug = False
         self.reconstructed_statements = []
         self.use_refs = use_refs
@@ -55,8 +57,7 @@ class FastRunContainer(object):
             props = q_props | r_props
             for prop in props:
                 if prop not in self.prop_dt_map:
-                    self.prop_dt_map.update({prop: FastRunContainer.get_prop_datatype(prop_nr=prop,
-                                                                                      engine=self.engine)})
+                    self.prop_dt_map.update({prop: self.get_prop_datatype(prop)})
             # reconstruct statements from frc (including qualifiers, and refs)
             for uid, d in dt.items():
                 qualifiers = []
@@ -105,8 +106,7 @@ class FastRunContainer(object):
 
             if prop_nr not in self.prop_dt_map:
                 print("{} not found in fastrun".format(prop_nr))
-                self.prop_dt_map.update({prop_nr: FastRunContainer.get_prop_datatype(prop_nr=prop_nr,
-                                                                                     engine=self.engine)})
+                self.prop_dt_map.update({prop_nr: self.get_prop_datatype(prop_nr)})
                 self._query_data(prop_nr)
 
             # more sophisticated data types like dates and globe coordinates need special treatment here
@@ -311,7 +311,7 @@ class FastRunContainer(object):
             pr: reference property
             rval: reference value
         """
-        prop_dt = FastRunContainer.get_prop_datatype(prop_nr=prop_nr, engine=self.engine)
+        prop_dt = self.get_prop_datatype(prop_nr)
         for i in r:
             for value in {'item', 'sid', 'pq', 'pr', 'ref'}:
                 if value in i:
@@ -343,7 +343,7 @@ class FastRunContainer(object):
 
             # handle qualifier value
             if 'qval' in i:
-                qual_prop_dt = FastRunContainer.get_prop_datatype(prop_nr=i['pq'], engine=self.engine)
+                qual_prop_dt = self.get_prop_datatype(prop_nr=i['pq'])
                 if i['qval']['type'] == 'uri' and qual_prop_dt == 'wikibase-item':
                     i['qval'] = i['qval']['value'].split('/')[-1]
                 else:
@@ -351,7 +351,7 @@ class FastRunContainer(object):
 
             # handle reference value
             if 'rval' in i:
-                ref_prop_dt = FastRunContainer.get_prop_datatype(prop_nr=i['pr'], engine=self.engine)
+                ref_prop_dt = self.get_prop_datatype(prop_nr=i['pr'])
                 if i['rval']['type'] == 'uri' and ref_prop_dt == 'wikibase-item':
                     i['rval'] = i['rval']['value'].split('/')[-1]
                 else:
@@ -495,10 +495,10 @@ class FastRunContainer(object):
                 data[qid].add(r['label']['value'])
         return data
 
-    @staticmethod
-    @lru_cache(maxsize=10000)
-    def get_prop_datatype(prop_nr, engine):
-        item = engine(wd_item_id=prop_nr)
+    @lru_cache(maxsize=100000)
+    def get_prop_datatype(self, prop_nr):
+        item = self.engine(wd_item_id=prop_nr, sparql_endpoint_url=self.sparql_endpoint_url,
+                           mediawiki_api_url=self.mediawiki_api_url)
         return item.entity_metadata['datatype']
 
     def clear(self):
