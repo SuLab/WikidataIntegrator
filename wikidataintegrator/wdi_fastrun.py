@@ -297,15 +297,39 @@ class FastRunContainer(object):
         return self.prop_data
 
     def format_query_results(self, r, prop_nr):
-        # r is the results of the sparql query in _query_data
-        # r is modified in place
-        # prop_nr is needed to get the property datatype to determine how to format the value
+        """
+        `r` is the results of the sparql query in _query_data and is modified in place
+        `prop_nr` is needed to get the property datatype to determine how to format the value
+
+        `r` is a list of dicts. The keys are:
+            item: the subject. the item this statement is on
+            v: the object. The value for this statement
+            sid: statement ID
+            pq: qualifier property
+            qval: qualifier value
+            ref: reference ID
+            pr: reference property
+            rval: reference value
+        """
         prop_dt = FastRunContainer.get_prop_datatype(prop_nr=prop_nr, engine=self.engine)
         for i in r:
-            for value in {'item', 'sid', 'qval', 'pq', 'pr', 'ref'}:
+            for value in {'item', 'sid', 'pq', 'pr', 'ref'}:
                 if value in i:
+                    # these are always URIs for the local wikibase
                     i[value] = i[value]['value'].split('/')[-1]
 
+            # make sure datetimes are formatted correctly.
+            # the correct format is '+%Y-%m-%dT%H:%M:%SZ', but is sometimes missing the plus??
+            # some difference between RDF and xsd:dateTime that I don't understand
+            for value in {'v', 'qval', 'rval'}:
+                if value in i:
+                    if i[value].get("datatype") == 'http://www.w3.org/2001/XMLSchema#dateTime' and not \
+                            i[value]['value'][0] in '+-':
+                        # if it is a dateTime and doesn't start with plus or minus, add a plus
+                        i[value]['value'] = '+' + i[value]['value']
+
+            # these three ({'v', 'qval', 'rval'}) are values that can be any data type
+            # strip off the URI if they are wikibase-items
             if 'v' in i:
                 if i['v']['type'] == 'uri' and prop_dt == 'wikibase-item':
                     i['v'] = i['v']['value'].split('/')[-1]
@@ -317,11 +341,16 @@ class FastRunContainer(object):
                 if type(i['v']) is not dict:
                     self.rev_lookup[i['v']].add(i['item'])
 
-            # handle ref
+            # handle qualifier value
+            if 'qval' in i:
+                qual_prop_dt = FastRunContainer.get_prop_datatype(prop_nr=i['pq'], engine=self.engine)
+                if i['qval']['type'] == 'uri' and qual_prop_dt == 'wikibase-item':
+                    i['qval'] = i['qval']['value'].split('/')[-1]
+                else:
+                    i['qval'] = i['qval']['value']
+
+            # handle reference value
             if 'rval' in i:
-                if ('datatype' in i['rval'] and i['rval']['datatype'] == 'http://www.w3.org/2001/XMLSchema#dateTime' and
-                        not (i['rval']['value'].startswith("+") or i['rval']['value'].startswith("-"))):
-                    i['rval']['value'] = '+' + i['rval']['value']
                 ref_prop_dt = FastRunContainer.get_prop_datatype(prop_nr=i['pr'], engine=self.engine)
                 if i['rval']['type'] == 'uri' and ref_prop_dt == 'wikibase-item':
                     i['rval'] = i['rval']['value'].split('/')[-1]
