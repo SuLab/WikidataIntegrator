@@ -199,8 +199,9 @@ class WDItemEngine(object):
     def init_fastrun(self):
         for c in WDItemEngine.fast_run_store:
             if (c.base_filter == self.fast_run_base_filter) and (c.use_refs == self.fast_run_use_refs) and \
-                    (c.ref_handler == self.ref_handler) and (c.sparql_endpoint_url == self.sparql_endpoint_url):
+                    (c.sparql_endpoint_url == self.sparql_endpoint_url):
                 self.fast_run_container = c
+                self.fast_run_container.ref_handler = self.ref_handler
 
         if not self.fast_run_container:
             self.fast_run_container = FastRunContainer(base_filter=self.fast_run_base_filter,
