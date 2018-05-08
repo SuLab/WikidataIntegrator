@@ -30,13 +30,8 @@ def test_pubmedstub_bad_pmid():
     assert wdid is None
 
 
-def test_release_lookup_database():
-    r = Release("Ensembl Release 85", "Release 85 of Ensembl", "85", edition_of="Ensembl")
-    assert r.edition_of_wdid == 'Q1344256'
-
-
 def test_release_lookup_release():
-    r = Release("Ensembl Release 85", "Release 85 of Ensembl", "85", edition_of="Ensembl")
+    r = Release("Ensembl Release 85", "Release 85 of Ensembl", "85", edition_of_wdid="Q1344256")
     assert r.get_or_create() == 'Q27666311'
     assert 'Q1344256' in Release._release_cache
     assert '85' in Release._release_cache['Q1344256']
