@@ -33,8 +33,7 @@ def test_pubmedstub_bad_pmid():
 def test_release_lookup_release():
     r = Release("Ensembl Release 85", "Release 85 of Ensembl", "85", edition_of_wdid="Q1344256")
     assert r.get_or_create() == 'Q27666311'
-    assert 'Q1344256' in Release._release_cache
-    assert '85' in Release._release_cache['Q1344256']
+    assert ('https://query.wikidata.org/sparql', "Q1344256", "85") in Release._release_cache
 
 
 def test_release_new_item_no_write():
