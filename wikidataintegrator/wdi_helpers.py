@@ -97,19 +97,18 @@ class Release(object):
         publication date (P577): (wd_date)
 
     Example usage:
-    r = PBB_Helpers.Release("Ensembl Release 85", "Release 85 of Ensembl", "85", edition_of="Ensembl",
+    r = wdi_helpers.Release("Ensembl Release 85", "Release 85 of Ensembl", "85", edition_of_qid="Q1234",
                             archive_url="http://jul2016.archive.ensembl.org/",
                             pub_date='+2016-07-01T00:00:00Z', date_precision=10)
-    r.create(login)
+    r.get_or_create(login)
 
     """
+    # dict. key is a tuple of (sparql_endpoint_url, edition_of_qid, edition), value is the qid of that release
+    _release_cache = dict()
 
-    _release_cache = defaultdict(dict)
-    _database_cache = dict()
-    endpoint = 'https://query.wikidata.org/sparql'
-
-    def __init__(self, title, description, edition, edition_of=None, edition_of_wdid=None, archive_url=None,
-                 pub_date=None, date_precision=11):
+    def __init__(self, title, description, edition, edition_of_wdid, archive_url=None,
+                 pub_date=None, date_precision=11, mediawiki_api_url='https://www.wikidata.org/w/api.php',
+                 sparql_endpoint_url='https://query.wikidata.org/sparql'):
         """
 
         :param title: title of release item
@@ -118,9 +117,7 @@ class Release(object):
         :type description: str
         :param edition: edition number or unique identifier for the release
         :type edition: str
-        :param edition_of: name of database. database wdid will automatically be looked up. Must pass either edition_of or edition_of_wdid
-        :type edition_of: str
-        :param edition_of_wdid: wikidata id of database
+        :param edition_of_wdid: wikidata qid of database this release is a release of
         :type edition_of_wdid: str
         :param archive_url: (optional)
         :type archive_url: str
@@ -138,75 +135,64 @@ class Release(object):
         else:
             self.pub_date = pub_date
         self.date_precision = date_precision
-
-        if (edition_of is None and edition_of_wdid is None) or (edition_of and edition_of_wdid):
-            raise ValueError("must provide either edition_of or edition_of_wdid")
-        if edition_of:
-            self.edition_of_wdid = self.lookup_database(edition_of)
-        else:
-            self.edition_of_wdid = edition_of_wdid
+        self.edition_of_qid = edition_of_wdid
+        self.sparql_endpoint_url = sparql_endpoint_url
+        self.mediawiki_api_url = mediawiki_api_url
+        self.helper = WikibaseHelper(sparql_endpoint_url)
 
         self.statements = None
-        self.make_statements()
-
-    @classmethod
-    def lookup_database(cls, edition_of):
-        if edition_of in cls._database_cache:
-            return cls._database_cache[edition_of]
-
-        query = """SELECT ?item ?itemLabel WHERE {
-                    ?item wdt:P31 wd:Q4117139 .
-                    SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
-                }"""
-        results = WDItemEngine.execute_sparql_query(query, endpoint=cls.endpoint)
-        db_item_map = {x['itemLabel']['value']: x['item']['value'].replace('http://www.wikidata.org/entity/', '') for x
-                       in results['results']['bindings']}
-        if edition_of not in db_item_map:
-            raise ValueError("Database {} not found in wikidata. Please provide edition_of_wdid".format(edition_of))
-
-        cls._database_cache[edition_of] = db_item_map[edition_of]
-        return db_item_map[edition_of]
 
     def make_statements(self):
         s = []
+        helper = self.helper
         # instance of edition
-        s.append(wdi_core.WDItemID('Q3331189', 'P31'))
+        s.append(wdi_core.WDItemID(helper.get_qid('Q3331189'), helper.get_pid("P31")))
         # edition or translation of
-        s.append(wdi_core.WDItemID(self.edition_of_wdid, 'P629'))
+        s.append(wdi_core.WDItemID(self.edition_of_qid, helper.get_pid("P629")))
         # edition number
-        s.append(wdi_core.WDString(self.edition, 'P393'))
+        s.append(wdi_core.WDString(self.edition, helper.get_pid("P393")))
 
         if self.archive_url:
-            s.append(wdi_core.WDUrl(self.archive_url, 'P1065'))
+            s.append(wdi_core.WDUrl(self.archive_url, helper.get_pid('P1065')))
 
         if self.pub_date:
-            s.append(wdi_core.WDTime(self.pub_date, 'P577', precision=self.date_precision))
+            s.append(wdi_core.WDTime(self.pub_date, helper.get_pid('P577'), precision=self.date_precision))
 
         self.statements = s
 
     def get_or_create(self, login=None):
 
         # check in cache
-        if self.edition_of_wdid in self._release_cache and self.edition in self._release_cache[self.edition_of_wdid]:
-            return self._release_cache[self.edition_of_wdid][self.edition]
+        key = (self.sparql_endpoint_url, self.edition_of_qid, self.edition)
+        if key in self._release_cache:
+            return self._release_cache[key]
 
         # check in wikidata
-        edition_dict = id_mapper("P393", (("P629", self.edition_of_wdid), ("P31", "Q3331189")))
+        # edition number, filter by edition of and instance of edition
+        helper = self.helper
+        edition_dict = id_mapper(helper.get_pid("P393"),
+                                 ((helper.get_pid("P629"), self.edition_of_qid),
+                                  (helper.get_pid("P31"), helper.get_qid("Q3331189"))),
+                                 endpoint=self.sparql_endpoint_url)
         if edition_dict and self.edition in edition_dict:
             # add to cache
-            self._release_cache[self.edition_of_wdid][self.edition] = edition_dict[self.edition]
+            self._release_cache[key] = edition_dict[self.edition]
             return edition_dict[self.edition]
 
         # create new
         if login is None:
             raise ValueError("login required to create item")
-        item = wdi_core.WDItemEngine(item_name=self.title, data=self.statements, domain="release")
+
+        self.make_statements()
+        item = wdi_core.WDItemEngine(item_name=self.title, data=self.statements, domain="release",
+                                     mediawiki_api_url=self.mediawiki_api_url,
+                                     sparql_endpoint_url=self.sparql_endpoint_url)
         item.set_label(self.title)
         item.set_description(description=self.description, lang='en')
-        write_success = try_write(item, self.edition + "|" + self.edition_of_wdid, 'P393|P629', login)
+        write_success = try_write(item, self.edition + "|" + self.edition_of_qid, 'P393|P629', login)
         if write_success:
             # add to cache
-            self._release_cache[self.edition_of_wdid][self.edition] = item.wd_item_id
+            self._release_cache[key] = item.wd_item_id
             return item.wd_item_id
         else:
             raise write_success
