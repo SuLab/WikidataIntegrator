@@ -4,3 +4,4 @@ pandas
 python-dateutil
 mwoauth
 requests_oauthlib
+tqdm

@@ -2,9 +2,10 @@ import difflib
 import datetime
 import json
 from collections import defaultdict, Counter
-from time import gmtime, strftime
+from time import gmtime, strftime, sleep
 
 import pandas as pd
+from tqdm import tqdm
 import requests
 from dateutil import parser as du
 
@@ -774,3 +775,25 @@ def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False,
         return dict(id_qid)
     else:
         return {x['id']: x['item'] for x in results}
+
+
+def get_last_modified_header(entity="http://www.wikidata.org", endpoint='https://query.wikidata.org/sparql'):
+    # this will work on wikidata or any particular entity
+    query = "select ?d where {{<{}> schema:dateModified ?d}}".format(entity)
+    results = WDItemEngine.execute_sparql_query(query, endpoint=endpoint)['results']['bindings']
+    results = [{k: v['value'] for k, v in x.items()} for x in results]
+    return datetime.datetime.strptime(results[0]['d'], '%Y-%m-%dT%H:%M:%SZ')
+
+
+def wait_for_last_modified(timestamp, delay=30, entity="http://www.wikidata.org",
+                           endpoint='https://query.wikidata.org/sparql'):
+    # wait until the last modified timestamp is newer than `timestamp`
+    assert isinstance(timestamp, datetime.datetime)
+    t = tqdm(desc="Waiting for endpoint update:  / {} ".format(timestamp))
+    while True:
+        last_modified_header = get_last_modified_header(entity=entity, endpoint=endpoint)
+        t.set_description("Waiting for endpoint update: {} / {} ".format(last_modified_header, timestamp))
+        t.update(1)
+        if last_modified_header >= timestamp:
+            break
+        sleep(delay)
