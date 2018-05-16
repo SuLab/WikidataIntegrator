@@ -197,6 +197,15 @@ class Release(object):
         else:
             raise write_success
 
+    def get_all_releases(self):
+        # helper function to get all releases for the edition_of_qid given
+        helper = self.helper
+        edition_dict = id_mapper(helper.get_pid("P393"),
+                                 ((helper.get_pid("P629"), self.edition_of_qid),
+                                  (helper.get_pid("P31"), helper.get_qid("Q3331189"))),
+                                 endpoint=self.sparql_endpoint_url)
+        return edition_dict
+
 
 class PubmedItem(object):
     """
