@@ -891,16 +891,34 @@ class WDItemEngine(object):
 
         url = self.mediawiki_api_url
         lastrevid = None
+        response = None
 
         try:
-            reply = login.get_session().post(url, headers=headers, data=payload)
+            for n in range(10):
+                response = login.get_session().post(url, headers=headers, data=payload)
+                if response.status_code != requests.codes.ok:  # 200
+                    print("response.status_code: {}".format(response.status_code))
+                if response.status_code == requests.codes.too_many:  # HTTP 429
+                    sleep_sec = int(response.headers.get('retry-after', 10))
+                    print("sleeping for {} seconds".format(sleep_sec))
+                    time.sleep(sleep_sec)
+                else:
+                    break
+            else:
+                raise WDApiError(response.json() if response else dict())
 
             # if the server does not reply with a string which can be parsed into a json, an error will be raised.
-            json_data = reply.json()
+            json_data = response.json()
 
             # pprint.pprint(json_data)
             if "success" in json_data and "entity" in json_data and "lastrevid" in json_data["entity"]:
                 lastrevid = json_data["entity"]["lastrevid"]
+
+            if 'error' in json_data and 'messages' in json_data['error']:
+                error_msg_names = set(x.get('name') for x in json_data["error"]['messages'])
+                if 'actionthrottledtext' in error_msg_names:
+                    print("response.status_code: {}".format(response.status_code))
+                    print("response.headers: {}".format(response.headers))
 
             # deal with maxlag
             if 'error' in json_data.keys() and 'code' in json_data['error'] \
@@ -908,8 +926,8 @@ class WDItemEngine(object):
                 lag = json_data['error']['lag']
                 time.sleep(lag)
                 del payload['maxlag']
-                reply = login.get_session().post(url, headers=headers, data=payload)
-                json_data = reply.json()
+                response = login.get_session().post(url, headers=headers, data=payload)
+                json_data = response.json()
 
             if 'error' in json_data.keys() and 'code' in json_data['error'] \
                     and json_data['error']['code'] == 'readonly':
