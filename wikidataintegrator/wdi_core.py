@@ -863,10 +863,6 @@ class WDItemEngine(object):
         if not self.require_write:
             return self.wd_item_id
 
-        headers = {
-            'content-type': 'application/x-www-form-urlencoded',
-            'charset': 'utf-8'
-        }
         if entity_type == 'property':
             self.wd_json_representation['datatype'] = property_datatype
             if 'sitelinks' in self.wd_json_representation:
@@ -889,60 +885,8 @@ class WDItemEngine(object):
         else:
             payload.update({u'id': self.wd_item_id})
 
-        url = self.mediawiki_api_url
-        lastrevid = None
-        response = None
-
         try:
-            for n in range(10):
-                response = login.get_session().post(url, headers=headers, data=payload)
-                if response.status_code != requests.codes.ok:  # 200
-                    print("response.status_code: {}".format(response.status_code))
-                if response.status_code == requests.codes.too_many:  # HTTP 429
-                    sleep_sec = int(response.headers.get('retry-after', 10))
-                    print("sleeping for {} seconds".format(sleep_sec))
-                    time.sleep(sleep_sec)
-                else:
-                    break
-            else:
-                raise WDApiError(response.json() if response else dict())
-
-            # if the server does not reply with a string which can be parsed into a json, an error will be raised.
-            json_data = response.json()
-
-            # pprint.pprint(json_data)
-            if "success" in json_data and "entity" in json_data and "lastrevid" in json_data["entity"]:
-                lastrevid = json_data["entity"]["lastrevid"]
-
-            if 'error' in json_data and 'messages' in json_data['error']:
-                error_msg_names = set(x.get('name') for x in json_data["error"]['messages'])
-                if 'actionthrottledtext' in error_msg_names:
-                    print("response.status_code: {}".format(response.status_code))
-                    print("response.headers: {}".format(response.headers))
-
-            # deal with maxlag
-            if 'error' in json_data.keys() and 'code' in json_data['error'] \
-                    and json_data['error']['code'] == 'maxlag':
-                lag = json_data['error']['lag']
-                time.sleep(lag)
-                del payload['maxlag']
-                response = login.get_session().post(url, headers=headers, data=payload)
-                json_data = response.json()
-
-            if 'error' in json_data.keys() and 'code' in json_data['error'] \
-                    and json_data['error']['code'] == 'readonly':
-                print('Wikidata currently is in readonly mode, waiting for 60 seconds')
-                time.sleep(60)
-                return self.write(login=login)
-
-            if 'error' in json_data.keys() and 'messages' in json_data['error']:
-                if 'wikibase-validator-label-with-description-conflict' == json_data['error']['messages'][0]['name']:
-                    raise NonUniqueLabelDescriptionPairError(json_data)
-                else:
-                    raise WDApiError(json_data)
-            elif 'error' in json_data.keys():
-                raise WDApiError(json_data)
-
+            json_data = self._mediawiki_api_call(self.mediawiki_api_url, payload, login)
         except Exception as e:
             print('Error while writing to Wikidata')
             raise e
@@ -952,9 +896,67 @@ class WDItemEngine(object):
         self.wd_item_id = json_data['entity']['id']
         self.parse_wd_json(wd_json=json_data['entity'])
         self.data = []
-        self.lastrevid = lastrevid
+        if "success" in json_data and "entity" in json_data and "lastrevid" in json_data["entity"]:
+            self.lastrevid = json_data["entity"]["lastrevid"]
 
         return self.wd_item_id
+
+    @staticmethod
+    def _mediawiki_api_call(mediawiki_api_url, payload, login):
+        headers = {
+            'content-type': 'application/x-www-form-urlencoded',
+            'charset': 'utf-8'
+        }
+        response = None
+        for n in range(10):
+            response = login.get_session().post(mediawiki_api_url, headers=headers, data=payload)
+            response.raise_for_status()
+
+            json_data = response.json()
+            """
+            wikidata api response has code = 200 even if there are errors.
+            rate limit doesn't retrun HTTP 429 either. may in the future
+            https://phabricator.wikimedia.org/T172293
+            """
+
+            if 'error' in json_data and 'messages' in json_data['error']:
+                # for rate limiting, maxlag, and readonly, try the call 10 times before failing
+                # rate limiting
+                error_msg_names = set(x.get('name') for x in json_data["error"]['messages'])
+                if 'actionthrottledtext' in error_msg_names:
+                    sleep_sec = int(response.headers.get('retry-after', 10))
+                    print("{}: rate limited. sleeping for {} seconds".format(datetime.datetime.utcnow(), sleep_sec))
+                    time.sleep(sleep_sec)
+
+                # maxlag
+                if 'error' in json_data and 'code' in json_data['error'] and json_data['error']['code'] == 'maxlag':
+                    sleep_sec = json_data['error'].get('lag', 10)
+                    print("{}: maxlag. sleeping for {} seconds".format(datetime.datetime.utcnow(), sleep_sec))
+                    time.sleep(sleep_sec)
+
+                # readonly
+                if 'error' in json_data and 'code' in json_data['error'] and json_data['error']['code'] == 'readonly':
+                    print('Wikidata currently is in readonly mode, waiting for 60 seconds')
+                    time.sleep(60)
+            else:
+                # there is no error or waiting. break out of this loop and parse response
+                break
+        else:
+            # the first time I've ever used for - else!!
+            # else executes if the for loop completes normally. i.e. does not encouter a `break`
+            # in this case, that means it tried this api call 10 times
+            raise WDApiError(response.json() if response else dict())
+
+        if 'error' in json_data and 'messages' in json_data['error']:
+            error_msg_names = set(x.get('name') for x in json_data["error"]['messages'])
+            if 'wikibase-validator-label-with-description-conflict' in error_msg_names:
+                raise NonUniqueLabelDescriptionPairError(json_data)
+            else:
+                raise WDApiError(json_data)
+        elif 'error' in json_data.keys():
+            raise WDApiError(json_data)
+
+        return json_data
 
     @classmethod
     def setup_logging(cls, log_dir="./logs", log_name=None, header=None, names=None,
