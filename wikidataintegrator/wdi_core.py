@@ -845,19 +845,26 @@ class WDItemEngine(object):
         else:
             return None
 
-    def write(self, login, bot_account=True, edit_summary='', entity_type='item', property_datatype='string'):
+    def write(self, login, bot_account=True, edit_summary='', entity_type='item', property_datatype='string',
+              max_retries=10, retry_after=30):
         """
         Writes the WD item Json to WD and after successful write, updates the object with new ids and hashes generated
         by WD. For new items, also returns the new QIDs.
         :param login: a instance of the class PBB_login which provides edit-cookies and edit-tokens
-        :type login:
         :param bot_account: Tell the Wikidata API whether the script should be run as part of a bot account or not.
         :type bot_account: bool
         :param edit_summary: A short (max 250 characters) summary of the purpose of the edit. This will be displayed as
             the revision summary of the Wikidata item.
-        :param entity_type: Decides wether the object will become an item (default) or a property (with 'property')
-        :param property_datatype: When payload_type is 'property' then this parameter set the datatype for the property
         :type edit_summary: str
+        :param entity_type: Decides wether the object will become an item (default) or a property (with 'property')
+        :type entity_type: str
+        :param property_datatype: When payload_type is 'property' then this parameter set the datatype for the property
+        :type property_datatype: str
+        :param max_retries: If api request fails due to rate limiting, maxlag, or readonly mode, retry up to
+        `max_retries` times
+        :type max_retries: int
+        :param retry_after: Number of seconds to wait before retrying request (see max_retries)
+        :type retry_after: int
         :return: the WD QID on sucessful write
         """
         if not self.require_write:
@@ -886,7 +893,8 @@ class WDItemEngine(object):
             payload.update({u'id': self.wd_item_id})
 
         try:
-            json_data = self._mediawiki_api_call(self.mediawiki_api_url, payload, login)
+            json_data = self._mediawiki_api_call(self.mediawiki_api_url, payload, login,
+                                                 max_retries=max_retries, retry_after=retry_after)
         except Exception as e:
             print('Error while writing to Wikidata')
             raise e
@@ -902,20 +910,20 @@ class WDItemEngine(object):
         return self.wd_item_id
 
     @staticmethod
-    def _mediawiki_api_call(mediawiki_api_url, payload, login):
+    def _mediawiki_api_call(mediawiki_api_url, payload, login, max_retries=10, retry_after=30):
         headers = {
             'content-type': 'application/x-www-form-urlencoded',
             'charset': 'utf-8'
         }
         response = None
-        for n in range(10):
+        for n in range(max_retries):
             response = login.get_session().post(mediawiki_api_url, headers=headers, data=payload)
             response.raise_for_status()
 
             json_data = response.json()
             """
             wikidata api response has code = 200 even if there are errors.
-            rate limit doesn't retrun HTTP 429 either. may in the future
+            rate limit doesn't return HTTP 429 either. may in the future
             https://phabricator.wikimedia.org/T172293
             """
 
@@ -924,20 +932,20 @@ class WDItemEngine(object):
                 # rate limiting
                 error_msg_names = set(x.get('name') for x in json_data["error"]['messages'])
                 if 'actionthrottledtext' in error_msg_names:
-                    sleep_sec = int(response.headers.get('retry-after', 10))
+                    sleep_sec = int(response.headers.get('retry-after', retry_after))
                     print("{}: rate limited. sleeping for {} seconds".format(datetime.datetime.utcnow(), sleep_sec))
                     time.sleep(sleep_sec)
 
                 # maxlag
                 if 'error' in json_data and 'code' in json_data['error'] and json_data['error']['code'] == 'maxlag':
-                    sleep_sec = json_data['error'].get('lag', 10)
+                    sleep_sec = json_data['error'].get('lag', retry_after)
                     print("{}: maxlag. sleeping for {} seconds".format(datetime.datetime.utcnow(), sleep_sec))
                     time.sleep(sleep_sec)
 
                 # readonly
                 if 'error' in json_data and 'code' in json_data['error'] and json_data['error']['code'] == 'readonly':
-                    print('Wikidata currently is in readonly mode, waiting for 60 seconds')
-                    time.sleep(60)
+                    print('Wikidata currently is in readonly mode, waiting for {} seconds'.format(retry_after))
+                    time.sleep(retry_after)
             else:
                 # there is no error or waiting. break out of this loop and parse response
                 break
