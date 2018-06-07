@@ -181,7 +181,7 @@ def test_ref_equals():
     oldref = [wdi_core.WDExternalID(value='P58742', prop_nr='P352'),
               wdi_core.WDItemID(value='Q24784025', prop_nr='P527'),
               wdi_core.WDTime('+2001-12-31T12:01:13Z', prop_nr='P813')]
-    olditem = wdi_core.WDItemID("123", "P123", references=[oldref])
+    olditem = wdi_core.WDItemID("Q123", "P123", references=[oldref])
     newitem = copy.deepcopy(olditem)
     assert olditem.equals(newitem, include_ref=False)
     assert olditem.equals(newitem, include_ref=True)

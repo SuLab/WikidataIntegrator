@@ -1712,6 +1712,7 @@ class WDString(WDBaseDataType):
         self.set_value(value=value)
 
     def set_value(self, value):
+        assert isinstance(value, str) or value is None, "Expected str, found {} ({})".format(type(value), value)
         self.value = value
 
         self.json_representation['datavalue'] = {
@@ -1764,6 +1765,7 @@ class WDMath(WDBaseDataType):
         self.set_value(value=value)
 
     def set_value(self, value):
+        assert isinstance(value, str) or value is None, "Expected str, found {} ({})".format(type(value), value)
         self.value = value
 
         self.json_representation['datavalue'] = {
@@ -1817,6 +1819,7 @@ class WDExternalID(WDBaseDataType):
         self.set_value(value=value)
 
     def set_value(self, value):
+        assert isinstance(value, str) or value is None, "Expected str, found {} ({})".format(type(value), value)
         self.value = value
 
         self.json_representation['datavalue'] = {
@@ -1875,11 +1878,13 @@ class WDItemID(WDBaseDataType):
         self.set_value(value=value)
 
     def set_value(self, value):
+        assert isinstance(value, (str, int)) or value is None, \
+            "Expected str or int, found {} ({})".format(type(value),value)
         if value is None:
-            self.value = None
-        elif type(value) == int:
             self.value = value
-        elif value[0] == 'Q':
+        elif isinstance(value, int):
+            self.value = value
+        elif value.startswith("Q"):
             pattern = re.compile('[0-9]*')
             matches = pattern.match(value[1:])
 
@@ -1887,6 +1892,8 @@ class WDItemID(WDBaseDataType):
                 self.value = int(value[1:])
             else:
                 raise ValueError('Invalid WD item ID, format must be "Q[0-9]*"')
+        else:
+            raise ValueError('Invalid WD item ID, format must be "Q[0-9]*"')
 
         self.json_representation['datavalue'] = {
             'value': {
@@ -1948,12 +1955,13 @@ class WDProperty(WDBaseDataType):
         self.set_value(value=value)
 
     def set_value(self, value):
-        # check if WD item or property ID is in valid format
+        assert isinstance(value, (str, int)) or value is None, \
+            "Expected str or int, found {} ({})".format(type(value), value)
         if value is None:
-            self.value = None
-        elif type(value) == int:
             self.value = value
-        elif value[0] == 'P':
+        elif isinstance(value, int):
+            self.value = value
+        elif value.startswith("P"):
             pattern = re.compile('[0-9]*')
             matches = pattern.match(value[1:])
 
@@ -1961,6 +1969,8 @@ class WDProperty(WDBaseDataType):
                 self.value = int(value[1:])
             else:
                 raise ValueError('Invalid WD property ID, format must be "P[0-9]*"')
+        else:
+            raise ValueError('Invalid WD property ID, format must be "P[0-9]*"')
 
         self.json_representation['datavalue'] = {
             'value': {
@@ -2172,15 +2182,17 @@ class WDMonolingualText(WDBaseDataType):
         self.set_value(value)
 
     def set_value(self, value):
+        value = value[0]
+        assert isinstance(value, str) or value is None, "Expected str, found {} ({})".format(type(value), value)
         self.json_representation['datavalue'] = {
             'value': {
-                'text': value[0],
+                'text': value,
                 'language': self.language
             },
             'type': 'monolingualtext'
         }
 
-        super(WDMonolingualText, self).set_value(value=value[0])
+        super(WDMonolingualText, self).set_value(value=value)
 
     @classmethod
     @JsonParser
@@ -2335,6 +2347,7 @@ class WDCommonsMedia(WDBaseDataType):
         self.set_value(value)
 
     def set_value(self, value):
+        assert isinstance(value, str) or value is None, "Expected str, found {} ({})".format(type(value), value)
         self.json_representation['datavalue'] = {
             'value': value,
             'type': 'string'
@@ -2461,6 +2474,7 @@ class WDGeoShape(WDBaseDataType):
         self.set_value(value=value)
 
     def set_value(self, value):
+        assert isinstance(value, str) or value is None, "Expected str, found {} ({})".format(type(value), value)
         self.value = value
 
         self.json_representation['datavalue'] = {
