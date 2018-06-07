@@ -1496,7 +1496,9 @@ class WDBaseDataType(object):
         return self.value
 
     def set_value(self, value):
-        if value is None or (self.snak_type == 'novalue' or self.snak_type == 'somevalue'):
+        if value is None and self.snak_type not in {'novalue', 'somevalue'}:
+            raise ValueError("If 'value' is None, snak_type must be novalue or somevalue")
+        if self.snak_type in {'novalue', 'somevalue'}:
             del self.json_representation['datavalue']
         elif 'datavalue' not in self.json_representation:
             self.json_representation['datavalue'] = {}
