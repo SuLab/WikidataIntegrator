@@ -11,22 +11,65 @@ from dateutil import parser as du
 
 from wikidataintegrator.ref_handlers import update_retrieved_if_new
 from . import wdi_core
-from .wdi_core import WDItemEngine, WDApiError
+from .wdi_core import WDItemEngine, WDApiError, WDBaseDataType
 from wikidataintegrator.wdi_config import config
 
 # https://www.wikidata.org/wiki/Property:P4390
-RELATIONS = {'close': 'Q39893184',
-             'exact': 'Q39893449',
-             'related': 'Q39894604',
-             'broad': 'Q39894595',
-             'narrow': 'Q39893967'}
+RELATIONS = {
+    'close': 'Q39893184',
+    'exact': 'Q39893449',
+    'related': 'Q39894604',
+    'broad': 'Q39894595',
+    'narrow': 'Q39893967'
+}
+
+
+class MappingRelationHelper:
+    ABV_MRT = {
+        "close": "http://www.w3.org/2004/02/skos/core#closeMatch",
+        "exact": "http://www.w3.org/2004/02/skos/core#exactMatch",
+        "related": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+        "broad": "http://www.w3.org/2004/02/skos/core#broadMatch",
+        "narrow": "http://www.w3.org/2004/02/skos/core#narrowMatch"
+    }
+
+    def __init__(self, sparql_endpoint_url='https://query.wikidata.org/sparql'):
+        h = WikibaseHelper(sparql_endpoint_url=sparql_endpoint_url)
+        self.mrt_pid = h.get_pid("http://www.w3.org/2004/02/skos/core#mappingRelation")
+        try:
+            self.mrt_qids = {x: h.get_qid(x) for x in self.ABV_MRT.values()}
+        except KeyError as e:
+            print("{} not found. resorting to known wikidata QIDs".format(e))
+            self.mrt_qids = {self.ABV_MRT[k]: v for k, v in RELATIONS.items()}
+
+    def set_mrt(self, s: WDBaseDataType, mrt: str):
+        """
+        accepts a statement and adds a qualifer setting the mrt
+        modifies s in place
+        :param s: a WDBaseDataType statement
+        :param mrt: one of {'close', 'broad', 'exact', 'related', 'narrow'}
+        :return: s
+        """
+        valid_mrts_abv = self.ABV_MRT.keys()
+        valid_mrts_uri = self.ABV_MRT.values()
+        if mrt in valid_mrts_abv:
+            mrt_uri = self.ABV_MRT[mrt]
+        elif mrt in valid_mrts_uri:
+            mrt_uri = mrt
+        else:
+            raise ValueError("mrt must be one of {}, found {}".format(valid_mrts_abv, mrt))
+        mrt_qid = self.mrt_qids[mrt_uri]
+
+        q = wdi_core.WDItemID(mrt_qid, self.mrt_pid, is_qualifier=True)
+        s.qualifiers.append(q)
+        return s
 
 
 class WikibaseHelper:
     """
     Helper functions for accessing PIDs and QIDs across wikibases
 
-    This functionality depends upon their existing two properties: equivalent property and equivalen class
+    This functionality depends upon their existing two properties: equivalent property and equivalent class
     with the equivalent property values: 'http://www.w3.org/2002/07/owl#equivalentProperty' and
     'http://www.w3.org/2002/07/owl#equivalentClass' respectively
     """
