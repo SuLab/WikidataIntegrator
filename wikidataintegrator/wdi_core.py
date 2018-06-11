@@ -5,6 +5,8 @@ import logging
 import os
 import re
 import time
+
+import pandas as pd
 import requests
 import json
 
@@ -1083,13 +1085,14 @@ class WDItemEngine(object):
     @staticmethod
     @wdi_backoff()
     def execute_sparql_query(query, prefix=None, endpoint='https://query.wikidata.org/sparql',
-                             user_agent=config['USER_AGENT_DEFAULT']):
+                             user_agent=config['USER_AGENT_DEFAULT'], as_dataframe=False):
         """
         Static method which can be used to execute any SPARQL query
         :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
         :param query: The actual SPARQL query string
         :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
         :param user_agent: Set a user agent string for the HTTP header to let the WDQS know who you are.
+        :param as_dataframe: Return result as pandas dataframe
         :type user_agent: str
         :return: The results of the query are returned in JSON format
         """
@@ -1111,8 +1114,19 @@ class WDItemEngine(object):
         }
         response = requests.get(endpoint, params=params, headers=headers)
         response.raise_for_status()
+        results = response.json()
 
-        return response.json()
+        if as_dataframe:
+            return WDItemEngine._sparql_query_result_to_df(results)
+        else:
+            return results
+
+    @staticmethod
+    def _sparql_query_result_to_df(results):
+        results = results['results']['bindings']
+        results = [{k: v['value'] for k, v in item.items()} for item in results]
+        df = pd.DataFrame(results)
+        return df
 
     @staticmethod
     def merge_items(from_id, to_id, login_obj, mediawiki_api_url='https://www.wikidata.org/w/api.php',
@@ -1879,7 +1893,7 @@ class WDItemID(WDBaseDataType):
 
     def set_value(self, value):
         assert isinstance(value, (str, int)) or value is None, \
-            "Expected str or int, found {} ({})".format(type(value),value)
+            "Expected str or int, found {} ({})".format(type(value), value)
         if value is None:
             self.value = value
         elif isinstance(value, int):
