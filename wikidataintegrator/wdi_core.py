@@ -1123,15 +1123,24 @@ class WDItemEngine(object):
 
     @staticmethod
     def _sparql_query_result_to_df(results):
+
+        def parse_value(item):
+            if item.get("datatype") == "http://www.w3.org/2001/XMLSchema#decimal":
+                return float(item['value'])
+            if item.get("datatype") == "http://www.w3.org/2001/XMLSchema#integer":
+                return int(item['value'])
+            if item.get("datatype") == "http://www.w3.org/2001/XMLSchema#dateTime":
+                return datetime.datetime.strptime(item['value'], '%Y-%m-%dT%H:%M:%SZ')
+            return item['value']
+
         results = results['results']['bindings']
-        results = [{k: v['value'] for k, v in item.items()} for item in results]
+        results = [{k: parse_value(v) for k, v in item.items()} for item in results]
         df = pd.DataFrame(results)
         return df
 
     @staticmethod
     def merge_items(from_id, to_id, login_obj, mediawiki_api_url='https://www.wikidata.org/w/api.php',
-                    ignore_conflicts='',
-                    user_agent=config['USER_AGENT_DEFAULT']):
+                    ignore_conflicts='', user_agent=config['USER_AGENT_DEFAULT']):
         """
         A static method to merge two Wikidata items
         :param from_id: The QID which should be merged into another item
