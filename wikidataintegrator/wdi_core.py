@@ -346,7 +346,7 @@ class WDItemEngine(object):
         The most likely WD item QID should be returned, after querying WDQ for all values in core_id properties
         :return: Either a single WD QID is returned, or an empty string if no suitable item in WD
         """
-        qid_list = []
+        qid_list = set()
         conflict_source = {}
         for statement in self.data:
             wd_property = statement.get_prop_nr()
@@ -361,7 +361,7 @@ class WDItemEngine(object):
                 assert all(isinstance(v['core_id'], bool) for k, v in wdi_property_store.wd_properties.items()), \
                     "wd_properties 'core_id' must be a bool"
                 if wdi_property_store.wd_properties[wd_property]['core_id'] is True:
-                    tmp_qids = []
+                    tmp_qids = set()
 
                     if not self.use_sparql:
                         url = 'http://wdq.wmflabs.org/api'
@@ -376,16 +376,16 @@ class WDItemEngine(object):
                         reply = requests.get(url, params=params, headers=headers)
                         reply.raise_for_status()
 
-                        tmp_qids = reply.json()['items']
+                        tmp_qids = set(reply.json()['items'])
                     else:
                         query = statement.sparql_query.format(wd_property, data_point)
                         results = WDItemEngine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)
 
                         for i in results['results']['bindings']:
                             qid = i['item_id']['value'].split('/')[-1]
-                            tmp_qids.append(qid)
+                            tmp_qids.add(qid)
 
-                    qid_list.append(tmp_qids)
+                    qid_list.update(tmp_qids)
 
                     # Protocol in what property the conflict arises
                     if wd_property in conflict_source:
@@ -396,8 +396,6 @@ class WDItemEngine(object):
                     if len(tmp_qids) > 1:
                         raise ManualInterventionReqException(
                             'More than one WD item has the same property value', wd_property, tmp_qids)
-
-        qid_list = [i for i in itertools.chain.from_iterable(qid_list)]
 
         if len(qid_list) == 0:
             self.create_new_item = True
