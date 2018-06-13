@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import time
+from collections import defaultdict
 
 import pandas as pd
 import requests
@@ -54,7 +55,8 @@ class WDItemEngine(object):
                  sparql_endpoint_url='https://query.wikidata.org/sparql',
                  append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
                  ref_handler=None, global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False,
-                 search_only=False, item_data=None, user_agent=config['USER_AGENT_DEFAULT']):
+                 search_only=False, item_data=None, user_agent=config['USER_AGENT_DEFAULT'],
+                 core_prop_match_thresh=0.66):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -117,7 +119,11 @@ class WDItemEngine(object):
             conjunction with wd_item_id in order to provide raw data.
         :param user_agent: The user agent string to use when making http requests
         :type user_agent: str
+        :param core_prop_match_thresh: The proportion of core props that must match during retrieval of an item
+            when the wd_item_id is not specified.
+        :type core_prop_match_thresh: float
         """
+        self.core_prop_match_thresh = core_prop_match_thresh
         self.wd_item_id = wd_item_id
         self.item_name = item_name
         self.domain = domain
@@ -648,50 +654,50 @@ class WDItemEngine(object):
         of a certain domain.
         :return: boolean True if test passed
         """
-        # generate a set containing all property number of the item currently loaded
         assert all(isinstance(v['core_id'], bool) for k, v in wdi_property_store.wd_properties.items()), \
             "wd_properties 'core_id' must be a bool"
-        core_props_list = set([x.get_prop_nr() for x in self.statements if
-                               x.get_prop_nr() in wdi_property_store.wd_properties and
-                               wdi_property_store.wd_properties[x.get_prop_nr()]['core_id'] is True])
+        # all core props
+        wdi_core_props = set(k for k, v in wdi_property_store.wd_properties.items() if v.get("core_id"))
+        # core prop statements that exist on the item
+        cp_statements = [x for x in self.statements if x.get_prop_nr() in wdi_core_props]
+        item_core_props = set(x.get_prop_nr() for x in cp_statements)
+        # core prop statements we are loading
+        cp_data = [x for x in self.data if x.get_prop_nr() in wdi_core_props]
 
         # compare the claim values of the currently loaded QIDs to the data provided in self.data
-        count_existing_ids = 0
-        for i in self.data:
-            prop_nr = i.get_prop_nr()
-            if prop_nr in core_props_list:
-                count_existing_ids += 1
-
-        match_count_per_prop = dict()
-        for new_stat in self.data:
-            for stat in self.statements:
-                pn = new_stat.get_prop_nr()
-                if new_stat == stat and pn in core_props_list:
-                    if pn in match_count_per_prop:
-                        match_count_per_prop[pn] += 1
-                    else:
-                        match_count_per_prop[pn] = 1
+        # this is the number of core_ids in self.data that are also on the item
+        count_existing_ids = len([x for x in self.data if x.get_prop_nr() in item_core_props])
 
         core_prop_match_count = 0
-        for x in match_count_per_prop:
-            core_prop_match_count += match_count_per_prop[x]
+        for new_stat in self.data:
+            for stat in self.statements:
+                if (new_stat.get_prop_nr() == stat.get_prop_nr()) and (new_stat.get_value() == stat.get_value()) \
+                        and (new_stat.get_prop_nr() in item_core_props):
+                    core_prop_match_count += 1
 
-        data_kv_pairs = ['{}:{}'.format(x.get_prop_nr(), x.get_value()) for x in self.data]
-        statements_kv_pairs = ['{}:{}'.format(x.get_prop_nr(), x.get_value()) for x in self.statements]
-
-        if core_prop_match_count < count_existing_ids * 0.66:
-            raise ManualInterventionReqException('Retrieved item ({}) does not match provided core IDs. '
-                                                 'Matching count {}, non-matching count {}'
-                                                 .format(self.wd_item_id, core_prop_match_count,
-                                                         count_existing_ids - core_prop_match_count),
-                                                 'data Key values: {}'.format(data_kv_pairs),
-                                                 'statement Key values: {}'.format(statements_kv_pairs))
+        if core_prop_match_count < count_existing_ids * self.core_prop_match_thresh:
+            existing_core_pv = defaultdict(set)
+            for s in cp_statements:
+                existing_core_pv[s.get_prop_nr()].add(s.get_value())
+            new_core_pv = defaultdict(set)
+            for s in cp_data:
+                new_core_pv[s.get_prop_nr()].add(s.get_value())
+            nomatch_existing = {k: v - new_core_pv[k] for k, v in existing_core_pv.items()}
+            nomatch_existing = {k: v for k, v in nomatch_existing.items() if v}
+            nomatch_new = {k: v - existing_core_pv[k] for k, v in new_core_pv.items()}
+            nomatch_new = {k: v for k, v in nomatch_new.items() if v}
+            raise CorePropIntegrityException('Retrieved item ({}) does not match provided core IDs. '
+                                             'Matching count {}, non-matching count {}. '
+                                             .format(self.wd_item_id, core_prop_match_count,
+                                                     count_existing_ids - core_prop_match_count) +
+                                             'existing unmatched core props: {}. '.format(nomatch_existing) +
+                                             'statement unmatched core props: {}.'.format(nomatch_new))
         else:
             return True
 
     def get_label(self, lang='en'):
         """
-        Retrurns the label for a certain language
+        Returns the label for a certain language
         :param lang:
         :type lang: str
         :return: returns the label in the specified language, an empty string if the label does not exist
@@ -2579,6 +2585,14 @@ class WDSearchError(Exception):
 class ManualInterventionReqException(Exception):
     def __init__(self, value, property_string, item_list):
         self.value = value + ' Property: {}, items affected: {}'.format(property_string, item_list)
+
+    def __str__(self):
+        return repr(self.value)
+
+
+class CorePropIntegrityException(Exception):
+    def __init__(self, value):
+        self.value = value
 
     def __str__(self):
         return repr(self.value)
