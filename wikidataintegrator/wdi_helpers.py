@@ -14,6 +14,30 @@ from . import wdi_core
 from .wdi_core import WDItemEngine, WDApiError, WDBaseDataType
 from wikidataintegrator.wdi_config import config
 
+PROPS = {
+    'instance of': 'P31',
+    'title': 'P1476',
+    'published in': 'P1433',
+    'volume': 'P478',
+    'publication date': 'P577',
+    'page(s)': 'P304',
+    'issue': 'P433',
+    'author name string': 'P2093',
+    'author': 'P50',
+    'PubMed ID': 'P698',
+    'MED': 'P698',
+    'DOI': 'P356',
+    'series ordinal': 'P1545',
+    'PMCID': 'P932',
+    'PMC': 'P932',
+    'reference URL': 'P854',
+    'ISSN': 'P236',
+    'ISBN-13': 'P212',
+    'orcid id': "P496",
+    'stated in': "P248",
+    'retrieved': 'P813'
+}
+
 # https://www.wikidata.org/wiki/Property:P4390
 RELATIONS = {
     'close': 'Q39893184',
@@ -262,61 +286,83 @@ class Publication:
 
     INSTANCE_OF = {
         "scientific_article": "Q13442814",
+        "publication": "Q732577"
     }
 
-    PROPS = {
-        'instance of': 'P31',
-        'title': 'P1476',
-        'published in': 'P1433',
-        'volume': 'P478',
-        'publication date': 'P577',
-        'page(s)': 'P304',
-        'issue': 'P433',
-        'author name string': 'P2093',
-        'author': 'P50',
-        'PubMed ID': 'P698',
-        'MED': 'P698',
-        'DOI': 'P356',
-        'series ordinal': 'P1545',
-        'PMCID': 'P932',
-        'PMC': 'P932',
-        'reference URL': 'P854',
-        'ISSN': 'P236',
-        'orcid id': "P496"
+    SOURCES = {
+        'crossref': 'Q5188229',
+        'europepmc': 'Q5412157'
     }
 
-    def __init__(self, instance_of=None, title=None, subtitle=None, authors=None,
-                 publication_date=None, original_language_of_work=None, published_in=None,
+    def __init__(self, title=None, instance_of=None, subtitle=None, authors=None,
+                 publication_date=None, original_language_of_work=None,
+                 published_in_issn=None, published_in_isbn=None,
                  volume=None, issue=None, pages=None, number_of_pages=None, cites=None,
                  editor=None, license=None, full_work_available_at=None, language_of_work_or_name=None,
                  main_subject=None, commons_category=None, sponsor=None, data_available_at=None,
-                 ids=None):
+                 ids=None, ref_url=None, source=None):
+        """
+
+        :param title:
+        :type title: str
+        :param instance_of: one of `INSTANCE_OF`
+        :type instance_of: str
+        :param authors: authors is a list of dicts, containing the following keys: full_name, orcid (optional)
+                example: {'full_name': "Andrew I. Su", 'orcid': "0000-0002-9859-4104"}
+                If author name can't be parsed, use value None. i.e. {'full_name': None}
+        :type authors: list
+        :param publication_date:
+        :type publication_date: datetime.datetime
+        :param published_in_issn: The issn# for the journal
+        :type published_in_issn: str
+        :param published_in_isbn: The isbn#
+        :type published_in_isbn: str
+        :param volume:
+        :type volume: str
+        :param issue:
+        :type issue: str
+        :param pages:
+        :type pages: str
+        :param ids: may contain the following keys: doi, pmid, pmcid, article_id, arxiv_id, bibcode, zoobank_pub_id,
+        jstor_article_id, ssrn_id, nioshtic2_id, dialnet_article, opencitations_id, acmdl_id, publons_id
+        example: {'doi': 'xxx', 'pmid': '1234'}
+        :type ids: dict
+        :param ref_url: Ref url (for the api call)
+        :type ref_url: str
+        :param source: One of {'crossref', 'europepmc'}
+        :type source: str
+        :param subtitle: Not implemented
+        :param original_language_of_work: Not implemented
+        :param number_of_pages: Not implemented
+        :param cites: Not implemented
+        :param editor: Not implemented
+        :param license: Not implemented
+        :param full_work_available_at: Not implemented
+        :param language_of_work_or_name: Not implemented
+        :param main_subject: Not implemented
+        :param commons_category: Not implemented
+        :param sponsor: Not implemented
+        :param data_available_at: Not implemented
+        """
         # Input is an API agnostic representation of a publication
         self.warnings = []
         self._instance_of = instance_of
         self.instance_of_qid = None
-
-        # published_in is a issn #
-        self._published_in = published_in
+        self._published_in_isbn = published_in_isbn
+        self._published_in_issn = published_in_issn
         self.published_in_qid = None
-
+        self._authors = authors
         self.title = title
-        self.subtitle = subtitle
         self.publication_date = publication_date
         self.volume = volume
         self.issue = issue
         self.pages = pages
-
-        # authors is a list of dicts, containing the following keys: full_name, orcid (optional)
-        # example: {'full_name': "Andrew I. Su", 'orcid': "0000-0002-9859-4104"}
-        self._authors = authors
-
-        # ids is a dict that may contain the following keys:
-        # doi, pmid, pmcid, article_id, arxiv_id, bibcode, zoobank_pub_id, jstor_article_id, ssrn_id,
-        # nioshtic2_id, dialnet_article, opencitations_id, acmdl_id, publons_id
         self.ids = ids
+        self.source = source
+        self.ref_url = ref_url
 
         ### not implemented ###
+        self.subtitle = subtitle
         self.original_language_of_work = original_language_of_work
         self.cites = cites
         self.editor = editor
@@ -329,6 +375,10 @@ class Publication:
         self.data_available_at = data_available_at
         self.number_of_pages = number_of_pages
 
+        ### wikidata related things ###
+        self.reference = None
+        self.statements = []
+
     @property
     def instance_of(self):
         return self._instance_of
@@ -336,20 +386,37 @@ class Publication:
     @instance_of.setter
     def instance_of(self, value):
         self._instance_of = value
-        self.instance_of_qid = self.INSTANCE_OF.get(value)
+        self.instance_of_qid = self.INSTANCE_OF.get(value) if value in self.INSTANCE_OF else self.INSTANCE_OF[
+            'publication']
         if value not in self.INSTANCE_OF:
-            self.warnings.append("instance of {} not supported".format(value))
+            self.warnings.append("instance of {} not found".format(value))
 
     @property
-    def published_in(self):
-        return self._published_in
+    def published_in_issn(self):
+        return self._published_in_issn
 
-    @published_in.setter
-    def published_in(self, value):
-        self._published_in = value
-        self.published_in_qid = prop2qid(self.PROPS['ISSN'], value)
+    @published_in_issn.setter
+    def published_in_issn(self, value):
+        # todo: handle multiple issn and isbn #s
+        # right now: expect only one issn#
+        self._published_in_issn = value
+        self.published_in_qid = prop2qid(PROPS['ISSN'], value)
         if not self.published_in_qid:
             self.warnings.append("ISSN:{} not found".format(value))
+
+    @property
+    def published_in_isbn(self):
+        return self._published_in_isbn
+
+    @published_in_isbn.setter
+    def published_in_isbn(self, value):
+        # todo: handle multiple issn and isbn #s
+        # right now: expect only one issn#
+        self._published_in_isbn = value
+        self.published_in_qid = prop2qid(PROPS['ISBN'], value)
+        # todo: check to see if isbn and issn numbers are conflicting
+        if not self.published_in_qid:
+            self.warnings.append("ISBN:{} not found".format(value))
 
     @property
     def authors(self):
@@ -363,11 +430,96 @@ class Publication:
 
     @staticmethod
     def lookup_author(orcid_id):
-        return prop2qid(Publication.PROPS['orcid id'], orcid_id)
+        return prop2qid(PROPS['orcid id'], orcid_id)
 
     def validate(self):
         assert self.title is not None and len(self.title) > 1
         assert self.publication_date is None or isinstance(self.publication_date, datetime.datetime)
+        assert self.source in self.SOURCES
+        assert self.ref_url is not None and len(self.ref_url) > 1
+
+    def make_reference(self):
+        if self.source == "crossref":
+            extid = wdi_core.WDString(self.ids['doi'], PROPS['DOI'], is_reference=True)
+            ref_url = wdi_core.WDUrl(self.ref_url, PROPS['reference URL'], is_reference=True)
+            stated_in = wdi_core.WDItemID(self.SOURCES[self.source], PROPS['stated in'], is_reference=True)
+            retrieved = wdi_core.WDTime(strftime("+%Y-%m-%dT00:00:00Z", gmtime()), PROPS['retrieved'],
+                                        is_reference=True)
+            self.reference = [stated_in, extid, ref_url, retrieved]
+        elif self.source == "europepmc":
+            # do stuff here
+            pass
+
+    def set_label(self, item):
+        # item is a WDItemEngine
+        # check if lenght is > 250, warn if so and truncate
+        # self.title
+        if item.get_label() == "":
+            if len(self.title) > 249:
+                self.warnings.append("title cropped to 250 chars")
+            item.set_label(self.title[:249])
+
+    def set_description(self, item):
+        # item is a WDItemEngine
+        if item.get_description() == "" and self.publication_date:
+            item.set_description("{} published on {}".format(self.instance_of.replace("_", " "),
+                                                             self.publication_date.strftime("%d %B %Y")))
+        elif item.get_description() == "":
+            item.set_description("{}".format(self.instance_of.replace("_", " ")))
+
+    def make_statements(self):
+        self.statements.append(
+            wdi_core.WDItemID(self.instance_of_qid, PROPS['instance of'], references=[self.reference]))
+        self.statements.append(wdi_core.WDMonolingualText(self.title, PROPS['title'], references=[self.reference]))
+
+        if self.publication_date:
+            date = self.publication_date.strftime("+%Y-%m-%dT00:00:00Z")
+            self.statements.append(
+                wdi_core.WDTime(date, PROPS['publication date'], references=[self.reference]))
+        if self.published_in_qid:
+            self.statements.append(
+                wdi_core.WDItemID(self.published_in_qid, PROPS['published in'], references=[self.reference]))
+        if self.volume:
+            self.statements.append(wdi_core.WDString(self.volume, PROPS['volume'], references=[self.reference]))
+        if self.pages:
+            self.statements.append(wdi_core.WDString(self.pages, PROPS['page(s)'], references=[self.reference]))
+        if self.issue:
+            self.statements.append(wdi_core.WDString(self.issue, PROPS['issue'], references=[self.reference]))
+
+    def make_author_statements(self):
+        # this function exists separately because if the item already exists, we don't want to touch the authors
+        s = []
+        for n, author in enumerate(self.authors, 1):
+            series_ordinal = wdi_core.WDString(str(n), PROPS['series ordinal'], is_qualifier=True)
+            if author.get("qid"):
+                s.append(wdi_core.WDItemID(author['qid'], PROPS['author'],
+                                           references=[self.reference], qualifiers=[series_ordinal]))
+            elif author['full_name']:
+                s.append(wdi_core.WDString(author['full_name'], PROPS['author name string'],
+                                           references=[self.reference], qualifiers=[series_ordinal]))
+        self.statements.extend(s)
+
+    def make_ext_id_statements(self):
+        for id_type, id_value in self.ids.items():
+            self.statements.append(wdi_core.WDExternalID(id_value, self.ID_TYPES[id_type], references=[self.reference]))
+
+    def get_or_create(self, login):
+        self.validate()
+        self.make_reference()
+        self.make_statements()
+        self.make_ext_id_statements()
+
+        item = wdi_core.WDItemEngine(item_name=self.title, data=self.statements,
+                                     domain="scientific_article",
+                                     append_value=[PROPS['DOI'], PROPS['PMCID'], PROPS['PubMed ID']])
+
+        self.set_label(item)
+        self.set_description(item)
+
+        if item.create_new_item:
+            self.make_author_statements()
+
+        return try_write(item, self.ids['doi'], PROPS["DOI"], login)
 
 
 def crossref_api_to_publication(ext_id, id_type="doi"):
@@ -382,19 +534,19 @@ def crossref_api_to_publication(ext_id, id_type="doi"):
     assert r['status'] == 'ok'
     r = r['message']
 
-    p = Publication()
+    p = Publication(source="crossref", ref_url=url)
     if r['type'] == "journal-article":
         p.instance_of = "scientific_article"
     else:
         p.warnings.append("unknown type: {}".format(r['type']))
 
     p.title = r['title'][0]
-    p.published_in = r['ISSN'][0]
-    p.publication_date = datetime.datetime.fromtimestamp(int(r['created']['timestamp'])/1000)
-    p.issue = r['issue']
-    p.volume = r['volume']
-    p.pages = r['page']
-    p.authors = [{'full_name': x['given'] + x['family'],
+    p.published_in_issn = r.get('ISSN', [None])[0]
+    p.publication_date = datetime.datetime.fromtimestamp(int(r['created']['timestamp']) / 1000)
+    p.issue = r.get('issue')
+    p.volume = r.get('volume')
+    p.pages = r.get('page')
+    p.authors = [{'full_name': x['given'] + " " + x['family'],
                   'orcid': x.get("ORCID", "").replace("http://orcid.org/", "")} for x in r['author']]
 
     p.ids = {'doi': ext_id}
