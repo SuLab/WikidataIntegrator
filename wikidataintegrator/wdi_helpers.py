@@ -564,6 +564,153 @@ def crossref_api_to_publication(ext_id, id_type="doi"):
     return p
 
 
+def europepmc_api_to_publication(ext_id, id_type):
+    assert id_type == "PMC" or id_type =="doi"
+    # Request the data
+    if self.id_type == "PMC":
+        url = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:PMC{}&resulttype=core&format=json'
+        url = url.format(self.ext_id)
+    elif self.id_type == "DOI":
+        url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:%22{}%22&resulttype=core&format=json"
+        url = url.format(self.ext_id)
+    else:
+        url = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{}%20AND%20SRC:{}&resulttype=core&format=json'
+        url = url.format(self.ext_id, self.id_type)
+    headers = {
+        'User-Agent': config['USER_AGENT_DEFAULT']
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    d = response.json()
+    if d['hitCount'] != 1:
+        raise ValueError("No results")
+    article = d['resultList']['result'][0]
+    
+    publication = Publication()
+    
+    #parse out the values
+    #IGNORING publication['pmid'] = article.get('pmid', '')
+    #IGNORING publication['pmcid'] = article.get('pmcid', '').replace("PMC", "")
+    original_title = article['title']  # to remove trailing dot
+    if original_title[-1] == '.' and original.title[-2] != '.' and original_title[-3] != '.':  # to exclude '...' and abbreviations such as U.S.A.
+        publication.title = original_title[:-1]  # drop the trailing dot
+    else:
+        publication.title = original_title
+    
+    # authors is a list of dicts, containing the following keys: full_name, orcid (optional)
+    # example: {'full_name': "Andrew I. Su", 'orcid': "0000-0002-9859-4104"}
+
+    publication.authors = []
+    authorlist = article["authorList"]["author"]
+    for author in authorlist:
+        full_name = None
+        if 'firstName' in author and 'lastName' in author:
+            full_name = author['firstName'] + ' ' + author['lastName']
+        elif 'fullName' in author:
+            full_name = author['fullName']
+        elif 'collectiveName' in author:
+            full_name = author['collectiveName']
+        else:
+            msg = "unknown author: {}".format(author)
+            print(msg)
+            self.errors.append(msg)
+        #orcids
+        orcid = None
+        if 'authorId' in author:
+            if author['authorId']['type'] == "ORCID":
+                orcid = author['authorId']['value']
+        publication.authors.append({'full_name': full_name, 'orcid': orcid})
+    # datetime for publication_date
+    publication.publication_date = du.parse(article['firstPublicationDate']).strftime('+%Y-%m-%dT%H:%M:%SZ')
+
+    publication.volume = article['journalInfo'].get('volume')
+    publication.issue = article['journalInfo'].get('issue')
+    publication.pages = article.get('pageInfo')
+
+    
+    
+    #ids
+    #        may contain the following keys: doi, pmid, pmcid, article_id, arxiv_id, bibcode, zoobank_pub_id, jstor_article_id, ssrn_id, nioshtic2_id, dialnet_article, opencitations_id, acmdl_id, publons_id
+    #        example: {'doi': 'xxx', 'pmid': '1234'}
+    
+    publication.ids = {}
+    publication.ids['doi'] = article.get('doi')
+    publication.ids['pmid'] = article.get('pmid')
+    publication.ids['pmcid'] = article.get('pmcid')
+    # no other IDs where found in the performed requests.
+    
+    #pageInfo
+    if 'pageInfo' in article:
+        # according to documentation, they should be in the form : 145-178, but also "D36-42" has been in the responses
+        pageString = article['pageInfo']
+        pageStringParts = pageString.split('-')
+        pageStartString = pageStringParts[0]
+        if pageStartString.startswith('D'):
+            pageStartString = pageStartString[1:]
+        pageStart = int(pageStartString)
+        pageEndString = pageStringParts[1]
+        pageEnd = int(pageEndString)
+        pages = pageEnd - pageStart + 1
+        publication.number_of_pages = pages
+    if "grantsList" in article and "grant" in article['grantsList'] and "agency" in article['grantsList']["grant"]:
+        publication.sponsor = article['grantsList']["grant"]["agency"]
+    
+
+    ## The following properties are not in the new model...
+
+    # get the type of publication
+    # if not told that it is a research-article, we will make it a general publication
+    isScientificArticle = False
+    if 'pubTypeList' in article:
+        pubtypes = article['pubTypeList']['pubType']
+        if isinstance(pubtypes, string):
+            if pubtypes == 'research-article':
+                isScientificArticle = True
+        elif isinstance (pubtypes, list):
+            if 'research-article' in pubtypes:
+                isScientificArticle = True
+    if isScientificArticle:
+        #TODO, which property to set???
+        publication.setSoemthing.... INSTANCE_OF["scientific_article"]
+    else:
+        publication.setSoemthing.... INSTANCE_OF["publication"]        
+        self.warnings.append("unknown publication type, assuming publication" )
+        print("unknown publication type, assuming scientific article")
+
+
+    usableID = ''
+    if 'issn' in article['journalInfo']['journal']:
+        publication.journal_issn = article['journalInfo']['journal']['issn']  # published in
+        useableID = publication.journal_issn
+    elif 'essn' in article['journalInfo']['journal']:
+        publication.journal_essn = article['journalInfo']['journal']['essn']  # published in
+        useableID = publication.journal_essn
+    else:
+        msg = "unknown journal: {}".format(article['journalInfo']['journal'])
+        self.errors.append(msg)
+        print(msg)
+    
+    publication.journal_wdid = prop2qid("P236", usableID)
+    if not publication.journal_wdid:
+        raise ValueError("journal not found: {}".format(publication['journal_issn']))
+
+
+#Properties not in result
+   #  subtitle
+#Properties not handled
+    # original_language_of_work - issue: which language abbrev to use.
+    # published_in    
+#TODO list of properties to get out:
+# cites
+#editor
+# license
+# full_work_available_at
+# language_of_work_or_name
+#main_subject
+# commons_category
+# data_available_at
+
+
 def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=True):
     """
     Write a PBB_core item. Log if item was created, updated, or skipped.
