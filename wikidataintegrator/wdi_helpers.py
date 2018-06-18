@@ -9,7 +9,7 @@ from tqdm import tqdm
 import requests
 from dateutil import parser as du
 
-from wikidataintegrator.ref_handlers import update_retrieved_if_new
+from wikidataintegrator.ref_handlers import update_retrieved_if_new, update_retrieved_if_new_multiple_refs
 from . import wdi_core
 from .wdi_core import WDItemEngine, WDApiError, WDBaseDataType
 from wikidataintegrator.wdi_config import config
@@ -509,9 +509,15 @@ class Publication:
         self.make_statements()
         self.make_ext_id_statements()
 
-        item = wdi_core.WDItemEngine(item_name=self.title, data=self.statements,
-                                     domain="scientific_article",
-                                     append_value=[PROPS['DOI'], PROPS['PMCID'], PROPS['PubMed ID']])
+        item = wdi_core.WDItemEngine(
+            item_name=self.title, data=self.statements,
+            domain="scientific_article",
+            append_value=[PROPS['DOI'], PROPS['PMCID'], PROPS['PubMed ID']],
+            # ref_handler=update_retrieved_if_new_multiple_refs()
+        )
+
+        if item.wd_item_id:
+            return item.wd_item_id, self.warnings, ""
 
         self.set_label(item)
         self.set_description(item)
@@ -519,7 +525,11 @@ class Publication:
         if item.create_new_item:
             self.make_author_statements()
 
-        return try_write(item, self.ids['doi'], PROPS["DOI"], login)
+        success = try_write(item, self.ids['doi'], PROPS["DOI"], login)
+        if success is not True:
+            return item.wd_item_id, self.warnings, success
+        else:
+            return item.wd_item_id, self.warnings, ""
 
 
 def crossref_api_to_publication(ext_id, id_type="doi"):
