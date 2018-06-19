@@ -428,6 +428,21 @@ def europepmc_api_to_publication(ext_id, id_type):
     return p
 
 
+class PublicationHelper:
+    SOURCE_FUNCT = {
+        'crossref': crossref_api_to_publication,
+        'europepmc': europepmc_api_to_publication,
+    }
+
+    def __init__(self, ext_id, id_type, source='crossref'):
+        assert source in self.SOURCE_FUNCT
+        self.f = self.SOURCE_FUNCT[source]
+        self.p = self.f(ext_id, id_type=id_type)
+
+    def get_or_create(self, login):
+        return self.p.get_or_create(login)
+
+
 if __name__ == "__main__":
     try:
         from local import WDUSER, WDPASS
@@ -450,17 +465,10 @@ if __name__ == "__main__":
     id_type = args.idtype
     source = args.source
 
-    if source == "crossref":
-        api_f = crossref_api_to_publication
-    elif source == "europepmc":
-        api_f = europepmc_api_to_publication
-    else:
-        raise ValueError("unknown source: {}".format(source))
-
     with open("log.txt", "a") as f:
         for ext_id in ext_ids:
             try:
-                p = api_f(ext_id, id_type=id_type)
+                p = PublicationHelper(ext_id, id_type=id_type, source=source)
                 qid, warnings, success = p.get_or_create(login)
                 print("{},{},{},{}".format(ext_id, qid, "|".join(warnings), success))
                 print("{},{},{},{}".format(ext_id, qid, "|".join(warnings), success), file=f)
