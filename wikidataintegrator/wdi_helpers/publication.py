@@ -1,11 +1,13 @@
 from time import gmtime, strftime, sleep
 import datetime
 import difflib
-
+import argparse
+import sys
+import os
 import requests
 from dateutil import parser as du
 
-from wikidataintegrator import wdi_core
+from wikidataintegrator import wdi_core, wdi_login
 from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_helpers import prop2qid, PROPS, try_write
 
@@ -29,7 +31,7 @@ class Publication:
         'europepmc': 'Q5412157'
     }
 
-    def __init__(self, title=None, instance_of=None, subtitle=None, authors=None,
+    def __init__(self, title=None, instance_of=None, subtitle=None, authors=list(),
                  publication_date=None, original_language_of_work=None,
                  published_in_issn=None, published_in_isbn=None,
                  volume=None, issue=None, pages=None, number_of_pages=None, cites=None,
@@ -300,8 +302,9 @@ def crossref_api_to_publication(ext_id, id_type="doi"):
     p.issue = r.get('issue')
     p.volume = r.get('volume')
     p.pages = r.get('page')
-    p.authors = [{'full_name': x['given'] + " " + x['family'],
-                  'orcid': x.get("ORCID", "").replace("http://orcid.org/", "")} for x in r['author']]
+    if 'author' in r:
+        p.authors = [{'full_name': x['given'] + " " + x['family'],
+                      'orcid': x.get("ORCID", "").replace("http://orcid.org/", "")} for x in r['author']]
 
     p.ids = {'doi': ext_id}
 
@@ -420,3 +423,43 @@ def europepmc_api_to_publication(ext_id, id_type):
 
     return p
 
+
+if __name__ == "__main__":
+    try:
+        from local import WDUSER, WDPASS
+    except ImportError:
+        if "WDUSER" in os.environ and "WDPASS" in os.environ:
+            WDUSER = os.environ['WDUSER']
+            WDPASS = os.environ['WDPASS']
+        else:
+            raise ValueError("WDUSER and WDPASS must be specified in local.py or as environment variables")
+
+    parser = argparse.ArgumentParser(description='run publication creator')
+    parser.add_argument("ext_id", help="comma-separated list of IDs")
+    parser.add_argument("--source", help="API to use (crossref or europepmc)", default="crossref")
+    parser.add_argument("--idtype", help="external id type (doi, pmcid, pmid, etc...)", default="doi")
+    args = parser.parse_args()
+
+    login = wdi_login.WDLogin(WDUSER, WDPASS)
+
+    ext_ids = sorted(list(set(map(str.strip, args.ext_id.split(",")))))
+    id_type = args.idtype
+    source = args.source
+
+    if source == "crossref":
+        api_f = crossref_api_to_publication
+    elif source == "europepmc":
+        api_f = europepmc_api_to_publication
+    else:
+        raise ValueError("unknown source: {}".format(source))
+
+    with open("log.txt", "a") as f:
+        for ext_id in ext_ids:
+            try:
+                p = api_f(ext_id, id_type=id_type)
+                qid, warnings, success = p.get_or_create(login)
+                print("{},{},{},{}".format(ext_id, qid, "|".join(warnings), success))
+                print("{},{},{},{}".format(ext_id, qid, "|".join(warnings), success), file=f)
+            except Exception as e:
+                print("{},{},{},{}".format(ext_id, None, e, False))
+                print("{},{},{},{}".format(ext_id, None, e, False), file=f)
