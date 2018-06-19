@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 
 from wikidataintegrator import wdi_core
 from wikidataintegrator.wdi_helpers import id_mapper, try_write

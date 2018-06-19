@@ -12,6 +12,11 @@ from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_helpers import prop2qid, PROPS, try_write
 
 
+class PubmedItem:
+    def __init__(self):
+        raise ValueError("PubmedItem is deprecated. Please use PublicationHelper")
+
+
 class Publication:
     # https://github.com/shexSpec/schemas/blob/master/Wikidata/wikicite/wikicite_scholarly_article.shex
 
@@ -253,7 +258,9 @@ class Publication:
 
     def make_ext_id_statements(self):
         for id_type, id_value in self.ids.items():
-            self.statements.append(wdi_core.WDExternalID(id_value, self.ID_TYPES[id_type], references=[self.reference]))
+            if id_value:
+                id_value = id_value.upper()
+                self.statements.append(wdi_core.WDExternalID(id_value, self.ID_TYPES[id_type], references=[self.reference]))
 
     def get_or_create(self, login):
         self.validate()
@@ -270,20 +277,17 @@ class Publication:
         )
 
         if item.wd_item_id:
-            return item.wd_item_id, self.warnings, ""
+            return item.wd_item_id, self.warnings, True
 
         self.set_label(item)
         self.set_description(item)
 
         success = try_write(item, self.ids['doi'], PROPS["DOI"], login)
-        if success is not True:
-            return item.wd_item_id, self.warnings, success
-        else:
-            return item.wd_item_id, self.warnings, ""
+        return item.wd_item_id, self.warnings, success
 
 
 def crossref_api_to_publication(ext_id, id_type="doi"):
-    assert id_type == "doi"
+    assert id_type == "doi", "Unsupported id type in crossref: {}".format(id_type)
     url = "https://api.crossref.org/v1/works/http://dx.doi.org/{}"
     url = url.format(ext_id)
 
@@ -316,17 +320,20 @@ def crossref_api_to_publication(ext_id, id_type="doi"):
 
 
 def europepmc_api_to_publication(ext_id, id_type):
-    assert id_type == "pmc" or id_type == "doi"
+    # https://europepmc.org/docs/EBI_Europe_PMC_Web_Service_Reference.pdf
+    assert id_type in Publication.ID_TYPES, "id_type must be in {}".format(Publication.ID_TYPES.keys())
     # Request the data
-    if id_type == "pmc":
+    if id_type == "pmcid":
         url = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:PMC{}&resulttype=core&format=json'
         url = url.format(ext_id)
     elif id_type == "doi":
         url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:%22{}%22&resulttype=core&format=json"
         url = url.format(ext_id)
-    else:
-        url = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{}%20AND%20SRC:{}&resulttype=core&format=json'
+    elif id_type == "pmid":
+        url = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{}%20AND%20SRC:MED&resulttype=core&format=json'
         url = url.format(ext_id, id_type)
+    else:
+        raise ValueError("id_type must be in {}".format(Publication.ID_TYPES.keys()))
     headers = {
         'User-Agent': config['USER_AGENT_DEFAULT']
     }
@@ -434,13 +441,39 @@ class PublicationHelper:
         'europepmc': europepmc_api_to_publication,
     }
 
-    def __init__(self, ext_id, id_type, source='crossref'):
+    def __init__(self, ext_id, id_type, source):
+        """
+        PublicationHelper: Helper to create wikidata items about literature
+        Supported data sources and (ID types): crossref (doi), europepmc (pmid, pmcid, doi)
+        :param ext_id: the external ID to use
+        :type ext_id: str
+        :param id_type: one of {'pmid', 'pmcid', 'doi'}
+        :type id_type: str
+        :param source: one of {'crossref', 'europepmc'}
+        :type source: str
+        """
         assert source in self.SOURCE_FUNCT
         self.f = self.SOURCE_FUNCT[source]
-        self.p = self.f(ext_id, id_type=id_type)
+        self.e = None
+        try:
+            self.p = self.f(ext_id, id_type=id_type)
+        except Exception as e:
+            self.p = None
+            self.e = e
 
     def get_or_create(self, login):
-        return self.p.get_or_create(login)
+        """
+        Get the qid of the item by its external id or create if doesn't exist
+        :param login: WDLogin item
+        :return: tuple of (qid, list of warnings (strings), success (True if success, returns the Exception otherwise))
+        """
+        if self.p:
+            try:
+                return self.p.get_or_create(login)
+            except Exception as e:
+                return None, self.p.warnings, e
+        else:
+            return None, [], self.e
 
 
 if __name__ == "__main__":

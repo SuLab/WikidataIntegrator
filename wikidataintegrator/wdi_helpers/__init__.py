@@ -256,6 +256,6 @@ def wait_for_last_modified(timestamp, delay=30, entity="http://www.wikidata.org"
 
 
 from .mapping_relation_helper import MappingRelationHelper
-from .publication import Publication
+from .publication import PublicationHelper
 from .release import Release
 from .wikibase_helper import WikibaseHelper

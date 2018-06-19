@@ -1,33 +1,25 @@
-from wikidataintegrator.wdi_helpers import PubmedItem, Release, id_mapper
+from wikidataintegrator.wdi_helpers import PublicationHelper, Release, id_mapper
 
 
 def test_get_pubmed_item():
     # this one exists
-    qid = PubmedItem(27528457).get_or_create()
-    assert qid == "Q27098545"
-    qid = PubmedItem("4986259", id_type="PMC").get_or_create()
-    assert qid == "Q27098545"
-    qid = PubmedItem("10.1186/S12864-016-2855-3", id_type="DOI").get_or_create()
-    assert qid == "Q27098545"
+    qid, _, _ = PublicationHelper("27528457", id_type="pmid", source="europepmc").get_or_create(None)
+    assert qid == "Q27098545", qid
+    qid, _, _ = PublicationHelper("4986259", id_type="pmcid", source="europepmc").get_or_create(None)
+    assert qid == "Q27098545", qid
+    qid, _, _ = PublicationHelper("10.1186/S12864-016-2855-3", id_type="doi", source="crossref").get_or_create(None)
+    assert qid == "Q27098545", qid
 
 
 def test_get_pmc_item():
     # only has a pmc id
-    qid = PubmedItem("PMC3425984", id_type='PMC').get_or_create()
+    qid, _, _ = PublicationHelper("3425984", id_type='pmcid', source="europepmc").get_or_create(None)
     assert qid == "Q42758027"
-
-
-def test_get_pubmed_item_cache():
-    # this one exists
-    wdid = PubmedItem(1234).get_or_create()
-    assert ('1234', 'MED') in PubmedItem._cache
-    assert PubmedItem._cache[('1234', 'MED')] == "Q27442302"
-
 
 def test_pubmedstub_bad_pmid():
     # invalid pubmed id
-    wdid = PubmedItem(999999999).get_or_create(login='fake login')
-    assert wdid is None
+    qid, _, _ = PublicationHelper("999999999", id_type='pmid', source='europepmc').get_or_create(login='fake login')
+    assert qid is None
 
 
 def test_release_lookup_release():
