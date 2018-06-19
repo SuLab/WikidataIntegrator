@@ -464,6 +464,7 @@ if __name__ == "__main__":
                 qid, warnings, success = p.get_or_create(login)
                 print("{},{},{},{}".format(ext_id, qid, "|".join(warnings), success))
                 print("{},{},{},{}".format(ext_id, qid, "|".join(warnings), success), file=f)
+                sleep(3)
             except Exception as e:
                 print("{},{},{},{}".format(ext_id, None, e, False))
                 print("{},{},{},{}".format(ext_id, None, e, False), file=f)
