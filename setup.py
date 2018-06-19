@@ -16,7 +16,8 @@ setup(
     keywords='Wikidata biology chemistry medicine',
     url=REPO_URL,
     # packages=find_packages(),
-    packages=['wikidataintegrator', 'wikidataintegrator.backoff', 'wikidataintegrator.ref_handlers'],
+    packages=['wikidataintegrator', 'wikidataintegrator.backoff',
+              'wikidataintegrator.ref_handlers', 'wikidataintegrator.wdi_helpers'],
     include_package_data=True,
     # long_description=read('README.md'),
     classifiers=[
