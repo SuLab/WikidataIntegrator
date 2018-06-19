@@ -135,6 +135,8 @@ class Publication:
     @published_in_issn.setter
     def published_in_issn(self, value):
         assert self.published_in_isbn is None, "Can't give both ISSN and ISBN"
+        if not isinstance(value, list):
+            value = [value]
         self._published_in_issn = value
         qids = set(prop2qid(PROPS['ISSN'], v) for v in value)
         if len(qids) == 1:
@@ -151,6 +153,8 @@ class Publication:
     @published_in_isbn.setter
     def published_in_isbn(self, value):
         assert self.published_in_issn is None, "Can't give both ISSN and ISBN"
+        if not isinstance(value, list):
+            value = [value]
         self._published_in_isbn = value
         qids = set(prop2qid(PROPS['ISBN-13'], v) for v in value)
         if len(qids) == 1:
