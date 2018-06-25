@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 MAJOR_VERSION = 0
 MINOR_VERSION = 0
-MICRO_VERSION = 509
+MICRO_VERSION = 550
 
 REPO_URL = 'https://github.com/sulab/WikidataIntegrator'
 
