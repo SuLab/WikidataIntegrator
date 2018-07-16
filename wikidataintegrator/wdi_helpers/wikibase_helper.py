@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from wikidataintegrator import wdi_core
 from wikidataintegrator.wdi_helpers import id_mapper
 
@@ -60,3 +62,74 @@ class WikibaseHelper:
         if uri.startswith("Q"):
             uri = "http://www.wikidata.org/entity/" + uri
         return self.URI_QID[uri]
+
+    def prop2qid(self, prop, value):
+        """
+        Lookup the local item QID for a Wikidata item that has a certain `prop` -> `value`
+        in the case where the local item has a `equivalent item` statement to that wikidata item
+        Example: In my wikibase, I have CDK2 (Q79363) with the only statement:
+            equivalent class -> http://www.wikidata.org/entity/Q14911732
+            Calling prop2qid("P351", "1017") will return the local QID (Q79363)
+        :param prop:
+        :param value:
+        :return:
+        """
+        equiv_class_pid = self.URI_PID['http://www.w3.org/2002/07/owl#equivalentClass']
+        query = """
+        PREFIX wwdt: <http://www.wikidata.org/prop/direct/>
+        SELECT ?wditem ?localitem ?id WHERE {{
+          SERVICE <https://query.wikidata.org/sparql> {{
+            ?wditem wwdt:{prop} "{value}"
+          }}
+          ?localitem wdt:{equiv_class_pid} ?wditem
+        }}"""
+        query = query.format(prop=prop, value=value, equiv_class_pid=equiv_class_pid)
+
+        results = wdi_core.WDItemEngine.execute_sparql_query(query, endpoint=self.sparql_endpoint_url)
+        result = results['results']['bindings']
+        if len(result) == 0:
+            return None
+        elif len(result) > 1:
+            raise ValueError("More than one wikidata ID found for {} {}: {}".format(prop, value, result))
+        else:
+            return result[0]['localitem']['value'].split("/")[-1]
+
+    def id_mapper(self, prop, filters=None, return_as_set=False):
+        """
+        # see wdi_helpers.id_mapper for help on usage
+        # QIDs returned are from the wikibase specified in self.sparql_endpoint_url
+        # see WikibaseHelper.prop2qid for more details
+        Example: Get all human genes:
+        prop = "P351"
+        filters = [("P703", "Q15978631")]
+        h.id_mapper(prop, filters)
+        """
+        filter_str = "\n".join("?wditem wwdt:{} wwd:{} .".format(x[0], x[1]) for x in filters)
+        query = """
+        PREFIX wwdt: <http://www.wikidata.org/prop/direct/>
+        PREFIX wwd: <http://www.wikidata.org/entity/>
+
+        SELECT ?localitem ?ext_id WHERE {{
+          SERVICE <https://query.wikidata.org/sparql> {{
+            ?wditem wwdt:{prop} ?ext_id .
+            {filter_str}
+          }}
+          ?localitem wdt:P3 ?wditem
+        }}
+        """.format(prop=prop, filter_str=filter_str)
+
+        results = wdi_core.WDItemEngine.execute_sparql_query(query, endpoint=self.sparql_endpoint_url)['results']['bindings']
+        results = [{k: v['value'] for k, v in x.items()} for x in results]
+        for r in results:
+            r['localitem'] = r['localitem'].split('/')[-1]
+        if not results:
+            return None
+
+        id_qid = defaultdict(set)
+        for r in results:
+            id_qid[r['ext_id']].add(r['localitem'])
+
+        if return_as_set:
+            return dict(id_qid)
+        else:
+            return {x['ext_id']: x['localitem'] for x in results}
