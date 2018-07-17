@@ -1,13 +1,26 @@
 import datetime
 import json
-from collections import defaultdict, Counter
-from time import gmtime, strftime, sleep
+from collections import defaultdict
+from functools import partial
+from itertools import islice
+from time import sleep
 
 import pandas as pd
 from tqdm import tqdm
 
 from .. import wdi_core
-from ..wdi_core import WDItemEngine, WDApiError, WDBaseDataType
+from ..wdi_core import WDItemEngine, WDApiError
+
+
+def take(n, iterable):
+    # copied from more_itertools.chunked
+    return list(islice(iterable, n))
+
+
+def chunked(iterable, n):
+    # copied from more_itertools.chunked
+    return iter(partial(take, n, iter(iterable)), [])
+
 
 PROPS = {
     'instance of': 'P31',
@@ -238,14 +251,18 @@ def get_values(pid, values, endpoint='https://query.wikidata.org/sparql'):
     Example: Get the QIDs for the items with these PMIDs:
      get_values("P698", ["9719382", "9729004", "16384941"]) -> {'16384941': 'Q24642869', '9719382': 'Q33681179'}
     """
-    value_quotes = '"' + '" "'.join(map(str, values)) + '"'
-    query = """select * where {
-          values ?x {**value_quotes**}
-          ?item wdt:**pid** ?x
-        }""".replace("**value_quotes**", value_quotes).replace("**pid**", pid)
-    results = WDItemEngine.execute_sparql_query(query, endpoint=endpoint)['results']['bindings']
-    dl = [{k: v['value'] for k, v in item.items()} for item in results]
-    return {x['x']: x['item'].replace("http://www.wikidata.org/entity/", "") for x in dl}
+    chunks = chunked(values, 100)
+    d = dict()
+    for chunk in tqdm(chunks, total=round(len(values) / 100)):
+        value_quotes = '"' + '" "'.join(map(str, chunk)) + '"'
+        query = """select * where {
+              values ?x {**value_quotes**}
+              ?item wdt:**pid** ?x
+            }""".replace("**value_quotes**", value_quotes).replace("**pid**", pid)
+        results = WDItemEngine.execute_sparql_query(query, endpoint=endpoint)['results']['bindings']
+        dl = [{k: v['value'] for k, v in item.items()} for item in results]
+        d.update({x['x']: x['item'].replace("http://www.wikidata.org/entity/", "") for x in dl})
+    return d
 
 
 def get_last_modified_header(entity="http://www.wikidata.org", endpoint='https://query.wikidata.org/sparql'):
