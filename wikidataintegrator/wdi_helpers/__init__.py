@@ -42,6 +42,7 @@ RELATIONS = {
     'narrow': 'Q39893967'
 }
 
+
 def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=True):
     """
     Write a PBB_core item. Log if item was created, updated, or skipped.
@@ -224,6 +225,27 @@ def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False,
         return dict(id_qid)
     else:
         return {x['id']: x['item'] for x in results}
+
+
+def get_values(pid, values, endpoint='https://query.wikidata.org/sparql'):
+    """
+    This is a basic version of id_mapper, but restrict to values in `values`.
+    Missing IDs are ignored
+    :param pid: PID
+    :param values: list of strings
+    :param endpoint: sparql endpoint url
+    :return:
+    Example: Get the QIDs for the items with these PMIDs:
+     get_values("P698", ["9719382", "9729004", "16384941"]) -> {'16384941': 'Q24642869', '9719382': 'Q33681179'}
+    """
+    value_quotes = '"' + '" "'.join(map(str, values)) + '"'
+    query = """select * where {
+          values ?x {**value_quotes**}
+          ?item wdt:**pid** ?x
+        }""".replace("**value_quotes**", value_quotes).replace("**pid**", pid)
+    results = WDItemEngine.execute_sparql_query(query, endpoint=endpoint)['results']['bindings']
+    dl = [{k: v['value'] for k, v in item.items()} for item in results]
+    return {x['x']: x['item'].replace("http://www.wikidata.org/entity/", "") for x in dl}
 
 
 def get_last_modified_header(entity="http://www.wikidata.org", endpoint='https://query.wikidata.org/sparql'):
