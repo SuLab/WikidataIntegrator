@@ -1,23 +1,19 @@
 from setuptools import setup, find_packages
 
-MAJOR_VERSION = 0
-MINOR_VERSION = 0
-MICRO_VERSION = 550
-
-REPO_URL = 'https://github.com/sulab/WikidataIntegrator'
+VERSION = "0.0.555"
 
 setup(
     name='wikidataintegrator',
-    version="{}.{}.{}".format(MAJOR_VERSION, MINOR_VERSION, MICRO_VERSION),
+    version=VERSION,
     author='Sebastian Burgstaller-Muehlbacher, Greg Stupp, Andra Waagmeester',
     author_email='sburgs@scripps.edu',
     description='Python package for reading and writing to/from Wikidata',
     license='MIT',
     keywords='Wikidata biology chemistry medicine',
-    url=REPO_URL,
-    # packages=find_packages(),
-    packages=['wikidataintegrator', 'wikidataintegrator.backoff',
-              'wikidataintegrator.ref_handlers', 'wikidataintegrator.wdi_helpers'],
+    url='https://github.com/sulab/WikidataIntegrator',
+    packages=find_packages(),
+    # packages=['wikidataintegrator', 'wikidataintegrator.backoff',
+    #          'wikidataintegrator.ref_handlers', 'wikidataintegrator.wdi_helpers'],
     include_package_data=True,
     # long_description=read('README.md'),
     classifiers=[
