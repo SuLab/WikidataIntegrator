@@ -24,7 +24,7 @@ class WDLogin(object):
     @wdi_backoff()
     def __init__(self, user=None, pwd=None, mediawiki_api_url='https://www.wikidata.org/w/api.php',
                  token_renew_period=1800, use_clientlogin=False,
-                 consumer_key=None, consumer_secret=None, callback_url='oob', user_agent=config['USER_AGENT_DEFAULT']):
+                 consumer_key=None, consumer_secret=None, callback_url='oob', user_agent=None):
         """
         This class handles several types of login procedures. Either use user and pwd authentication or OAuth.
         Wikidata clientlogin can also be used. If using one method, do NOT pass parameters for another method.
@@ -34,22 +34,20 @@ class WDLogin(object):
         :type token_renew_period: int
         :param use_clientlogin: use authmanager based login method instead of standard login.
             For 3rd party data consumer, e.g. web clients
-        :type bool
+        :type use_clientlogin: bool
         :param consumer_key: The consumer key for OAuth
         :type consumer_key: str
         :param consumer_secret: The consumer secret for OAuth
         :type consumer_secret: str
         :param callback_url: URL which should be used as the callback URL
         :type callback_url: str
+        :param user_agent: UA string to use for API requests.
+        :type user_agent: str
         :return: None
         """
         self.base_url = mediawiki_api_url
         print(self.base_url)
         self.s = requests.Session()
-        self.user_agent = user_agent
-        self.s.headers.update({
-            'User-Agent': self.user_agent
-        })
         self.edit_token = ''
         self.instantiation_time = time.time()
         self.token_renew_period = token_renew_period
@@ -59,6 +57,17 @@ class WDLogin(object):
         self.consumer_secret = consumer_secret
         self.response_qs = None
         self.callback_url = callback_url
+
+        if user_agent:
+            self.user_agent = user_agent
+        else:
+            # if a user is given append " (User:USER)" to the UA string and update that value in CONFIG
+            if user and user.lower() not in config['USER_AGENT_DEFAULT'].lower():
+                config['USER_AGENT_DEFAULT'] += " (User:{})".format(user)
+            self.user_agent = config['USER_AGENT_DEFAULT']
+        self.s.headers.update({
+            'User-Agent': self.user_agent
+        })
 
         if self.consumer_key and self.consumer_secret:
             # Oauth procedure, based on https://www.mediawiki.org/wiki/OAuth/For_Developers
