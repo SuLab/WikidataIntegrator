@@ -933,23 +933,26 @@ class WDItemEngine(object):
             https://phabricator.wikimedia.org/T172293
             """
 
-            if 'error' in json_data and 'messages' in json_data['error']:
+            if 'error' in json_data:
                 # for rate limiting, maxlag, and readonly, try the call 10 times before failing
+
                 # rate limiting
-                error_msg_names = set(x.get('name') for x in json_data["error"]['messages'])
+                error_msg_names = set()
+                if 'messages' in json_data['error']:
+                    error_msg_names = set(x.get('name') for x in json_data["error"]['messages'])
                 if 'actionthrottledtext' in error_msg_names:
                     sleep_sec = int(response.headers.get('retry-after', retry_after))
                     print("{}: rate limited. sleeping for {} seconds".format(datetime.datetime.utcnow(), sleep_sec))
                     time.sleep(sleep_sec)
 
                 # maxlag
-                if 'error' in json_data and 'code' in json_data['error'] and json_data['error']['code'] == 'maxlag':
+                if 'code' in json_data['error'] and json_data['error']['code'] == 'maxlag':
                     sleep_sec = json_data['error'].get('lag', retry_after)
                     print("{}: maxlag. sleeping for {} seconds".format(datetime.datetime.utcnow(), sleep_sec))
                     time.sleep(sleep_sec)
 
                 # readonly
-                if 'error' in json_data and 'code' in json_data['error'] and json_data['error']['code'] == 'readonly':
+                if 'code' in json_data['error'] and json_data['error']['code'] == 'readonly':
                     print('Wikidata currently is in readonly mode, waiting for {} seconds'.format(retry_after))
                     time.sleep(retry_after)
             else:
