@@ -1,5 +1,4 @@
 from wikidataintegrator import wdi_core
-from wikidataintegrator.wdi_core import WDBaseDataType
 from wikidataintegrator.wdi_helpers import RELATIONS
 from wikidataintegrator.wdi_helpers.wikibase_helper import WikibaseHelper
 
@@ -22,7 +21,7 @@ class MappingRelationHelper:
             print("{} not found. resorting to known wikidata QIDs".format(e))
             self.mrt_qids = {self.ABV_MRT[k]: v for k, v in RELATIONS.items()}
 
-    def set_mrt(self, s: WDBaseDataType, mrt: str):
+    def set_mrt(self, s, mrt: str):
         """
         accepts a statement and adds a qualifer setting the mrt
         modifies s in place

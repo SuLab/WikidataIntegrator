@@ -4,12 +4,10 @@ from collections import defaultdict
 from functools import partial
 from itertools import islice
 from time import sleep
-
 import pandas as pd
 from tqdm import tqdm
 
 from .. import wdi_core
-from ..wdi_core import WDItemEngine, WDApiError
 
 
 def take(n, iterable):
@@ -88,7 +86,7 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=Tru
             wd_item.write(login=login, edit_summary=edit_summary)
         wdi_core.WDItemEngine.log("INFO", format_msg(record_id, record_prop, wd_item.wd_item_id, msg) + ";" + str(
             wd_item.lastrevid))
-    except WDApiError as e:
+    except wdi_core.WDApiError as e:
         print(e)
         wdi_core.WDItemEngine.log("ERROR",
                                   format_msg(record_id, record_prop, wd_item.wd_item_id, json.dumps(e.wd_error_msg),
@@ -136,7 +134,7 @@ def prop2qid(prop, value, endpoint='https://query.wikidata.org/sparql'):
     """
     arguments = '?item wdt:{} "{}"'.format(prop, value)
     query = 'SELECT * WHERE {{{}}}'.format(arguments)
-    results = WDItemEngine.execute_sparql_query(query, endpoint=endpoint)
+    results = wdi_core.WDItemEngine.execute_sparql_query(query, endpoint=endpoint)
     result = results['results']['bindings']
     if len(result) == 0:
         # not found
@@ -187,7 +185,7 @@ def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False,
         for f in filters:
             query += "?item wdt:{} wd:{} .\n".format(f[0], f[1])
     query = query + "}"
-    results = WDItemEngine.execute_sparql_query(query, endpoint=endpoint)['results']['bindings']
+    results = wdi_core.WDItemEngine.execute_sparql_query(query, endpoint=endpoint)['results']['bindings']
     results = [{k: v['value'] for k, v in x.items()} for x in results]
     for r in results:
         r['item'] = r['item'].split('/')[-1]
@@ -259,7 +257,7 @@ def get_values(pid, values, endpoint='https://query.wikidata.org/sparql'):
               values ?x {**value_quotes**}
               ?item wdt:**pid** ?x
             }""".replace("**value_quotes**", value_quotes).replace("**pid**", pid)
-        results = WDItemEngine.execute_sparql_query(query, endpoint=endpoint)['results']['bindings']
+        results = wdi_core.WDItemEngine.execute_sparql_query(query, endpoint=endpoint)['results']['bindings']
         dl = [{k: v['value'] for k, v in item.items()} for item in results]
         d.update({x['x']: x['item'].replace("http://www.wikidata.org/entity/", "") for x in dl})
     return d
@@ -268,7 +266,7 @@ def get_values(pid, values, endpoint='https://query.wikidata.org/sparql'):
 def get_last_modified_header(entity="http://www.wikidata.org", endpoint='https://query.wikidata.org/sparql'):
     # this will work on wikidata or any particular entity
     query = "select ?d where {{<{}> schema:dateModified ?d}}".format(entity)
-    results = WDItemEngine.execute_sparql_query(query, endpoint=endpoint)['results']['bindings']
+    results = wdi_core.WDItemEngine.execute_sparql_query(query, endpoint=endpoint)['results']['bindings']
     results = [{k: v['value'] for k, v in x.items()} for x in results]
     t = results[0]['d']
     try:
