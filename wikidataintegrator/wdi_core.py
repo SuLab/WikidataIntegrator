@@ -1,6 +1,5 @@
 import copy
 import datetime
-import itertools
 import logging
 import os
 import re
@@ -11,10 +10,10 @@ import pandas as pd
 import requests
 import json
 
-import wikidataintegrator.wdi_property_store as wdi_property_store
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_config import config
+from wikidataintegrator.wdi_helpers import WikibaseHelper
 
 """
 Authors: 
@@ -48,6 +47,8 @@ class WDItemEngine(object):
     log_file_name = ''
     fast_run_store = []
 
+    DISTINCT_VALUE_PROPS = dict()
+
     logger = None
 
     def __init__(self, wd_item_id='', item_name='', domain='', data=None,
@@ -56,7 +57,7 @@ class WDItemEngine(object):
                  append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
                  ref_handler=None, global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False,
                  search_only=False, item_data=None, user_agent=config['USER_AGENT_DEFAULT'],
-                 core_prop_match_thresh=0.66):
+                 core_props=None, core_prop_match_thresh=0.66):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -119,6 +120,9 @@ class WDItemEngine(object):
             conjunction with wd_item_id in order to provide raw data.
         :param user_agent: The user agent string to use when making http requests
         :type user_agent: str
+        :param core_props: Core properties are used to retrieve a Wikidata item based on `data` if a `wd_item_id` is
+            not given. This is a set of PIDs to use. If None, all Wikidata properties with a distinct values
+            constraint will be used. (see: get_core_props)
         :param core_prop_match_thresh: The proportion of core props that must match during retrieval of an item
             when the wd_item_id is not specified.
         :type core_prop_match_thresh: float
@@ -158,7 +162,9 @@ class WDItemEngine(object):
         if self.global_ref_mode == "CUSTOM" and self.ref_handler is None:
             raise ValueError("If using a custom ref mode, ref_handler must be set")
 
-        ## done setting
+        if not core_props and not self.DISTINCT_VALUE_PROPS.get(self.sparql_endpoint_url):
+            self.get_distinct_value_props()
+        self.core_props = core_props if core_props else self.DISTINCT_VALUE_PROPS[self.sparql_endpoint_url]
 
         if self.fast_run:
             self.init_fastrun()
@@ -181,6 +187,33 @@ class WDItemEngine(object):
             if not self.domain:
                 raise ValueError('Domain parameter has not been set')
             self.init_data_load()
+
+    def get_distinct_value_props(self):
+        """
+        On wikidata, the default core IDs will be the properties with a distinct values constraint
+        select ?p where {?p wdt:P2302 wd:Q21502410}
+        See: https://www.wikidata.org/wiki/Help:Property_constraints_portal
+        https://www.wikidata.org/wiki/Help:Property_constraints_portal/Unique_value
+        """
+        pcpid = config['PROPERTY_CONSTRAINT_PID']
+        dvcqid = config['DISTINCT_VALUES_CONSTRAINT_QID']
+        h = WikibaseHelper(self.sparql_endpoint_url)
+        try:
+            pcpid = h.get_pid(pcpid)
+            dvcqid = h.get_qid(dvcqid)
+        except KeyError as e:
+            print("Unable to determine PIDs or QIDs for retrieveing distinct value properties.\n" +
+                  "Please set P2302 and Q21502410 in your wikibase or set `core_props` manually.")
+            raise
+
+        query = "select ?p where {{?p wdt:{} wd:{}}}".format(pcpid, dvcqid)
+        df = self.execute_sparql_query(query, endpoint=self.sparql_endpoint_url, as_dataframe=True)
+        if df.empty:
+            print("Warning: No distinct value properties found")
+            type(self).DISTINCT_VALUE_PROPS[self.sparql_endpoint_url] = set()
+            return None
+        df.p = df.p.str.rsplit("/", 1).str[-1]
+        type(self).DISTINCT_VALUE_PROPS[self.sparql_endpoint_url] = set(df.p)
 
     def init_data_load(self):
         if self.wd_item_id and self.item_data:
@@ -356,46 +389,43 @@ class WDItemEngine(object):
             if isinstance(data_point, tuple):
                 data_point = data_point[0]
 
-            if wd_property in wdi_property_store.wd_properties:
-                # check if the property is a core_id and should be unique for every WD item
-                assert all(isinstance(v['core_id'], bool) for k, v in wdi_property_store.wd_properties.items()), \
-                    "wd_properties 'core_id' must be a bool"
-                if wdi_property_store.wd_properties[wd_property]['core_id'] is True:
-                    tmp_qids = set()
+            core_props = self.core_props
+            if wd_property in core_props:
+                tmp_qids = set()
 
-                    if not self.use_sparql:
-                        url = 'http://wdq.wmflabs.org/api'
-                        params = {
-                            'q': u'string[{}:{}]'.format(str(wd_property).replace('P', ''),
-                                                         u'"{}"'.format(data_point)),
-                        }
-                        headers = {
-                            'User-Agent': self.user_agent
-                        }
+                if not self.use_sparql:
+                    url = 'http://wdq.wmflabs.org/api'
+                    params = {
+                        'q': u'string[{}:{}]'.format(str(wd_property).replace('P', ''),
+                                                     u'"{}"'.format(data_point)),
+                    }
+                    headers = {
+                        'User-Agent': self.user_agent
+                    }
 
-                        reply = requests.get(url, params=params, headers=headers)
-                        reply.raise_for_status()
+                    reply = requests.get(url, params=params, headers=headers)
+                    reply.raise_for_status()
 
-                        tmp_qids = set(reply.json()['items'])
-                    else:
-                        query = statement.sparql_query.format(wd_property, data_point)
-                        results = WDItemEngine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)
+                    tmp_qids = set(reply.json()['items'])
+                else:
+                    query = statement.sparql_query.format(wd_property, data_point)
+                    results = WDItemEngine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)
 
-                        for i in results['results']['bindings']:
-                            qid = i['item_id']['value'].split('/')[-1]
-                            tmp_qids.add(qid)
+                    for i in results['results']['bindings']:
+                        qid = i['item_id']['value'].split('/')[-1]
+                        tmp_qids.add(qid)
 
-                    qid_list.update(tmp_qids)
+                qid_list.update(tmp_qids)
 
-                    # Protocol in what property the conflict arises
-                    if wd_property in conflict_source:
-                        conflict_source[wd_property].append(tmp_qids)
-                    else:
-                        conflict_source[wd_property] = [tmp_qids]
+                # Protocol in what property the conflict arises
+                if wd_property in conflict_source:
+                    conflict_source[wd_property].append(tmp_qids)
+                else:
+                    conflict_source[wd_property] = [tmp_qids]
 
-                    if len(tmp_qids) > 1:
-                        raise ManualInterventionReqException(
-                            'More than one WD item has the same property value', wd_property, tmp_qids)
+                if len(tmp_qids) > 1:
+                    raise ManualInterventionReqException(
+                        'More than one WD item has the same property value', wd_property, tmp_qids)
 
         if len(qid_list) == 0:
             self.create_new_item = True
@@ -652,10 +682,8 @@ class WDItemEngine(object):
         of a certain domain.
         :return: boolean True if test passed
         """
-        assert all(isinstance(v['core_id'], bool) for k, v in wdi_property_store.wd_properties.items()), \
-            "wd_properties 'core_id' must be a bool"
         # all core props
-        wdi_core_props = set(k for k, v in wdi_property_store.wd_properties.items() if v.get("core_id"))
+        wdi_core_props = self.core_props
         # core prop statements that exist on the item
         cp_statements = [x for x in self.statements if x.get_prop_nr() in wdi_core_props]
         item_core_props = set(x.get_prop_nr() for x in cp_statements)
