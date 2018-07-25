@@ -163,7 +163,7 @@ class WDItemEngine(object):
             raise ValueError("If using a custom ref mode, ref_handler must be set")
 
         if not core_props and not self.DISTINCT_VALUE_PROPS.get(self.sparql_endpoint_url):
-            self.get_distinct_value_props()
+            self.get_distinct_value_props(self.sparql_endpoint_url)
         self.core_props = core_props if core_props else self.DISTINCT_VALUE_PROPS[self.sparql_endpoint_url]
 
         if self.fast_run:
@@ -188,7 +188,8 @@ class WDItemEngine(object):
                 raise ValueError('Domain parameter has not been set')
             self.init_data_load()
 
-    def get_distinct_value_props(self):
+    @classmethod
+    def get_distinct_value_props(cls, sparql_endpoint_url='https://query.wikidata.org/sparql'):
         """
         On wikidata, the default core IDs will be the properties with a distinct values constraint
         select ?p where {?p wdt:P2302 wd:Q21502410}
@@ -197,23 +198,23 @@ class WDItemEngine(object):
         """
         pcpid = config['PROPERTY_CONSTRAINT_PID']
         dvcqid = config['DISTINCT_VALUES_CONSTRAINT_QID']
-        h = WikibaseHelper(self.sparql_endpoint_url)
+        h = WikibaseHelper(sparql_endpoint_url)
         try:
             pcpid = h.get_pid(pcpid)
             dvcqid = h.get_qid(dvcqid)
-        except KeyError as e:
+        except KeyError:
             print("Unable to determine PIDs or QIDs for retrieveing distinct value properties.\n" +
                   "Please set P2302 and Q21502410 in your wikibase or set `core_props` manually.")
             raise
 
         query = "select ?p where {{?p wdt:{} wd:{}}}".format(pcpid, dvcqid)
-        df = self.execute_sparql_query(query, endpoint=self.sparql_endpoint_url, as_dataframe=True)
+        df = cls.execute_sparql_query(query, endpoint=sparql_endpoint_url, as_dataframe=True)
         if df.empty:
             print("Warning: No distinct value properties found")
-            type(self).DISTINCT_VALUE_PROPS[self.sparql_endpoint_url] = set()
+            cls.DISTINCT_VALUE_PROPS[sparql_endpoint_url] = set()
             return None
         df.p = df.p.str.rsplit("/", 1).str[-1]
-        type(self).DISTINCT_VALUE_PROPS[self.sparql_endpoint_url] = set(df.p)
+        cls.DISTINCT_VALUE_PROPS[sparql_endpoint_url] = set(df.p)
 
     def init_data_load(self):
         if self.wd_item_id and self.item_data:
