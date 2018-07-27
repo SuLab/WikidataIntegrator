@@ -104,7 +104,10 @@ class WikibaseHelper:
         filters = [("P703", "Q15978631")]
         h.id_mapper(prop, filters)
         """
-        filter_str = "\n".join("?wditem wwdt:{} wwd:{} .".format(x[0], x[1]) for x in filters)
+        if filters:
+            filter_str = "\n".join("?wditem wwdt:{} wwd:{} .".format(x[0], x[1]) for x in filters)
+        else:
+            filter_str = ""
         query = """
         PREFIX wwdt: <http://www.wikidata.org/prop/direct/>
         PREFIX wwd: <http://www.wikidata.org/entity/>
