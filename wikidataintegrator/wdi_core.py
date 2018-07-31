@@ -5,6 +5,7 @@ import os
 import re
 import time
 from collections import defaultdict
+from typing import List
 
 import pandas as pd
 import requests
@@ -13,6 +14,7 @@ import json
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_config import config
+from wikidataintegrator.wdi_helpers import MappingRelationHelper
 from wikidataintegrator.wdi_helpers import WikibaseHelper
 
 """
@@ -51,10 +53,10 @@ class WDItemEngine(object):
 
     logger = None
 
-    def __init__(self, wd_item_id='', item_name='', domain='', data=None,
+    def __init__(self, wd_item_id='', item_name='', domain='', data=list(),
                  mediawiki_api_url='https://www.wikidata.org/w/api.php',
                  sparql_endpoint_url='https://query.wikidata.org/sparql',
-                 append_value=None, use_sparql=True, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
+                 append_value=None, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
                  ref_handler=None, global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False,
                  search_only=False, item_data=None, user_agent=config['USER_AGENT_DEFAULT'],
                  core_props=None, core_prop_match_thresh=0.66):
@@ -67,11 +69,10 @@ class WDItemEngine(object):
         :type domain: str or None
         :param data: a dictionary with WD property strings as keys and the data which should be written to
             a WD item as the property values
+        :type data: List[WDBaseDataType]
         :param append_value: a list of properties where potential existing values should not be overwritten by the data
             passed in the :parameter data.
         :type append_value: list of property number strings
-        :param use_sparql: OBSOLETE
-        :type use_sparql: bool
         :param fast_run: True if this item should be run in fastrun mode, otherwise False. User setting this to True
             should also specify the fast_run_base_filter for these item types
         :type fast_run: bool
@@ -133,9 +134,8 @@ class WDItemEngine(object):
         self.domain = domain
         self.mediawiki_api_url = mediawiki_api_url
         self.sparql_endpoint_url = sparql_endpoint_url
-        self.data = [] if data is None else data
+        self.data = data
         self.append_value = [] if append_value is None else append_value
-        self.use_sparql = use_sparql
         self.fast_run = fast_run
         self.fast_run_base_filter = fast_run_base_filter
         self.fast_run_use_refs = fast_run_use_refs
@@ -165,6 +165,8 @@ class WDItemEngine(object):
         if not core_props and not self.DISTINCT_VALUE_PROPS.get(self.sparql_endpoint_url):
             self.get_distinct_value_props(self.sparql_endpoint_url)
         self.core_props = core_props if core_props else self.DISTINCT_VALUE_PROPS[self.sparql_endpoint_url]
+
+        self.mrh = MappingRelationHelper(self.sparql_endpoint_url)
 
         if self.fast_run:
             self.init_fastrun()
@@ -380,8 +382,15 @@ class WDItemEngine(object):
         """
         qid_list = set()
         conflict_source = {}
+        exact_qid = self.mrh.mrt_qids['http://www.w3.org/2004/02/skos/core#exactMatch']
+        mrt_pid = self.mrh.mrt_pid
         for statement in self.data:
             wd_property = statement.get_prop_nr()
+
+            # only use this statement if mapping relation type is exact, or mrt is not specified
+            mrt_qualifiers = [q for q in statement.get_qualifiers() if q.get_prop_nr() == mrt_pid]
+            if (len(mrt_qualifiers) == 1) and (mrt_qualifiers[0].get_value() != int(exact_qid[1:])):
+                continue
 
             # TODO: implement special treatment when searching for date/coordinate values
             data_point = statement.get_value()
@@ -392,26 +401,12 @@ class WDItemEngine(object):
             if wd_property in core_props:
                 tmp_qids = set()
 
-                if not self.use_sparql:
-                    url = 'http://wdq.wmflabs.org/api'
-                    params = {
-                        'q': u'string[{}:{}]'.format(str(wd_property).replace('P', ''),
-                                                     u'"{}"'.format(data_point)),
-                    }
-                    headers = {
-                        'User-Agent': self.user_agent
-                    }
+                query = statement.sparql_query.format(mrt_pid=mrt_pid, pid=wd_property, value=data_point)
+                results = WDItemEngine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)
 
-                    reply = requests.get(url, params=params, headers=headers)
-                    reply.raise_for_status()
-
-                    tmp_qids = set(reply.json()['items'])
-                else:
-                    query = statement.sparql_query.format(wd_property, data_point)
-                    results = WDItemEngine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)
-
-                    for i in results['results']['bindings']:
-                        qid = i['item_id']['value'].split('/')[-1]
+                for i in results['results']['bindings']:
+                    qid = i['item_id']['value'].split('/')[-1]
+                    if ('mrt' not in i) or ('mrt' in i and i['mrt']['value'].split('/')[-1] == exact_qid):
                         tmp_qids.add(qid)
 
                 qid_list.update(tmp_qids)
@@ -1420,10 +1415,21 @@ class WDBaseDataType(object):
     The base class for all Wikidata data types, they inherit from it
     """
 
+    # example sparql query
+    """
+    SELECT * WHERE {
+      ?item_id p:P492 ?s .
+      ?s ps:P492 '614212' .
+      OPTIONAL {?s pq:P4390 ?mrt}
+    }
+    """
+
     sparql_query = '''
-        SELECT * WHERE {{
-            ?item_id p:{0}/ps:{0} '{1}' .
-        }}
+    SELECT * WHERE {{
+      ?item_id p:{pid} ?s .
+      ?s ps:{pid} '{value}' .
+      OPTIONAL {{?s pq:{mrt_pid} ?mrt}}
+    }}
     '''
 
     def __init__(self, value, snak_type, data_type, is_reference, is_qualifier, references, qualifiers, rank, prop_nr,

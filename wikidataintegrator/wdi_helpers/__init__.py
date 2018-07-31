@@ -41,7 +41,8 @@ PROPS = {
     'ISBN-13': 'P212',
     'orcid id': "P496",
     'stated in': "P248",
-    'retrieved': 'P813'
+    'retrieved': 'P813',
+    'mapping relation type': 'P4390'
 }
 
 # https://www.wikidata.org/wiki/Property:P4390

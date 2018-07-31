@@ -1,5 +1,5 @@
 from wikidataintegrator import wdi_core
-from wikidataintegrator.wdi_helpers import RELATIONS
+from wikidataintegrator.wdi_helpers import RELATIONS, PROPS
 from wikidataintegrator.wdi_helpers.wikibase_helper import WikibaseHelper
 
 
@@ -13,13 +13,13 @@ class MappingRelationHelper:
     }
 
     def __init__(self, sparql_endpoint_url='https://query.wikidata.org/sparql'):
-        h = WikibaseHelper(sparql_endpoint_url=sparql_endpoint_url)
-        self.mrt_pid = h.get_pid("http://www.w3.org/2004/02/skos/core#mappingRelation")
-        try:
-            self.mrt_qids = {x: h.get_qid(x) for x in self.ABV_MRT.values()}
-        except KeyError as e:
-            print("{} not found. resorting to known wikidata QIDs".format(e))
+        if sparql_endpoint_url == 'https://query.wikidata.org/sparql':
             self.mrt_qids = {self.ABV_MRT[k]: v for k, v in RELATIONS.items()}
+            self.mrt_pid = PROPS['mapping relation type']
+        else:
+            h = WikibaseHelper(sparql_endpoint_url=sparql_endpoint_url)
+            self.mrt_pid = h.get_pid("http://www.w3.org/2004/02/skos/core#mappingRelation")
+            self.mrt_qids = {x: h.get_qid(x) for x in self.ABV_MRT.values()}
 
     def set_mrt(self, s, mrt: str):
         """
