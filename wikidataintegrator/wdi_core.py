@@ -53,7 +53,7 @@ class WDItemEngine(object):
 
     logger = None
 
-    def __init__(self, wd_item_id='', item_name='', domain='', data=list(),
+    def __init__(self, wd_item_id='', item_name='', domain='', data=None,
                  mediawiki_api_url='https://www.wikidata.org/w/api.php',
                  sparql_endpoint_url='https://query.wikidata.org/sparql',
                  append_value=None, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
@@ -134,7 +134,7 @@ class WDItemEngine(object):
         self.domain = domain
         self.mediawiki_api_url = mediawiki_api_url
         self.sparql_endpoint_url = sparql_endpoint_url
-        self.data = data
+        self.data = [] if data is None else data
         self.append_value = [] if append_value is None else append_value
         self.fast_run = fast_run
         self.fast_run_base_filter = fast_run_base_filter
