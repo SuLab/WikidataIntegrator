@@ -969,7 +969,12 @@ class WDItemEngine(object):
         response = None
         session = session if session else requests.session()
         for n in range(max_retries):
-            response = session.request(method, mediawiki_api_url, **kwargs)
+            try:
+                response = session.request(method, mediawiki_api_url, **kwargs)
+            except requests.exceptions.ConnectionError as e:
+                print("Connection error: {}. Sleeping for {} seconds.".format(e, retry_after))
+                time.sleep(retry_after)
+                continue
             if response.status_code == 503:
                 print("service unavailable. sleeping for {} seconds".format(retry_after))
                 time.sleep(retry_after)
