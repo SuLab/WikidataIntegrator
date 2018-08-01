@@ -5,7 +5,6 @@ import sys
 from wikidataintegrator import wdi_login
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_config import config
-from wikidataintegrator.wdi_core import WDItemEngine
 pyv = sys.version_info.major
 if pyv == 3:
     import json
@@ -21,8 +20,6 @@ class TestMethods(unittest.TestCase):
             bad_http_code()
         with self.assertRaises(requests.RequestException):
             bad_login()
-        with self.assertRaises(requests.RequestException):
-            item()
 
         assert good_http_code() == "200 OK"
 
@@ -59,11 +56,6 @@ def bad_login():
     wdi_login.WDLogin("name", "pass", mediawiki_api_url="www.wikidataaaaaaaaa.org")
 
 
-def item():
-    wd_item = WDItemEngine(wd_item_id="Q14911732", mediawiki_api_url='https://www.wikidataaaaaa.org/w/api.php', search_only=True)
-    print(wd_item.get_label('en'))
-
-
 if __name__ == "__main__":
     if sys.argv[1] == "json":
         bad_json()
@@ -71,8 +63,6 @@ if __name__ == "__main__":
         bad_request()
     if sys.argv[1] == "login":
         bad_login()
-    if sys.argv[1] == "item":
-        item()
     if sys.argv[1] == "badcode":
         bad_http_code()
     if sys.argv[1] == "goodcode":
