@@ -1,6 +1,7 @@
 from wikidataintegrator import wdi_core
 from wikidataintegrator.wdi_helpers import RELATIONS, PROPS
 from wikidataintegrator.wdi_helpers.wikibase_helper import WikibaseHelper
+from functools import lru_cache
 
 
 class MappingRelationHelper:
@@ -17,9 +18,17 @@ class MappingRelationHelper:
             self.mrt_qids = {self.ABV_MRT[k]: v for k, v in RELATIONS.items()}
             self.mrt_pid = PROPS['mapping relation type']
         else:
-            h = WikibaseHelper(sparql_endpoint_url=sparql_endpoint_url)
-            self.mrt_pid = h.get_pid("http://www.w3.org/2004/02/skos/core#mappingRelation")
-            self.mrt_qids = {x: h.get_qid(x) for x in self.ABV_MRT.values()}
+            mrt_pid, mrt_qids = self.get_pids_qids(sparql_endpoint_url)
+            self.mrt_pid = mrt_pid
+            self.mrt_qids = mrt_qids
+
+    @classmethod
+    @lru_cache()
+    def get_pids_qids(cls, sparql_endpoint_url):
+        h = WikibaseHelper(sparql_endpoint_url=sparql_endpoint_url)
+        mrt_pid = h.get_pid("http://www.w3.org/2004/02/skos/core#mappingRelation")
+        mrt_qids = {x: h.get_qid(x) for x in cls.ABV_MRT.values()}
+        return mrt_pid, mrt_qids
 
     def set_mrt(self, s, mrt: str):
         """
