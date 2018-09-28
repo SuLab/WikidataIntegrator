@@ -162,9 +162,9 @@ class WDItemEngine(object):
         if self.global_ref_mode == "CUSTOM" and self.ref_handler is None:
             raise ValueError("If using a custom ref mode, ref_handler must be set")
 
-        if not core_props and not self.DISTINCT_VALUE_PROPS.get(self.sparql_endpoint_url):
+        if (core_props is None) and (self.sparql_endpoint_url not in self.DISTINCT_VALUE_PROPS):
             self.get_distinct_value_props(self.sparql_endpoint_url)
-        self.core_props = core_props if core_props else self.DISTINCT_VALUE_PROPS[self.sparql_endpoint_url]
+        self.core_props = core_props if core_props is not None else self.DISTINCT_VALUE_PROPS[self.sparql_endpoint_url]
 
         self.mrh = MappingRelationHelper(self.sparql_endpoint_url)
 
