@@ -1931,7 +1931,9 @@ class WDItemID(WDBaseDataType):
     DTYPE = 'wikibase-item'
     sparql_query = '''
         SELECT * WHERE {{
-            ?item_id p:{0}/ps:{0} wd:Q{1} .
+          ?item_id p:{pid} ?s .
+          ?s ps:{pid} wd:Q{value} .
+          OPTIONAL {{?s pq:{mrt_pid} ?mrt}}
         }}
     '''
 
@@ -2008,7 +2010,9 @@ class WDProperty(WDBaseDataType):
     DTYPE = 'wikibase-property'
     sparql_query = '''
         SELECT * WHERE {{
-            ?item_id p:{0}/ps:{0} wd:P{1} .
+          ?item_id p:{pid} ?s .
+          ?s ps:{pid} wd:P{value} .
+          OPTIONAL {{?s pq:{mrt_pid} ?mrt}}
         }}
     '''
 
@@ -2162,11 +2166,6 @@ class WDUrl(WDBaseDataType):
     Implements the Wikidata data type for URL strings
     """
     DTYPE = 'url'
-    sparql_query = '''
-        SELECT * WHERE {{
-            ?item_id p:{0}/ps:{0} <{1}> .
-        }}
-    '''
 
     def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=None,
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
