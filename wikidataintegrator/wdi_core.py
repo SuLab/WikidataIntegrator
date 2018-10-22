@@ -166,7 +166,13 @@ class WDItemEngine(object):
             self.get_distinct_value_props(self.sparql_endpoint_url)
         self.core_props = core_props if core_props is not None else self.DISTINCT_VALUE_PROPS[self.sparql_endpoint_url]
 
-        self.mrh = MappingRelationHelper(self.sparql_endpoint_url)
+        try:
+            self.mrh = MappingRelationHelper(self.sparql_endpoint_url)
+        except Exception as e:
+            # if the "equivalent property" and "mappingRelation" property are not found, we can't know what the
+            # QIDs for the mapping relation types are
+            self.mrh = None
+            print("Warning: mapping relation types are being ignored")
 
         if self.fast_run:
             self.init_fastrun()
@@ -384,8 +390,17 @@ class WDItemEngine(object):
         """
         qid_list = set()
         conflict_source = {}
-        exact_qid = self.mrh.mrt_qids['http://www.w3.org/2004/02/skos/core#exactMatch']
-        mrt_pid = self.mrh.mrt_pid
+        if self.mrh:
+            exact_qid = self.mrh.mrt_qids['http://www.w3.org/2004/02/skos/core#exactMatch']
+            mrt_pid = self.mrh.mrt_pid
+        else:
+            # This is a `hack` for if initializing the mapping relation helper fails. We can't determine the
+            # mapping relation type PID or the exact match QID. If we set mrt_pid to "Pxxx", then no qualifier will
+            # ever match it (and exact_qid will never get checked), and so what happens is exactly what would
+            # happen if the statement had no mapping relation qualifiers
+            exact_qid = "Q0"
+            mrt_pid = "PXXX"
+
         for statement in self.data:
             wd_property = statement.get_prop_nr()
 
@@ -402,7 +417,7 @@ class WDItemEngine(object):
             core_props = self.core_props
             if wd_property in core_props:
                 tmp_qids = set()
-
+                # if mrt_pid is "PXXX", this is fine, because the part of the SPARQL query using it is optional
                 query = statement.sparql_query.format(mrt_pid=mrt_pid, pid=wd_property, value=data_point)
                 results = WDItemEngine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)
 
