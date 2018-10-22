@@ -16,11 +16,16 @@ class WikibaseHelper:
     def __init__(self, sparql_endpoint_url='https://query.wikidata.org/sparql'):
         self.sparql_endpoint_url = sparql_endpoint_url
         # a map of property URIs to a PID in the wikibase you are using
-        uri_pid = id_mapper(self.guess_equivalent_property_pid(), endpoint=self.sparql_endpoint_url,
-                            return_as_set=True)
+        try:
+            equiv_prop_pid = self.guess_equivalent_property_pid()
+        except Exception:
+            raise ValueError("Error: No property found with URI 'http://www.w3.org/2002/07/owl#equivalentProperty'")
+        uri_pid = id_mapper(equiv_prop_pid, endpoint=self.sparql_endpoint_url, return_as_set=True)
         # remove duplicates/conflicts
         self.URI_PID = {k: list(v)[0] for k, v in uri_pid.items() if len(v) == 1}
         # get equivalent class PID
+        if 'http://www.w3.org/2002/07/owl#equivalentClass' not in self.URI_PID:
+            raise ValueError("Error: No property found with URI 'http://www.w3.org/2002/07/owl#equivalentClass'")
         equiv_class_pid = self.URI_PID['http://www.w3.org/2002/07/owl#equivalentClass']
         # a map of item URIs to a QID in the wikibase you are using
         uri_qid = id_mapper(equiv_class_pid, endpoint=self.sparql_endpoint_url,

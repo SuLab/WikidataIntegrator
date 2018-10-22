@@ -200,14 +200,15 @@ class WDItemEngine(object):
         """
         pcpid = config['PROPERTY_CONSTRAINT_PID']
         dvcqid = config['DISTINCT_VALUES_CONSTRAINT_QID']
-        h = WikibaseHelper(sparql_endpoint_url)
         try:
+            h = WikibaseHelper(sparql_endpoint_url)
             pcpid = h.get_pid(pcpid)
             dvcqid = h.get_qid(dvcqid)
-        except KeyError:
+        except Exception:
             print("Unable to determine PIDs or QIDs for retrieveing distinct value properties.\n" +
-                  "Please set P2302 and Q21502410 in your wikibase or set `core_props` manually.")
-            raise
+                  "Please set P2302 and Q21502410 in your wikibase or set `core_props` manually.\n" +
+                  "Continuing with no core_props")
+            cls.DISTINCT_VALUE_PROPS[sparql_endpoint_url] = set()
 
         query = "select ?p where {{?p wdt:{} wd:{}}}".format(pcpid, dvcqid)
         df = cls.execute_sparql_query(query, endpoint=sparql_endpoint_url, as_dataframe=True)
