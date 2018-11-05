@@ -6,6 +6,7 @@ import re
 import time
 from collections import defaultdict
 from typing import List
+import warnings
 
 import pandas as pd
 import requests
@@ -172,7 +173,7 @@ class WDItemEngine(object):
             # if the "equivalent property" and "mappingRelation" property are not found, we can't know what the
             # QIDs for the mapping relation types are
             self.mrh = None
-            print("Warning: mapping relation types are being ignored")
+            warnings.warn("mapping relation types are being ignored")
 
         if self.fast_run:
             self.init_fastrun()
@@ -211,7 +212,7 @@ class WDItemEngine(object):
             pcpid = h.get_pid(pcpid)
             dvcqid = h.get_qid(dvcqid)
         except Exception:
-            print("Unable to determine PIDs or QIDs for retrieveing distinct value properties.\n" +
+            warnings.warn("Unable to determine PIDs or QIDs for retrieveing distinct value properties.\n" +
                   "Please set P2302 and Q21502410 in your wikibase or set `core_props` manually.\n" +
                   "Continuing with no core_props")
             cls.DISTINCT_VALUE_PROPS[sparql_endpoint_url] = set()
@@ -220,7 +221,7 @@ class WDItemEngine(object):
         query = "select ?p where {{?p wdt:{} wd:{}}}".format(pcpid, dvcqid)
         df = cls.execute_sparql_query(query, endpoint=sparql_endpoint_url, as_dataframe=True)
         if df.empty:
-            print("Warning: No distinct value properties found")
+            warnings.warn("Warning: No distinct value properties found")
             cls.DISTINCT_VALUE_PROPS[sparql_endpoint_url] = set()
             return None
         df.p = df.p.str.rsplit("/", 1).str[-1]
