@@ -212,7 +212,7 @@ class WDItemEngine(object):
             pcpid = h.get_pid(pcpid)
             dvcqid = h.get_qid(dvcqid)
         except Exception:
-            warnings.warn("Unable to determine PIDs or QIDs for retrieveing distinct value properties.\n" +
+            warnings.warn("Unable to determine PIDs or QIDs for retrieving distinct value properties.\n" +
                   "Please set P2302 and Q21502410 in your wikibase or set `core_props` manually.\n" +
                   "Continuing with no core_props")
             cls.DISTINCT_VALUE_PROPS[sparql_endpoint_url] = set()
