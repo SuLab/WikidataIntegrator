@@ -19,7 +19,8 @@ from wikidataintegrator.wdi_helpers import MappingRelationHelper
 from wikidataintegrator.wdi_helpers import WikibaseHelper
 
 """
-Authors: 
+Authors:
+  Gregory Stupp (stuppie' at 'gmail.com )
   Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
   Andra Waagmeester (andra' at ' micelio.be)
 
