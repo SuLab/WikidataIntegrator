@@ -1214,6 +1214,24 @@ class WDItemEngine(object):
         return df
 
     @staticmethod
+    def check_shex_conformity(item_iri, shex, endpoint="https://query.wikidata.org/sparql"):
+        """
+            Static method which can be used to check conformance of an item to a schema provided as a Shape Expression
+            :param item_iri: The full iri of a Wikidata item to test for conformity
+            :param shex: The schema as ShEx to use in a test for conformity
+            :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
+            :return: True if item conforms to the submited schema, Falsi
+            """
+        evaluator = ShExEvaluator(schema=shex, debug=True)
+        slurpeddata = SlurpyGraph(endpoint)
+        results = evaluator.evaluate(rdf=slurpeddata, focus=item_iri, debug=False)
+        for result in results:
+            if result.result:
+                return True
+            else:
+                return False
+
+    @staticmethod
     def merge_items(from_id, to_id, login_obj, mediawiki_api_url='https://www.wikidata.org/w/api.php',
                     ignore_conflicts='', user_agent=config['USER_AGENT_DEFAULT']):
         """
