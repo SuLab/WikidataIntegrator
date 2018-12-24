@@ -12,6 +12,9 @@ import pandas as pd
 import requests
 import json
 
+from pyshex import ShExEvaluator
+from sparql_slurper import SlurpyGraph
+
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_config import config
@@ -40,7 +43,7 @@ You should have received a copy of the GNU General Public License
 along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__author__ = 'Sebastian Burgstaller, Andra Waagmeester, Gregory Stupp'
+__author__ = 'Gregory Stupp, Sebastian Burgstaller, Andra Waagmeester, '
 __license__ = 'AGPLv3'
 
 
@@ -1193,6 +1196,9 @@ class WDItemEngine(object):
         else:
             return results
 
+    def check_shex_conformity(manifest):
+
+
     @staticmethod
     def _sparql_query_result_to_df(results):
 
@@ -1209,6 +1215,24 @@ class WDItemEngine(object):
         results = [{k: parse_value(v) for k, v in item.items()} for item in results]
         df = pd.DataFrame(results)
         return df
+
+    @staticmethod
+    def check_shex_conformity(item_iri, shex, endpoint="https://query.wikidata.org/sparql"):
+        """
+            Static method which can be used to check conformance of an item to a schema provided as a Shape Expression
+            :param item_iri: The full iri of a Wikidata item to test for conformity
+            :param shex: The schema as ShEx to use in a test for conformity
+            :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
+            :return: True if item conforms to the submited schema, False if not
+            """
+        evaluator = ShExEvaluator(schema=shex, debug=True)
+        slurpeddata = SlurpyGraph(endpoint)
+        results = evaluator.evaluate(rdf=slurpeddata, focus=item_iri, debug=False)
+        for result in results:
+            if result.result:
+                return True
+            else:
+                return False
 
     @staticmethod
     def merge_items(from_id, to_id, login_obj, mediawiki_api_url='https://www.wikidata.org/w/api.php',

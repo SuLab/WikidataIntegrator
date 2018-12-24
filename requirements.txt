@@ -6,3 +6,5 @@ python-dateutil
 mwoauth
 requests_oauthlib
 tqdm
+pyshex
+sparql_slurper
