@@ -12,9 +12,6 @@ import pandas as pd
 import requests
 import json
 
-from pyshex import ShExEvaluator
-from sparql_slurper import SlurpyGraph
-
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_config import config
