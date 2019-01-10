@@ -1,6 +1,7 @@
 networkx
 simplejson
 requests
+oauthlib==2.1.0
 pandas
 python-dateutil
 mwoauth
