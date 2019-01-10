@@ -1,8 +1,10 @@
+
 networkx
 simplejson
 requests
 pandas
 python-dateutil
+oauthlib==2.1.0
 mwoauth
 requests_oauthlib
 tqdm
