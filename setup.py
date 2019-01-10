@@ -18,7 +18,7 @@ setup(
     # long_description=read('README.md'),
     classifiers=[
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 2.7",
         "Development Status :: 4 - Beta",
         "Operating System :: POSIX",
@@ -32,6 +32,6 @@ setup(
         'requests',
         'python-dateutil',
         'simplejson',
-        'mwoauth',
+        #'mwoauth', When requests_oauthlib supports mwoauth 3.0.0 this should be reinstated and removed from requirements.txt
     ],
 )

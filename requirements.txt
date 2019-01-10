@@ -1,4 +1,3 @@
-
 networkx
 simplejson
 requests
