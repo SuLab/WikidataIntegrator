@@ -1214,7 +1214,7 @@ class WDItemEngine(object):
         return df
 
     @staticmethod
-    def check_shex_conformence(item_iri, shex, endpoint="https://query.wikidata.org/sparql"):
+    def check_shex_conformence(item_iri, shex, endpoint="https://query.wikidata.org/sparql", debug=False):
         """
             Static method which can be used to check conformance of an item to a schema provided as a Shape Expression
             :param item_iri: The full iri of a Wikidata item to test for conformity
@@ -1224,7 +1224,7 @@ class WDItemEngine(object):
             """
         evaluator = ShExEvaluator(schema=shex, debug=True)
         slurpeddata = SlurpyGraph(endpoint)
-        results = evaluator.evaluate(rdf=slurpeddata, focus=item_iri, debug=False)
+        results = evaluator.evaluate(rdf=slurpeddata, focus=item_iri, debug=debug)
         for result in results:
             if result.result:
                 return True
