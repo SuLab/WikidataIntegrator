@@ -58,7 +58,7 @@ class WDItemEngine(object):
 
     logger = None
 
-    def __init__(self, wd_item_id='', item_name='', domain='', data=None,
+    def __init__(self, wd_item_id='', new_item=False, data=None,
                  mediawiki_api_url='https://www.wikidata.org/w/api.php',
                  sparql_endpoint_url='https://query.wikidata.org/sparql',
                  append_value=None, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
@@ -68,10 +68,8 @@ class WDItemEngine(object):
         """
         constructor
         :param wd_item_id: Wikidata item id
-        :param item_name: Label of the wikidata item
-        :param domain: The data domain the class should operate in. If None and item_name not '', create new item
-            from scratch.
-        :type domain: str or None
+        :param new_item: This parameter lets the user indicate if a new item should be created
+        :type new_item: True or False
         :param data: a dictionary with WD property strings as keys and the data which should be written to
             a WD item as the property values
         :type data: List[WDBaseDataType]
@@ -135,8 +133,7 @@ class WDItemEngine(object):
         """
         self.core_prop_match_thresh = core_prop_match_thresh
         self.wd_item_id = wd_item_id
-        self.item_name = item_name
-        self.domain = domain
+        self.new_item = new_item
         self.mediawiki_api_url = mediawiki_api_url
         self.sparql_endpoint_url = sparql_endpoint_url
         self.data = [] if data is None else data
@@ -188,17 +185,16 @@ class WDItemEngine(object):
             elif not self.require_write and self.fast_run:
                 print('successful fastrun, no write to Wikidata required')
 
-        if self.item_name and self.domain is None and len(self.data) > 0:
+        if self.wd_item_id != '' and self.create_new_item == True:
+            raise IDMissingError('Cannot create a new item, when a wikidata identifier is given')
+        elif self.wd_item_id == '' and self.create_new_item == False:
+            raise IDMissingError('No WD identifier was given')
+        elif self.new_item == True and len(self.data) > 0:
             self.create_new_item = True
             self.__construct_claim_json()
-        elif self.item_name is '' and self.wd_item_id is '':
-            raise IDMissingError('No item name or WD identifier was given')
         elif self.wd_item_id and self.require_write:
             self.init_data_load()
         elif self.require_write:
-            # make sure that a domain is set when using data to find correct item
-            if not self.domain:
-                raise ValueError('Domain parameter has not been set')
             self.init_data_load()
 
     @classmethod
