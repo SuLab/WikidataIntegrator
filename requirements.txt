@@ -9,3 +9,4 @@ requests_oauthlib
 tqdm
 pyshex
 sparql_slurper
+jsonasobj

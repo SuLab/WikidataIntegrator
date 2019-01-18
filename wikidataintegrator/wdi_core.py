@@ -11,9 +11,11 @@ import warnings
 import pandas as pd
 import requests
 import json
+import jsonasobj
 
 from pyshex import ShExEvaluator
 from sparql_slurper import SlurpyGraph
+from ShExJSG import ShExC
 
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_fastrun import FastRunContainer
@@ -1226,6 +1228,38 @@ class WDItemEngine(object):
                 return True
             else:
                 return False
+
+    def run_shex_manifest(self, manifest_url, index=0):
+        """
+        :param manifest: A url to a manifest that contains all the ingredients to run a shex conformance test
+        :param index: Manifests are stored in lists. This method only handles one manifest, hence by default the first
+               manifest is going to be selected
+        :return:
+        """
+        manifest = jsonasobj.loads(manifest_url, debug=False)
+        for case in manifest:
+            if case.data.startswith("Endpoint:"):
+                sparql_endpoint = case.data.replace("Endpoint: ", "")
+                schema = requests.get(case.schemaURL).text
+                shex = ShExC(schema).schema
+                evaluator = ShExEvaluator(schema=shex, debug=True)
+                sparql_query = case.queryMap.replace("SPARQL '''", "").replace("'''@START", "")
+
+                df = self.execute_sparql_query(sparql_query)
+                for row in df["results"]["bindings"]:
+                    wdid = row["item"]["value"]
+                    slurpeddata = SlurpyGraph(sparql_endpoint)
+                    try:
+                        results = evaluator.evaluate(rdf=slurpeddata, focus=wdid, debug=debug)
+                        for result in results:
+                            if result.result:
+                                print(str(result.focus) + ": INFO")
+                                msg = wdi_helpers.format_msg(wdid, wdid, None, 'CONFORMS', '')
+
+                                self.WDItemEngine.log("INFO", msg)
+                            else:
+                                msg = wdi_helpers.format_msg(wdid, wdid, None, '', result.reason)
+                                self.WDItemEngine.log("ERROR", msg)
 
     @staticmethod
     def merge_items(from_id, to_id, login_obj, mediawiki_api_url='https://www.wikidata.org/w/api.php',
