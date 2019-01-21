@@ -1229,7 +1229,7 @@ class WDItemEngine(object):
             else:
                 return False
 
-    def run_shex_manifest(self, manifest_url, index=0):
+    def run_shex_manifest(self, manifest_url, index=0, debug=False):
         """
         :param manifest: A url to a manifest that contains all the ingredients to run a shex conformance test
         :param index: Manifests are stored in lists. This method only handles one manifest, hence by default the first
@@ -1237,28 +1237,30 @@ class WDItemEngine(object):
         :return:
         """
         manifest = jsonasobj.loads(manifest_url, debug=False)
-        for case in manifest:
+        manifest_results = dict()
+        for case in manifest[index]:
             if case.data.startswith("Endpoint:"):
                 sparql_endpoint = case.data.replace("Endpoint: ", "")
                 schema = requests.get(case.schemaURL).text
                 shex = ShExC(schema).schema
-                evaluator = ShExEvaluator(schema=shex, debug=True)
+                evaluator = ShExEvaluator(schema=shex, debug=debug)
                 sparql_query = case.queryMap.replace("SPARQL '''", "").replace("'''@START", "")
 
                 df = self.execute_sparql_query(sparql_query)
                 for row in df["results"]["bindings"]:
                     wdid = row["item"]["value"]
+                    if wdid not in  manifest_results.keys():
+                        manifest_results[wdid] = dict()
                     slurpeddata = SlurpyGraph(sparql_endpoint)
-                    try:
-                        results = evaluator.evaluate(rdf=slurpeddata, focus=wdid, debug=debug)
-                        for result in results:
-                            if result.result:
-                                msg = wdi_helpers.format_msg(wdid, wdid, None, 'CONFORMS', '')
+                    results = evaluator.evaluate(rdf=slurpeddata, focus=wdid, debug=debug)
+                    for result in results:
+                        if result.result:
+                            manifest_results[wdid]["status"] = "CONFORMS"
+                        else:
+                            manifest_results[wdid]["status"] = "DOES NOT CONFORM"
+                            manifest_results[wdid]["debug"] = result.reason
+        return manifest_results
 
-                                self.WDItemEngine.log("INFO", msg)
-                            else:
-                                msg = wdi_helpers.format_msg(wdid, wdid, None, '', result.reason)
-                                self.WDItemEngine.log("ERROR", msg)
 
     @staticmethod
     def merge_items(from_id, to_id, login_obj, mediawiki_api_url='https://www.wikidata.org/w/api.php',
