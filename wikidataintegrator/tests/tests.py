@@ -171,7 +171,7 @@ class TestFastRun(unittest.TestCase):
 
 def test_sitelinks():
     data = [wdi_core.WDItemID(value='Q12136', prop_nr='P31')]
-    item = wdi_core.WDItemEngine(wd_item_id='Q622901', domain='diseases', data=data)
+    item = wdi_core.WDItemEngine(wd_item_id='Q622901', data=data)
     item.get_sitelink("enwiki")
     assert "enwiki" not in item.wd_json_representation['sitelinks']
     item.set_sitelink("enwiki", "something")
@@ -182,7 +182,7 @@ def test_sitelinks():
 def test_nositelinks():
     # this item doesn't and probably wont ever have any sitelinks (but who knows?? maybe one day..)
     data = [wdi_core.WDItemID(value='Q5', prop_nr='P31')]
-    item = wdi_core.WDItemEngine(wd_item_id='Q27869338', domain=' ', data=data)
+    item = wdi_core.WDItemEngine(wd_item_id='Q27869338', data=data)
     item.get_sitelink("enwiki")
     assert "enwiki" not in item.wd_json_representation['sitelinks']
     item.set_sitelink("enwiki", "something")
