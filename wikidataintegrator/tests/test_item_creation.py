@@ -23,12 +23,12 @@ class TestItemCreation(unittest.TestCase):
         core_props = set(["P{}".format(x) for x in range(20)])
 
         for d in data:
-            item = wdi_core.WDItemEngine(item_name='dae', domain="szadf", data=[d], core_props=core_props)
+            item = wdi_core.WDItemEngine(data=[d], core_props=core_props)
             assert item.get_wd_json_representation()
-            item = wdi_core.WDItemEngine(item_name='dae', domain="szadf", data=[d], core_props=set())
+            item = wdi_core.WDItemEngine(data=[d], core_props=set())
             assert item.get_wd_json_representation()
 
-        item = wdi_core.WDItemEngine(item_name='dae', domain="szadf", data=data, core_props=core_props)
+        item = wdi_core.WDItemEngine(data=data, core_props=core_props)
         assert item.get_wd_json_representation()
-        item = wdi_core.WDItemEngine(item_name='dae', domain="szadf", data=data, core_props=set())
+        item = wdi_core.WDItemEngine(data=data, core_props=set())
         assert item.get_wd_json_representation()
