@@ -9,7 +9,7 @@ import wdi_core
 class TestItemCreation(unittest.TestCase):
     def test_new_item_creation(self):
         data = [
-            ../WDString(value='test', prop_nr='P1'),
+            wdi_core.WDString(value='test', prop_nr='P1'),
             wdi_core.WDString(value='test1', prop_nr='P2'),
             wdi_core.WDMath("xxx", prop_nr="P3"),
             wdi_core.WDExternalID("xxx", prop_nr="P4"),
