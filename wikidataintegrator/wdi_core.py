@@ -1253,7 +1253,6 @@ class WDItemEngine(object):
                         results = evaluator.evaluate(rdf=slurpeddata, focus=wdid, debug=debug)
                         for result in results:
                             if result.result:
-                                print(str(result.focus) + ": INFO")
                                 msg = wdi_helpers.format_msg(wdid, wdid, None, 'CONFORMS', '')
 
                                 self.WDItemEngine.log("INFO", msg)
