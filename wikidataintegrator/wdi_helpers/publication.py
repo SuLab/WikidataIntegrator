@@ -7,7 +7,7 @@ import os
 import requests
 from dateutil import parser as du
 
-from wikidataintegrator import wdi_core, wdi_login
+from .. import wdi_core, wdi_login
 from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_helpers import prop2qid, PROPS, try_write
 
@@ -270,8 +270,7 @@ class Publication:
         self.make_author_statements()
 
         item = wdi_core.WDItemEngine(
-            item_name=self.title, data=self.statements,
-            domain="scientific_article",
+            data=self.statements,
             append_value=[PROPS['DOI'], PROPS['PMCID'], PROPS['PubMed ID']],
             # ref_handler=update_retrieved_if_new_multiple_refs()
         )

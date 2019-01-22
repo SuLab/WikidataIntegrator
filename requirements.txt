@@ -1,9 +1,13 @@
 networkx
 simplejson
 requests
+oauthlib==2.1.0
 pandas
 python-dateutil
 oauthlib==2.1.0
 mwoauth
 requests_oauthlib
 tqdm
+pyshex
+sparql_slurper
+jsonasobj

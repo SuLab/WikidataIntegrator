@@ -11,13 +11,18 @@ import warnings
 import pandas as pd
 import requests
 import json
+import jsonasobj
+
+from pyshex import ShExEvaluator
+from sparql_slurper import SlurpyGraph
+from ShExJSG import ShExC
 
 from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_helpers import MappingRelationHelper
 from wikidataintegrator.wdi_helpers import WikibaseHelper
-
+99
 """
 Authors:
   Gregory Stupp (stuppie' at 'gmail.com )
@@ -55,7 +60,7 @@ class WDItemEngine(object):
 
     logger = None
 
-    def __init__(self, wd_item_id='', item_name='', domain='', data=None,
+    def __init__(self, wd_item_id='', new_item=False, data=None,
                  mediawiki_api_url='https://www.wikidata.org/w/api.php',
                  sparql_endpoint_url='https://query.wikidata.org/sparql',
                  append_value=None, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
@@ -65,10 +70,8 @@ class WDItemEngine(object):
         """
         constructor
         :param wd_item_id: Wikidata item id
-        :param item_name: Label of the wikidata item
-        :param domain: The data domain the class should operate in. If None and item_name not '', create new item
-            from scratch.
-        :type domain: str or None
+        :param new_item: This parameter lets the user indicate if a new item should be created
+        :type new_item: True or False
         :param data: a dictionary with WD property strings as keys and the data which should be written to
             a WD item as the property values
         :type data: List[WDBaseDataType]
@@ -132,8 +135,7 @@ class WDItemEngine(object):
         """
         self.core_prop_match_thresh = core_prop_match_thresh
         self.wd_item_id = wd_item_id
-        self.item_name = item_name
-        self.domain = domain
+        self.new_item = new_item
         self.mediawiki_api_url = mediawiki_api_url
         self.sparql_endpoint_url = sparql_endpoint_url
         self.data = [] if data is None else data
@@ -185,17 +187,14 @@ class WDItemEngine(object):
             elif not self.require_write and self.fast_run:
                 print('successful fastrun, no write to Wikidata required')
 
-        if self.item_name and self.domain is None and len(self.data) > 0:
+        if self.wd_item_id != '' and self.create_new_item == True:
+            raise IDMissingError('Cannot create a new item, when a wikidata identifier is given')
+        elif self.new_item == True and len(self.data) > 0:
             self.create_new_item = True
             self.__construct_claim_json()
-        elif self.item_name is '' and self.wd_item_id is '':
-            raise IDMissingError('No item name or WD identifier was given')
         elif self.wd_item_id and self.require_write:
             self.init_data_load()
         elif self.require_write:
-            # make sure that a domain is set when using data to find correct item
-            if not self.domain:
-                raise ValueError('Domain parameter has not been set')
             self.init_data_load()
 
     @classmethod
@@ -1209,6 +1208,57 @@ class WDItemEngine(object):
         results = [{k: parse_value(v) for k, v in item.items()} for item in results]
         df = pd.DataFrame(results)
         return df
+
+    @staticmethod
+    def check_shex_conformence(item_iri, shex, endpoint="https://query.wikidata.org/sparql", debug=False):
+        """
+            Static method which can be used to check conformance of an item to a schema provided as a Shape Expression
+            :param item_iri: The full iri of a Wikidata item to test for conformity
+            :param shex: The schema as ShEx to use in a test for conformity
+            :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
+            :return: True if item conforms to the submited schema, Falsi
+            """
+        evaluator = ShExEvaluator(schema=shex, debug=True)
+        slurpeddata = SlurpyGraph(endpoint)
+        results = evaluator.evaluate(rdf=slurpeddata, focus=item_iri, debug=debug)
+        for result in results:
+            if result.result:
+                return True
+            else:
+                return False
+
+    def run_shex_manifest(self, manifest_url, index=0, debug=False):
+        """
+        :param manifest: A url to a manifest that contains all the ingredients to run a shex conformance test
+        :param index: Manifests are stored in lists. This method only handles one manifest, hence by default the first
+               manifest is going to be selected
+        :return:
+        """
+        manifest = jsonasobj.loads(manifest_url, debug=False)
+        manifest_results = dict()
+        for case in manifest[index]:
+            if case.data.startswith("Endpoint:"):
+                sparql_endpoint = case.data.replace("Endpoint: ", "")
+                schema = requests.get(case.schemaURL).text
+                shex = ShExC(schema).schema
+                evaluator = ShExEvaluator(schema=shex, debug=debug)
+                sparql_query = case.queryMap.replace("SPARQL '''", "").replace("'''@START", "")
+
+                df = self.execute_sparql_query(sparql_query)
+                for row in df["results"]["bindings"]:
+                    wdid = row["item"]["value"]
+                    if wdid not in  manifest_results.keys():
+                        manifest_results[wdid] = dict()
+                    slurpeddata = SlurpyGraph(sparql_endpoint)
+                    results = evaluator.evaluate(rdf=slurpeddata, focus=wdid, debug=debug)
+                    for result in results:
+                        if result.result:
+                            manifest_results[wdid]["status"] = "CONFORMS"
+                        else:
+                            manifest_results[wdid]["status"] = "DOES NOT CONFORM"
+                            manifest_results[wdid]["debug"] = result.reason
+        return manifest_results
+
 
     @staticmethod
     def merge_items(from_id, to_id, login_obj, mediawiki_api_url='https://www.wikidata.org/w/api.php',
