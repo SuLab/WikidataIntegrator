@@ -108,7 +108,7 @@ class Release(object):
             raise ValueError("login required to create item")
 
         self.make_statements()
-        item = wdi_core.WDItemEngine(item_name=self.title, data=self.statements, domain="release",
+        item = wdi_core.WDItemEngine(data=self.statements,
                                      mediawiki_api_url=self.mediawiki_api_url,
                                      sparql_endpoint_url=self.sparql_endpoint_url)
         item.set_label(self.title)

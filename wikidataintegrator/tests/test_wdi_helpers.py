@@ -3,7 +3,7 @@ from wikidataintegrator.wdi_helpers import PublicationHelper, Release, id_mapper
 
 def test_get_pubmed_item():
     # this one exists
-    qid, _, _ = PublicationHelper("27528457", id_type="pmid", source="europepmc").get_or_create(None)
+    qid, a, b = PublicationHelper("27528457", id_type="pmid", source="europepmc").get_or_create(None)
     assert qid == "Q27098545", qid
     qid, _, _ = PublicationHelper("4986259", id_type="pmcid", source="europepmc").get_or_create(None)
     assert qid == "Q27098545", qid

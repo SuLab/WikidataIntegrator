@@ -22,7 +22,7 @@ from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_helpers import MappingRelationHelper
 from wikidataintegrator.wdi_helpers import WikibaseHelper
-
+99
 """
 Authors:
   Gregory Stupp (stuppie' at 'gmail.com )
@@ -189,8 +189,6 @@ class WDItemEngine(object):
 
         if self.wd_item_id != '' and self.create_new_item == True:
             raise IDMissingError('Cannot create a new item, when a wikidata identifier is given')
-        elif self.wd_item_id == '' and self.new_item == False:
-            raise IDMissingError('No WD identifier was given')
         elif self.new_item == True and len(self.data) > 0:
             self.create_new_item = True
             self.__construct_claim_json()
