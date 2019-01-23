@@ -35,6 +35,11 @@ setup(
         'requests',
         'python-dateutil',
         'simplejson',
-        #'mwoauth', When requests_oauthlib supports mwoauth 3.0.0 this should be reinstated and removed from requirements.txt
+        'mwoauth',
+        'oauthlib',
+        'pyshex',
+        'sparql_slurper',
+        'ShExJSG',
+        'jsonasobj',
     ],
 )
