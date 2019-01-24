@@ -9,3 +9,5 @@ jsonasobj
 pyshex
 sparql_slurper
 ShExJSG
+mwoauth
+oauthlib
