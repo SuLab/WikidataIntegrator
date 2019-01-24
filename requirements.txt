@@ -5,3 +5,4 @@ pandas
 python-dateutil
 requests_oauthlib
 tqdm
+jsonasobj
