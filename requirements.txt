@@ -6,3 +6,6 @@ python-dateutil
 requests_oauthlib
 tqdm
 jsonasobj
+pyshex
+sparql_slurper
+ShExJSG
