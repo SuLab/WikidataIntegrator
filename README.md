@@ -165,9 +165,11 @@ The class wdi_core.wdi_helpers.PubmedItem allows you to create article items. Gi
 The class wdi_core.wdi_helpers.Release allows you to create an item for a database release. These should be used in reference statements. See [here](https://www.wikidata.org/wiki/User:ProteinBoxBot/evidence#Guidelines_for_Referencing_Databases.2C_Ontologies_and_similar_Web-native_information_entities.) 
 for more information. 
 
-## Test for ShEx conformance ##
+## Test for conformance to a Shape Expression ##
 Shape Expressions (ShEx) is a structural schema language for RDF graphs. It allows to express the graph structures such a Wikidata items. 
-The class wdi_core.check_shex_conformence tests a wikidata item on conformance to a provide ShEx. 
+The class wdi_core.check_shex_conformance tests a wikidata item on conformance to a given ShEx.
+
+
 
 # Examples (in normal mode) #
 
