@@ -176,8 +176,8 @@ from wikidataintegrator import wdi_core
 import requests
 
 shex = requests.get("https://raw.githubusercontent.com/SuLab/Genewiki-ShEx/master/diseases/wikidata-disease-ontology.shex").text
-print("wd:Q18556942", wdi_core.WDItemEngine.check_shex_conformence(item_iri="http://www.wikidata.org/entity/Q18556942", shex=shex)) # Returns True
-print("wd:Q6949365", wdi_core.WDItemEngine.check_shex_conformence(item_iri="http://www.wikidata.org/entity/Q6949365", shex=shex)) # Returns False
+print("wd:Q18556942", wdi_core.WDItemEngine.check_shex_conformance(item_iri="http://www.wikidata.org/entity/Q18556942", shex=shex)) # Returns True
+print("wd:Q6949365", wdi_core.WDItemEngine.check_shex_conformance(item_iri="http://www.wikidata.org/entity/Q6949365", shex=shex)) # Returns False
 ```
 
 # Examples (in normal mode) #
