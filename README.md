@@ -1,5 +1,8 @@
 # Wikidata Integrator #
 [![Build Status](https://travis-ci.org/SuLab/WikidataIntegrator.svg?branch=master)](https://travis-ci.org/SuLab/WikidataIntegrator)
+[![Pyversions](https://img.shields.io/pypi/pyversions/wikidataintegrator.svg)](https://pypi.python.org/pypi/wikidataintegrator)
+[![PyPi](https://img.shields.io/pypi/v/wikidataintegrator.svg)](https://pypi.python.org/pypi/wikidataintegrator)
+
 # Installation #
 The easiest way to install WikidataIntegrator is using `pip`
 ```
