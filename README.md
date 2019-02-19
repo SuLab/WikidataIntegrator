@@ -209,7 +209,7 @@ In order to create a minimal bot based on wdi_core, three things are required:
     data = [entrez_gene_id]
     
     # Search for and then edit/create new item
-    wd_item = wdi_core.WDItemEngine(item_name='<your_item_name>', domain='genes', data=[entrez_gene_id])
+    wd_item = wdi_core.WDItemEngine(data=[entrez_gene_id])
     wd_item.write(login_instance)
 ```
 
@@ -238,7 +238,7 @@ An enhanced example of the previous bot just puts two of the three things into a
         data = [entrez_gene_id, ensembl_transcript_id]
         
         # Search for and then edit/create new item
-        wd_item = wdi_core.WDItemEngine(item_name='<your_item_name>', domain='genes', data=data)
+        wd_item = wdi_core.WDItemEngine(data=data)
         wd_item.write(login_instance)
 ```
 
@@ -284,7 +284,7 @@ The full example:
         data = [entrez_gene_id, ensembl_transcript_id]
         
         # Search for and then edit/create new item
-        wd_item = wdi_core.WDItemEngine(item_name='<your_item_name>', domain='genes', data=data, fast_run=fast_run, fast_run_base_filter=fast_run_base_filter)
+        wd_item = wdi_core.WDItemEngine(data=data, fast_run=fast_run, fast_run_base_filter=fast_run_base_filter)
         wd_item.write(login_instance)
 ```
 
