@@ -13,7 +13,6 @@ import requests
 import jsonasobj as json
 
 from pyshex import ShExEvaluator
-from pyshex.shex_evaluator import evaluate_cli as shexeval
 from sparql_slurper import SlurpyGraph
 from ShExJSG import ShExC
 
@@ -1245,7 +1244,7 @@ class WDItemEngine(object):
 
             if not result.result:
                 shex_result["reason"] = result.reason
-            shex_result["data"] = slurpeddata.serialize(destination="/tmp/test.ttl", format="turtle")
+            shex_result["data"] = slurpeddata.serialize(format="turtle")
             shex_results.add(shex_result)
         return shex_results
 
