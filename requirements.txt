@@ -6,8 +6,7 @@ python-dateutil
 requests_oauthlib
 tqdm
 jsonasobj
-pyshexc
-pyshex
+pyshex==0.7.2
 sparql_slurper
 ShExJSG
 mwoauth
