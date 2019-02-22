@@ -38,6 +38,7 @@ setup(
         'mwoauth',
         'oauthlib',
         'pyshex',
+        'pyshexc',
         'sparql_slurper',
         'ShExJSG',
         'jsonasobj',
