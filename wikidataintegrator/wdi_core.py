@@ -13,6 +13,7 @@ import requests
 import jsonasobj as json
 
 from pyshex import ShExEvaluator
+from pyshex.shex_evaluator import evaluate_cli as shexeval
 from sparql_slurper import SlurpyGraph
 from ShExJSG import ShExC
 
@@ -21,7 +22,8 @@ from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_helpers import MappingRelationHelper
 from wikidataintegrator.wdi_helpers import WikibaseHelper
-99
+
+
 """
 Authors:
   Gregory Stupp (stuppie' at 'gmail.com )
@@ -1225,6 +1227,28 @@ class WDItemEngine(object):
                 return True
             else:
                 return False
+
+    @staticmethod
+    def get_shex_results(item_iri, schema, sparql_endpoint="https://query.wikidata.org/sparql", debug_slurps=False):
+        slurpeddata = SlurpyGraph(sparql_endpoint)
+        slurpeddata.predicate_objects(item_iri)
+        shex_results = []
+        for result in ShExEvaluator(rdf=slurpeddata, schema=schema, focus=item_iri).evaluate():
+            shex_result = dict()
+
+            if result.result:
+                shex_result["result"] = "Passing"
+            else:
+                shex_result["result"] = "Failing"
+            shex_result["focus"] = result.focus
+            shex_result["reason"] = result.reason
+
+            if not result.result:
+                shex_result["reason"] = result.reason
+            shex_result["data"] = slurpeddata.serialize(destination="/tmp/test.ttl", format="turtle")
+            shex_results.add(shex_result)
+        return shex_results
+
 
 
     @staticmethod

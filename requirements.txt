@@ -5,3 +5,5 @@ pandas
 python-dateutil
 requests_oauthlib
 tqdm
+jsonasobj
+pyshexc==0.5.4
