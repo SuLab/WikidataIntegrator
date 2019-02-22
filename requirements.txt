@@ -6,4 +6,5 @@ python-dateutil
 requests_oauthlib
 tqdm
 jsonasobj
+pyshex
 pyshexc==0.5.4
