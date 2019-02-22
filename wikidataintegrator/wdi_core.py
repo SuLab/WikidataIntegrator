@@ -10,8 +10,7 @@ import warnings
 
 import pandas as pd
 import requests
-import json
-import jsonasobj
+import jsonasobj as json
 
 from pyshex import ShExEvaluator
 from sparql_slurper import SlurpyGraph
@@ -22,7 +21,8 @@ from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_helpers import MappingRelationHelper
 from wikidataintegrator.wdi_helpers import WikibaseHelper
-99
+
+
 """
 Authors:
   Gregory Stupp (stuppie' at 'gmail.com )
@@ -1227,14 +1227,15 @@ class WDItemEngine(object):
             else:
                 return False
 
-    def run_shex_manifest(self, manifest_url, index=0, debug=False):
+    @staticmethod
+    def run_shex_manifest(manifest_url, index=0, debug=False):
         """
         :param manifest: A url to a manifest that contains all the ingredients to run a shex conformance test
         :param index: Manifests are stored in lists. This method only handles one manifest, hence by default the first
                manifest is going to be selected
         :return:
         """
-        manifest = jsonasobj.loads(manifest_url, debug=False)
+        manifest = json.loads(manifest_url, debug=False)
         manifest_results = dict()
         for case in manifest[index]:
             if case.data.startswith("Endpoint:"):
@@ -1244,7 +1245,7 @@ class WDItemEngine(object):
                 evaluator = ShExEvaluator(schema=shex, debug=debug)
                 sparql_query = case.queryMap.replace("SPARQL '''", "").replace("'''@START", "")
 
-                df = self.execute_sparql_query(sparql_query)
+                df = WDItemEngine.execute_sparql_query(sparql_query)
                 for row in df["results"]["bindings"]:
                     wdid = row["item"]["value"]
                     if wdid not in  manifest_results.keys():
