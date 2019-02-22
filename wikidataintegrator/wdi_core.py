@@ -1228,29 +1228,6 @@ class WDItemEngine(object):
                 return False
 
     @staticmethod
-    def get_shex_results(item_iri, schema, sparql_endpoint="https://query.wikidata.org/sparql", debug_slurps=False):
-        slurpeddata = SlurpyGraph(sparql_endpoint)
-        slurpeddata.predicate_objects(item_iri)
-        shex_results = []
-        for result in ShExEvaluator(rdf=slurpeddata, schema=schema, focus=item_iri).evaluate():
-            shex_result = dict()
-
-            if result.result:
-                shex_result["result"] = "Passing"
-            else:
-                shex_result["result"] = "Failing"
-            shex_result["focus"] = result.focus
-            shex_result["reason"] = result.reason
-
-            if not result.result:
-                shex_result["reason"] = result.reason
-            shex_result["data"] = slurpeddata.serialize(format="turtle")
-            shex_results.add(shex_result)
-        return shex_results
-
-
-
-    @staticmethod
     def run_shex_manifest(manifest_url, index=0, debug=False):
         """
         :param manifest: A url to a manifest that contains all the ingredients to run a shex conformance test
