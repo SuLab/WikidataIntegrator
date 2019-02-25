@@ -6,5 +6,7 @@ python-dateutil
 requests_oauthlib
 tqdm
 jsonasobj
-pyshexc==0.5.4
+pyshexc
 pyshex
+mwoauth
+oauthlib
