@@ -13,6 +13,7 @@ import requests
 import jsonasobj as json
 
 from pyshex import ShExEvaluator
+import pyshex
 from sparql_slurper import SlurpyGraph
 from ShExJSG import ShExC
 
@@ -1210,27 +1211,32 @@ class WDItemEngine(object):
         return df
 
 
-    """
+
     @staticmethod
-    def check_shex_conformance(qid, schema, endpoint="https://query.wikidata.org/sparql", debug=False):
+    def check_shex_conformance(qid, schema, endpoint="https://query.wikidata.org/sparql", debug=False, output="confirm"):
         results = dict()
         results["wdid"] = qid
         slurpeddata = SlurpyGraph(endpoint)
         for p, o in slurpeddata.predicate_objects(qid):
             pass
-        for result in pyshex.ShExEvaluator(rdf=slurpeddata, schema=schema, focus=qid).evaluate():
+        for result in ShExEvaluator(rdf=slurpeddata, schema=schema, focus=qid).evaluate():
             shex_result = dict()
             if result.result:
-                shex_result["result"] = "Passing"
+                shex_result["result"] = True
             else:
-                shex_result["result"] = "Failing"
+                shex_result["result"] = False
             shex_result["reason"] = result.reason
+            shex_result["focus"] = result.focus
 
-        return shex_result
-    """
+        if output == "confirm":
+            return shex_result["result"]
+        elif output == "reason":
+            return shex_result["reason"]
+        else:
+            return shex_result
 
     @staticmethod
-    def get_shex_results(item_iri, schema, sparql_endpoint="https://query.wikidata.org/sparql", debug_slurps=False):
+    def get_shex_results(item_iri, schema, sparql_endpoint="https://query.wikidata.org/sparql", debug_slurps=False, output=""):
         slurpeddata = SlurpyGraph(sparql_endpoint)
         slurpeddata.predicate_objects(item_iri)
         shex_results = []
