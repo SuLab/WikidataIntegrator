@@ -7,3 +7,4 @@ requests_oauthlib
 tqdm
 jsonasobj
 pyshexc==0.5.4
+pyshex
