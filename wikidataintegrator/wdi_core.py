@@ -13,6 +13,7 @@ import requests
 import jsonasobj as json
 
 from pyshex import ShExEvaluator
+import pyshex
 from sparql_slurper import SlurpyGraph
 from ShExJSG import ShExC
 
@@ -29,20 +30,8 @@ Authors:
   Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
   Andra Waagmeester (andra' at ' micelio.be)
 
-This file is part of ProteinBoxBot.
+This file is part of the WikidataIntegrator.
 
-ProteinBoxBot is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-ProteinBoxBot is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 __author__ = 'Gregory Stupp, Sebastian Burgstaller, Andra Waagmeester, '
@@ -1209,25 +1198,59 @@ class WDItemEngine(object):
         df = pd.DataFrame(results)
         return df
 
-    @staticmethod
-    def check_shex_conformance(item_iri, shex, endpoint="https://query.wikidata.org/sparql", debug=False):
-        """
-            Static method which can be used to check conformance of an item to a schema provided as a Shape Expression
-            :param item_iri: The full iri of a Wikidata item to test for conformity
-            :param shex: The schema as ShEx to use in a test for conformity
-            :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
-            :return: True if item conforms to the submited schema, Falsi
-            """
-        evaluator = ShExEvaluator(schema=shex, debug=True)
-        slurpeddata = SlurpyGraph(endpoint)
-        results = evaluator.evaluate(rdf=slurpeddata, focus=item_iri, debug=debug)
-        for result in results:
-            if result.result:
-                return True
-            else:
-                return False
+
 
     @staticmethod
+    def check_shex_conformance(qid, schema, endpoint="https://query.wikidata.org/sparql", debug=False, output="confirm"):
+        results = dict()
+        results["wdid"] = qid
+        slurpeddata = SlurpyGraph(endpoint)
+        for p, o in slurpeddata.predicate_objects(qid):
+            pass
+
+        for result in ShExEvaluator(rdf=slurpeddata, schema=schema, focus=qid).evaluate():
+            shex_result = dict()
+            if result.result:
+                shex_result["result"] = True
+            else:
+                shex_result["result"] = False
+            shex_result["reason"] = result.reason
+            shex_result["focus"] = result.focus
+
+        if output == "confirm":
+            return shex_result["result"]
+        elif output == "reason":
+            return shex_result["reason"]
+        else:
+            return shex_result
+
+    @staticmethod
+<<<<<<< HEAD
+=======
+    def get_shex_results(item_iri, schema, sparql_endpoint="https://query.wikidata.org/sparql", debug_slurps=False, output=""):
+        slurpeddata = SlurpyGraph(sparql_endpoint)
+        slurpeddata.predicate_objects(item_iri)
+        shex_results = []
+        for result in ShExEvaluator(rdf=slurpeddata, schema=schema, focus=item_iri).evaluate():
+            shex_result = dict()
+
+            if result.result:
+                shex_result["result"] = "Passing"
+            else:
+                shex_result["result"] = "Failing"
+            shex_result["focus"] = result.focus
+            shex_result["reason"] = result.reason
+
+            if not result.result:
+                shex_result["reason"] = result.reason
+            shex_result["data"] = slurpeddata.serialize(format="turtle")
+            shex_results.add(shex_result)
+        return shex_results
+
+
+
+    @staticmethod
+>>>>>>> version_0.3.0
     def run_shex_manifest(manifest_url, index=0, debug=False):
         """
         :param manifest: A url to a manifest that contains all the ingredients to run a shex conformance test
