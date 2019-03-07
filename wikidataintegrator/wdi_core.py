@@ -1219,6 +1219,7 @@ class WDItemEngine(object):
         slurpeddata = SlurpyGraph(endpoint)
         for p, o in slurpeddata.predicate_objects(qid):
             pass
+
         for result in ShExEvaluator(rdf=slurpeddata, schema=schema, focus=qid).evaluate():
             shex_result = dict()
             if result.result:
