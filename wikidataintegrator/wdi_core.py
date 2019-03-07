@@ -1225,7 +1225,6 @@ class WDItemEngine(object):
             return shex_result
 
     @staticmethod
-
     def run_shex_manifest(manifest_url, index=0, debug=False):
         """
         :param manifest: A url to a manifest that contains all the ingredients to run a shex conformance test
