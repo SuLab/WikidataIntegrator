@@ -5,7 +5,7 @@ VERSION = "0.3.0"
 setup(
     name='wikidataintegrator',
     version=VERSION,
-    author='Sebastian Burgstaller-Muehlbacher, Greg Stupp, Andra Waagmeester',
+    author='Andra Waagmeester, Greg Stupp, Sebastian Burgstaller-Muehlbacher ',
     author_email='andra@micel.io',
     description='Python package for reading and writing to/from Wikidata',
     license='MIT',
