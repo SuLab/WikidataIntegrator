@@ -40,5 +40,6 @@ setup(
         'sparql_slurper',
         'ShExJSG',
         'jsonasobj',
+        'pyshex'
     ],
 )

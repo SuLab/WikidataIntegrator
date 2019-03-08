@@ -10,7 +10,7 @@ import warnings
 
 import pandas as pd
 import requests
-import jsonasobj as json
+import json
 
 from pyshex import ShExEvaluator
 import pyshex
