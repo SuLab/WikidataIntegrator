@@ -26,16 +26,16 @@ from wikidataintegrator.wdi_helpers import WikibaseHelper
 
 """
 Authors:
+  Andra Waagmeester (andra' at ' micelio.be)
   Gregory Stupp (stuppie' at 'gmail.com )
   Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
-  Andra Waagmeester (andra' at ' micelio.be)
 
 This file is part of the WikidataIntegrator.
 
 """
 
-__author__ = 'Gregory Stupp, Sebastian Burgstaller, Andra Waagmeester, '
-__license__ = 'AGPLv3'
+__author__ = 'Andra Waagmeester, Gregory Stupp, Sebastian Burgstaller '
+__license__ = 'MIT'
 
 
 class WDItemEngine(object):
@@ -1201,10 +1201,9 @@ class WDItemEngine(object):
 
 
     @staticmethod
-    def check_shex_conformance(qid, schema, endpoint="https://query.wikidata.org/sparql", debug=False, output="confirm"):
-        results = dict()
-        results["wdid"] = qid
+    def check_shex_conformance(qid, eid, endpoint="https://query.wikidata.org/sparql", output="confirm"):
         slurpeddata = SlurpyGraph(endpoint)
+        schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText"+eid)
         for p, o in slurpeddata.predicate_objects(qid):
             pass
 
