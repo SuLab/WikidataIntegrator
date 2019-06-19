@@ -150,9 +150,6 @@ class WDItemEngine(object):
         self.sitelinks = dict()
         self.lastrevid = None  # stores last revisionid after a write occurs
 
-        if "not set" in self.user_agent:
-            sys.exit("You need to provide details about the script calling the Wikidata Integrator. THe Wikidata API requires a detailed user agent desription")
-
         if self.ref_handler:
             assert callable(self.ref_handler)
         if self.global_ref_mode == "CUSTOM" and self.ref_handler is None:
@@ -905,6 +902,10 @@ class WDItemEngine(object):
         :type retry_after: int
         :return: the WD QID on sucessful write
         """
+        if "not set" in self.user_agent:
+            sys.exit("You need to provide details about the script calling the Wikidata Integrator. THe Wikidata API requires a detailed user agent desription")
+
+
         if not self.require_write:
             return self.wd_item_id
 
