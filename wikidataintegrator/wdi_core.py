@@ -23,7 +23,7 @@ from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_helpers import MappingRelationHelper
 from wikidataintegrator.wdi_helpers import WikibaseHelper
 
-
+import sys
 """
 Authors:
   Andra Waagmeester (andra' at ' micelio.be)
@@ -149,6 +149,9 @@ class WDItemEngine(object):
         self.require_write = True
         self.sitelinks = dict()
         self.lastrevid = None  # stores last revisionid after a write occurs
+
+        if "not set" in self.user_agent:
+            sys.exit("You need to provide details about the script calling the Wikidata Integrator. THe Wikidata API requires a detailed user agent desription")
 
         if self.ref_handler:
             assert callable(self.ref_handler)

@@ -15,13 +15,33 @@ import pkg_resources
 
 try:
     __version__ = pkg_resources.get_distribution("wikidataintegrator").version
+    blub = pkg_resources.g
 except Exception as e:
     __version__ = ""
+
+global botname
+global authors
+global contacts
+global sourcecode
+
+## The parameters below are set to create a user agent header. The parameters are set by importing wdi_config
+## into the bot code and setting them
+## from wikidata_integrator import wdi_config
+## wdi_config.botname = "Name of bot"
+## wdi_config.authors = "Jane Doe, John Doe"
+## ....
+
+botname = "not set"
+authors = "not set"
+contacts = "not set"
+sourcecode = "not set"
+
+
 
 config = {
     'BACKOFF_MAX_TRIES': None,
     'BACKOFF_MAX_VALUE': 3600,
-    'USER_AGENT_DEFAULT': 'wikidataintegrator/{}'.format(__version__),
+    'USER_AGENT_DEFAULT': 'wikidataintegrator/{}, {}, {}, {}, {}'.format(__version__, botname, authors, contacts, sourcecode),
     'MAXLAG': 5,
     'PROPERTY_CONSTRAINT_PID': 'P2302',
     'DISTINCT_VALUES_CONSTRAINT_QID': 'Q21502410'
