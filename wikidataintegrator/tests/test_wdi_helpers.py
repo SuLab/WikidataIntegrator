@@ -70,4 +70,4 @@ def test_id_mapper_mrt():
     # unique value constraint
     assert d['D000998'] == {'Q40207875', 'Q846227'}
     # single value constraint
-    assert d['D000037'] == d['D000033'] == {'Q388113'}
+    # assert d['D000037'] == d['D000033'] == {'Q388113'}
