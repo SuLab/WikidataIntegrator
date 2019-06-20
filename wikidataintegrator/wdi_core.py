@@ -1202,6 +1202,14 @@ class WDItemEngine(object):
 
     @staticmethod
     def check_shex_conformance(qid, eid, endpoint="https://query.wikidata.org/sparql", output="confirm"):
+        """
+                Static method which can be used to execute any SPARQL query
+                :param qid: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
+                :param eid: The actual SPARQL query string
+                :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
+                :param output: results of a test of conformance on a given shape expression
+                :return: The results of the query are returned in string format
+        """
         slurpeddata = SlurpyGraph(endpoint)
         schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText"+eid)
         for p, o in slurpeddata.predicate_objects(qid):
