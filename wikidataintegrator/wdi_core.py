@@ -23,7 +23,7 @@ from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_helpers import MappingRelationHelper
 from wikidataintegrator.wdi_helpers import WikibaseHelper
 
-import sys
+
 """
 Authors:
   Andra Waagmeester (andra' at ' micelio.be)
@@ -902,10 +902,6 @@ class WDItemEngine(object):
         :type retry_after: int
         :return: the WD QID on sucessful write
         """
-        if "not set" in self.user_agent:
-            sys.exit("You need to provide details about the script calling the Wikidata Integrator. THe Wikidata API requires a detailed user agent desription")
-
-
         if not self.require_write:
             return self.wd_item_id
 
