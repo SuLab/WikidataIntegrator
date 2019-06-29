@@ -1174,6 +1174,7 @@ class WDItemEngine(object):
         }
         response = requests.get(endpoint, params=params, headers=headers)
         response.raise_for_status()
+        response.status_code
         results = response.json()
 
         if as_dataframe:
