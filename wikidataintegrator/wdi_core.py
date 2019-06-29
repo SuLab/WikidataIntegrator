@@ -1164,7 +1164,7 @@ class WDItemEngine(object):
             query = prefix + '\n' + query
 
         params = {
-            'query': '#Tool: PBB_core fastrun\n' + query,
+            'query': '#Tool: wdi_core fastrun\n' + query,
             'format': 'json'
         }
 
