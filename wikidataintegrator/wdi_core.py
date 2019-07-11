@@ -22,7 +22,7 @@ from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_helpers import MappingRelationHelper
 from wikidataintegrator.wdi_helpers import WikibaseHelper
-
+import sys
 
 """
 Authors:
@@ -1172,15 +1172,26 @@ class WDItemEngine(object):
             'Accept': 'application/sparql-results+json',
             'User-Agent': user_agent
         }
-        response = requests.get(endpoint, params=params, headers=headers)
-        response.raise_for_status()
-        response.status_code
-        results = response.json()
 
-        if as_dataframe:
-            return WDItemEngine._sparql_query_result_to_df(results)
-        else:
-            return results
+        try:
+            r = requests.get(url, params={'s': thing})
+        except requests.exceptions.RequestException as e:  # This is the correct syntax
+            print
+            e
+            sys.exit(1)
+        try:
+            response = requests.get(endpoint, params=params, headers=headers)
+            response.raise_for_status()
+            response.status_code
+            results = response.json()
+
+            if as_dataframe:
+                return WDItemEngine._sparql_query_result_to_df(results)
+            else:
+                return results
+        except requests.exceptions.RequestException as e:
+            print(e)
+            sys.exit(1)
 
     @staticmethod
     def _sparql_query_result_to_df(results):
