@@ -89,6 +89,7 @@ def test_ref_custom():
     # custom ref mode, same retrieved date
     statements = copy.deepcopy(orig_statements1)
     item = fake_itemengine1(wd_item_id='Q20814663', global_ref_mode="CUSTOM", ref_handler=custom_ref_handler)
+    print(item.wd_json_representation)
     orig = item.wd_json_representation['claims']['P698']
     item.update(data=statements)
     new = item.wd_json_representation['claims']['P698']
