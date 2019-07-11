@@ -1174,12 +1174,6 @@ class WDItemEngine(object):
         }
 
         try:
-            r = requests.get(url, params={'s': thing})
-        except requests.exceptions.RequestException as e:  # This is the correct syntax
-            print
-            e
-            sys.exit(1)
-        try:
             response = requests.get(endpoint, params=params, headers=headers)
             response.raise_for_status()
             response.status_code
