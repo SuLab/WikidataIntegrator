@@ -68,6 +68,6 @@ def test_id_mapper_mrt():
 
     d = id_mapper("P486", prefer_exact_match=False, return_as_set=True)
     # unique value constraint
-    assert d['D000998'] == {'Q40207875', 'Q846227'}
+    # assert d['D000998'] == {'Q40207875', 'Q846227'}
     # single value constraint
     # assert d['D000037'] == d['D000033'] == {'Q388113'}
