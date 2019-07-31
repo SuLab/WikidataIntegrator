@@ -4,7 +4,7 @@
 [![PyPi](https://img.shields.io/pypi/v/wikidataintegrator.svg)](https://pypi.python.org/pypi/wikidataintegrator)
 
 # Installation #
-The easiest way to install WikidataIntegrator is using `pip` or `pip3`. WikidataIntegrator supports python3.6 and higher, hence the suggestion for pip3. If python2 is installed pip will lead to an error indicating missing dependencies. 
+The easiest way to install WikidataIntegrator is using `pip` or `pip3`. WikidataIntegrator supports python 3.6 and higher, hence the suggestion for pip3. If python2 is installed pip will lead to an error indicating missing dependencies. 
 
 ```
 pip3 install wikidataintegrator
