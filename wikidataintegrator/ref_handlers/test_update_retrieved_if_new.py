@@ -4,7 +4,7 @@ import copy
 
 from wikidataintegrator import wdi_fastrun, wdi_core
 from wikidataintegrator.ref_handlers import update_retrieved_if_new as custom_ref_handler
-
+import pprint
 
 class frc_fake_query_data_paper1(wdi_fastrun.FastRunContainer):
     def __init__(self, *args, **kwargs):
@@ -72,7 +72,10 @@ class fake_itemengine1(wdi_core.WDItemEngine):
              'title': 'Q15397819',
              'type': 'item'
              }
+        print("komt ie hier")
         d.update(claims)
+
+        pprint.pprint(d)
         return self.parse_wd_json(d)
 
 
@@ -89,7 +92,6 @@ def test_ref_custom():
     # custom ref mode, same retrieved date
     statements = copy.deepcopy(orig_statements1)
     item = fake_itemengine1(wd_item_id='Q20814663', global_ref_mode="CUSTOM", ref_handler=custom_ref_handler)
-    print(item.wd_json_representation)
     orig = item.wd_json_representation['claims']['P698']
     item.update(data=statements)
     new = item.wd_json_representation['claims']['P698']
@@ -189,3 +191,5 @@ def test_ref_custom_diff_stated_in():
                                     ref_handler=custom_ref_handler)
     frc.debug = True
     assert frc.write_required(data=statements)
+
+test_ref_custom()

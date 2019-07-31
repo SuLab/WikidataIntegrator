@@ -43,8 +43,8 @@ def update_retrieved_if_new(olditem, newitem, days=180, retrieved_pid='P813'):
         return None
     overwrite = ref_overwrite(oldrefs[0], newrefs[0], days)
     if overwrite:
-        #print("updating ref")
+        print("updating ref")
         olditem.references = newrefs
     else:
-        #print("don't change")
+        print("don't change")
         pass
