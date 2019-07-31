@@ -4,9 +4,10 @@
 [![PyPi](https://img.shields.io/pypi/v/wikidataintegrator.svg)](https://pypi.python.org/pypi/wikidataintegrator)
 
 # Installation #
-The easiest way to install WikidataIntegrator is using `pip`
+The easiest way to install WikidataIntegrator is using `pip` or `pip3`. WikidataIntegrator supports python3.6 and higher, hence the suggestion for pip3. If python2 is installed pip will lead to an error indicating missing dependencies. 
+
 ```
-pip install wikidataintegrator
+pip3 install wikidataintegrator
 ```
 
 You can also clone the repo and execute with administrator rights or install into a virtualenv.
@@ -17,7 +18,7 @@ git clone https://github.com/sebotic/WikidataIntegrator.git
 
 cd WikidataIntegrator
 
-python setup.py install
+python3 setup.py install
 ```
 
 To test for correct installation, start a python console and execute the following (Will retrieve the Wikidata item for ['Human'](http://www.wikidata.org/entity/Q5)):
