@@ -1217,7 +1217,7 @@ class WDItemEngine(object):
                 :return: The results of the query are returned in string format
         """
         slurpeddata = SlurpyGraph(endpoint)
-        schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText"+eid)
+        schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText/"+eid).text
         for p, o in slurpeddata.predicate_objects(qid):
             pass
 
