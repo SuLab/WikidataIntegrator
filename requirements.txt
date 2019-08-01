@@ -12,3 +12,4 @@ mwoauth
 oauthlib
 pyshexc
 pyshex
+tqdm
