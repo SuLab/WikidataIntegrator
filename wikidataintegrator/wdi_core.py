@@ -1145,7 +1145,7 @@ class WDItemEngine(object):
     @staticmethod
     @wdi_backoff()
     def execute_sparql_query(query, prefix=None, endpoint='https://query.wikidata.org/sparql',
-                             user_agent=config['USER_AGENT_DEFAULT'], as_dataframe=False):
+                             user_agent=config['USER_AGENT_DEFAULT'], as_dataframe=False, max_retries=10, retry_after=30):
         """
         Static method which can be used to execute any SPARQL query
         :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
@@ -1154,6 +1154,8 @@ class WDItemEngine(object):
         :param user_agent: Set a user agent string for the HTTP header to let the WDQS know who you are.
         :param as_dataframe: Return result as pandas dataframe
         :type user_agent: str
+        :param max_retries: The number time this function should retry in case of header reports.
+        :param retry_after: the number of seconds should wait upon receiving either an error code or the WDQS is not reachable.
         :return: The results of the query are returned in JSON format
         """
 
@@ -1172,20 +1174,27 @@ class WDItemEngine(object):
             'Accept': 'application/sparql-results+json',
             'User-Agent': user_agent
         }
+        response = None
 
-        try:
-            response = requests.get(endpoint, params=params, headers=headers)
+        for n in range(max_retries):
+            try:
+                response = requests.get(endpoint, params=params, headers=headers)
+            except requests.exceptions.ConnectionError as e:
+                print("Connection error: {}. Sleeping for {} seconds.".format(e, retry_after))
+                time.sleep(retry_after)
+                continue
+            if response.status_code == 503:
+                print("service unavailable. sleeping for {} seconds".format(retry_after))
+                time.sleep(retry_after)
+                continue
+
             response.raise_for_status()
-            response.status_code
             results = response.json()
 
             if as_dataframe:
                 return WDItemEngine._sparql_query_result_to_df(results)
             else:
                 return results
-        except requests.exceptions.RequestException as e:
-            print(e)
-            sys.exit(1)
 
     @staticmethod
     def _sparql_query_result_to_df(results):
