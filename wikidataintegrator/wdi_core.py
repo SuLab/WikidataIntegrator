@@ -1183,7 +1183,7 @@ class WDItemEngine(object):
                 print("Connection error: {}. Sleeping for {} seconds.".format(e, retry_after))
                 time.sleep(retry_after)
                 continue
-            if response.status_code == 503:
+            if response.status_code == 503 or response.status_code == 429:
                 print("service unavailable. sleeping for {} seconds".format(retry_after))
                 time.sleep(retry_after)
                 continue
