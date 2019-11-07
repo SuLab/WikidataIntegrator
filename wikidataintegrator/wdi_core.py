@@ -881,7 +881,7 @@ class WDItemEngine(object):
             return None
 
     def write(self, login, bot_account=True, edit_summary='', entity_type='item', property_datatype='string',
-              max_retries=10, retry_after=30):
+              max_retries=10, retry_after=60):
         """
         Writes the WD item Json to WD and after successful write, updates the object with new ids and hashes generated
         by WD. For new items, also returns the new QIDs.
@@ -960,7 +960,7 @@ class WDItemEngine(object):
 
     @staticmethod
     def mediawiki_api_call(method, mediawiki_api_url='https://www.wikidata.org/w/api.php',
-                           session=None, max_retries=10, retry_after=30, **kwargs):
+                           session=None, max_retries=10, retry_after=60, **kwargs):
         """
         :param method: 'GET' or 'POST'
         :param mediawiki_api_url:
@@ -1145,7 +1145,7 @@ class WDItemEngine(object):
     @staticmethod
     @wdi_backoff()
     def execute_sparql_query(query, prefix=None, endpoint='https://query.wikidata.org/sparql',
-                             user_agent=config['USER_AGENT_DEFAULT'], as_dataframe=False, max_retries=10, retry_after=30):
+                             user_agent=config['USER_AGENT_DEFAULT'], as_dataframe=False, max_retries=10, retry_after=60):
         """
         Static method which can be used to execute any SPARQL query
         :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
