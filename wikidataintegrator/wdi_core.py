@@ -1178,7 +1178,7 @@ class WDItemEngine(object):
 
         for n in range(max_retries):
             try:
-                response = requests.get(endpoint, params=params, headers=headers)
+                response = requests.post(endpoint, params=params, headers=headers)
             except requests.exceptions.ConnectionError as e:
                 print("Connection error: {}. Sleeping for {} seconds.".format(e, retry_after))
                 time.sleep(retry_after)
