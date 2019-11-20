@@ -1145,7 +1145,7 @@ class WDItemEngine(object):
     @staticmethod
     @wdi_backoff()
     def execute_sparql_query(query, prefix=None, endpoint='https://query.wikidata.org/sparql',
-                             user_agent=config['USER_AGENT_DEFAULT'], as_dataframe=False, max_retries=10, retry_after=60):
+                             user_agent=config['USER_AGENT_DEFAULT'], as_dataframe=False, max_retries=5, retry_after=60):
         """
         Static method which can be used to execute any SPARQL query
         :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
@@ -1190,7 +1190,6 @@ class WDItemEngine(object):
             if response.status_code == 429:
                 if "retry-after" in response.headers.keys():
                     retry_after = response.headers["retry-after"]
-                time.sleep(retry_after)
                 print("service unavailable. sleeping for {} seconds".format(retry_after))
                 time.sleep(retry_after)
                 continue
