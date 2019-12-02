@@ -210,7 +210,7 @@ In order to create a minimal bot based on wdi_core, three things are required:
     data = [entrez_gene_id]
     
     # Search for and then edit/create new item
-    wd_item = wdi_core.WDItemEngine(data=[entrez_gene_id])
+    wd_item = wdi_core.WDItemEngine(data=data)
     wd_item.write(login_instance)
 ```
 
