@@ -1308,13 +1308,12 @@ class WDItemEngine(object):
         return (linkedby)
 
     @staticmethod
-
-    """
-        :param qid: Wikidata identifier to which other wikidata items link
-        :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
-        :return:
-    """
     def get_rdf(qid, format="turtle"):
+        """
+            :param qid: Wikidata identifier to which other wikidata items link
+            :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
+            :return:
+        """
         localcopy = Graph()
         localcopy.parse("https://www.wikidata.org/w/api.php?action=query&prop=links&titles="+qid)
         return (localcopy.serialize(format=format))
