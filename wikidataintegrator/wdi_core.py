@@ -12,6 +12,7 @@ import pandas as pd
 import requests
 import json
 
+from rdflib import Graph
 from pyshex import ShExEvaluator
 import pyshex
 from sparql_slurper import SlurpyGraph
@@ -1283,6 +1284,40 @@ class WDItemEngine(object):
                             manifest_results[wdid]["status"] = "DOES NOT CONFORM"
                             manifest_results[wdid]["debug"] = result.reason
         return manifest_results
+
+    @staticmethod
+    def get_linked_by(qid, mediawiki_api_url='https://www.wikidata.org/w/api.php'):
+        """
+            :param qid: Wikidata identifier to which other wikidata items link
+            :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
+            :return:
+        """
+        linkedby = []
+        whatlinkshere = json.loads(requests.get(
+            "https://www.wikidata.org/w/api.php?action=query&list=backlinks&format=json&bllimit=500&bltitle=" + qid).text)
+        for link in whatlinkshere["query"]["backlinks"]:
+            if link["title"].startswith("Q"):
+                linkedby.append(link["title"])
+        while 'continue' in whatlinkshere.keys():
+            whatlinkshere = json.loads(requests.get(
+                "https://www.wikidata.org/w/api.php?action=query&list=backlinks&blcontinue=" +
+                whatlinkshere['continue']['blcontinue'] + "&format=json&bllimit=50&bltitle=" + "Q42").text)
+            for link in whatlinkshere["query"]["backlinks"]:
+                if link["title"].startswith("Q"):
+                    linkedby.append(link["title"])
+        return (linkedby)
+
+    @staticmethod
+
+    """
+        :param qid: Wikidata identifier to which other wikidata items link
+        :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
+        :return:
+    """
+    def get_rdf(qid, format="turtle"):
+        localcopy = Graph()
+        localcopy.parse("https://www.wikidata.org/w/api.php?action=query&prop=links&titles="+qid)
+        return (localcopy.serialize(format=format))
 
 
     @staticmethod
