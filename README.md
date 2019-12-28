@@ -233,7 +233,7 @@ An enhanced example of the previous bot just puts two of the three things into a
     for entrez_id, ensembl in raw_data.items():
         # data type object
         entrez_gene_id = wdi_core.WDString(value=entrez_id, prop_nr='P351')
-        ensembl_transcript_id = wdi_core.WDString(value='entrez_id_string', prop_nr='P704')
+        ensembl_transcript_id = wdi_core.WDString(value=ensembl, prop_nr='P704')
         
         # data goes into a list, because many data objects can be provided to 
         data = [entrez_gene_id, ensembl_transcript_id]
@@ -279,7 +279,7 @@ The full example:
     for entrez_id, ensembl in raw_data.items():
         # data type object
         entrez_gene_id = wdi_core.WDString(value=entrez_id, prop_nr='P351')
-        ensembl_transcript_id = wdi_core.WDString(value='entrez_id_string', prop_nr='P704')
+        ensembl_transcript_id = wdi_core.WDString(value=ensembl, prop_nr='P704')
         
         # data goes into a list, because many data objects can be provided to 
         data = [entrez_gene_id, ensembl_transcript_id]
