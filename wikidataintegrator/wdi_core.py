@@ -119,6 +119,7 @@ class WDItemEngine(object):
         :param core_props: Core properties are used to retrieve a Wikidata item based on `data` if a `wd_item_id` is
             not given. This is a set of PIDs to use. If None, all Wikidata properties with a distinct values
             constraint will be used. (see: get_core_props)
+        :type core_props: set
         :param core_prop_match_thresh: The proportion of core props that must match during retrieval of an item
             when the wd_item_id is not specified.
         :type core_prop_match_thresh: float
