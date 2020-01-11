@@ -390,7 +390,12 @@ class FastRunContainer(object):
         num_pages = None
         if self.debug:
             # get the number of pages/queries so we can show a progress bar
-            query = """SELECT (COUNT(?item) as ?c) where {{
+            query = """PREFIX wd: <https://wikibase.url/entity/>
+            PREFIX wdt: <https://wikibase.url/prop/direct/>
+            PREFIX p: <https://wikibase.url/prop/>
+            PREFIX ps: <https://wikibase.url/prop/statement/>
+
+            SELECT (COUNT(?item) as ?c) where {{
                   {0}
                   ?item p:{1} ?sid .
             }}""".format(self.base_filter_string, prop_nr)
@@ -400,6 +405,10 @@ class FastRunContainer(object):
             print("Query {}: {}/{}".format(prop_nr, page_count, num_pages))
         while True:
             query = """
+                PREFIX wd: <https://wikibase.url/entity/>
+                PREFIX wdt: <https://wikibase.url/prop/direct/>
+                PREFIX p: <https://wikibase.url/prop/>
+                PREFIX ps: <https://wikibase.url/prop/statement/>
                 #Tool: wdi_core fastrun
                 SELECT ?item ?qval ?pq ?sid ?v ?ref ?pr ?rval WHERE {
                   {
@@ -439,6 +448,10 @@ class FastRunContainer(object):
             self._query_data_refs(prop_nr)
         else:
             query = '''
+                PREFIX wd: <https://wikibase.url/entity/>
+                PREFIX wdt: <https://wikibase.url/prop/direct/>
+                PREFIX p: <https://wikibase.url/prop/>
+                PREFIX ps: <https://wikibase.url/prop/statement/>
                 #Tool: wdi_core fastrun
                 select ?item ?qval ?pq ?sid ?v where {{
                   {0}
@@ -471,6 +484,10 @@ class FastRunContainer(object):
         }
 
         query = '''
+        PREFIX wd: <https://wikibase.url/entity/>
+        PREFIX wdt: <https://wikibase.url/prop/direct/>
+        PREFIX p: <https://wikibase.url/prop/>
+        PREFIX ps: <https://wikibase.url/prop/statement/>
         #Tool: wdi_core fastrun
         SELECT ?item ?label WHERE {{
             {0}
