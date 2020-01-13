@@ -390,10 +390,10 @@ class FastRunContainer(object):
         num_pages = None
         if self.debug:
             # get the number of pages/queries so we can show a progress bar
-            query = """PREFIX wd: <https://wikibase.url/entity/>
-            PREFIX wdt: <https://wikibase.url/prop/direct/>
-            PREFIX p: <https://wikibase.url/prop/>
-            PREFIX ps: <https://wikibase.url/prop/statement/>
+            query = """PREFIX wd: <http://www.wikidata.org/entity/>
+            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+            PREFIX p: <http://www.wikidata.org/prop/>
+            PREFIX ps: <http://www.wikidata.org/prop/statement/>
 
             SELECT (COUNT(?item) as ?c) where {{
                   {0}
@@ -405,10 +405,10 @@ class FastRunContainer(object):
             print("Query {}: {}/{}".format(prop_nr, page_count, num_pages))
         while True:
             query = """
-                PREFIX wd: <https://wikibase.url/entity/>
-                PREFIX wdt: <https://wikibase.url/prop/direct/>
-                PREFIX p: <https://wikibase.url/prop/>
-                PREFIX ps: <https://wikibase.url/prop/statement/>
+                PREFIX wd: <http://www.wikidata.org/entity/>
+                PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                PREFIX p: <http://www.wikidata.org/prop/>
+                PREFIX ps: <http://www.wikidata.org/prop/statement/>
                 #Tool: wdi_core fastrun
                 SELECT ?item ?qval ?pq ?sid ?v ?ref ?pr ?rval WHERE {
                   {
@@ -448,10 +448,10 @@ class FastRunContainer(object):
             self._query_data_refs(prop_nr)
         else:
             query = '''
-                PREFIX wd: <https://wikibase.url/entity/>
-                PREFIX wdt: <https://wikibase.url/prop/direct/>
-                PREFIX p: <https://wikibase.url/prop/>
-                PREFIX ps: <https://wikibase.url/prop/statement/>
+                PREFIX wd: <http://www.wikidata.org/entity/>
+                PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                PREFIX p: <http://www.wikidata.org/prop/>
+                PREFIX ps: <http://www.wikidata.org/prop/statement/>
                 #Tool: wdi_core fastrun
                 select ?item ?qval ?pq ?sid ?v where {{
                   {0}
@@ -484,10 +484,10 @@ class FastRunContainer(object):
         }
 
         query = '''
-        PREFIX wd: <https://wikibase.url/entity/>
-        PREFIX wdt: <https://wikibase.url/prop/direct/>
-        PREFIX p: <https://wikibase.url/prop/>
-        PREFIX ps: <https://wikibase.url/prop/statement/>
+        PREFIX wd: <http://www.wikidata.org/entity/>
+        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+        PREFIX p: <http://www.wikidata.org/prop/>
+        PREFIX ps: <http://www.wikidata.org/prop/statement/>
         #Tool: wdi_core fastrun
         SELECT ?item ?label WHERE {{
             {0}
