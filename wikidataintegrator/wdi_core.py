@@ -208,7 +208,7 @@ class WDItemEngine(object):
             cls.DISTINCT_VALUE_PROPS[sparql_endpoint_url] = set()
             return None
 
-        query = "PREFIX wd: <https://wikibase.url/entity/>\nPREFIX wdt: <https://wikibase.url/prop/direct/>\nPREFIX p: <https://wikibase.url/prop/>\nPREFIX ps: <https://wikibase.url/prop/statement/>select ?p where {{?p wdt:{} wd:{}}}".format(pcpid, dvcqid)
+        query = "PREFIX wd: <http://www.wikidata.org/entity/>\nPREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX p: <http://www.wikidata.org/prop/>\nPREFIX ps: <http://www.wikidata.org/prop/statement/>select ?p where {{?p wdt:{} wd:{}}}".format(pcpid, dvcqid)
         df = cls.execute_sparql_query(query, endpoint=sparql_endpoint_url, as_dataframe=True)
         if df.empty:
             warnings.warn("Warning: No distinct value properties found")
@@ -1372,10 +1372,10 @@ class WDItemEngine(object):
     @classmethod
     def _init_ref_system(cls, sparql_endpoint_url=None):
         db_query = '''
-                PREFIX wd: <https://wikibase.url/entity/>
-                PREFIX wdt: <https://wikibase.url/prop/direct/>
-                PREFIX p: <https://wikibase.url/prop/>
-                PREFIX ps: <https://wikibase.url/prop/statement/>
+                PREFIX wd: <http://www.wikidata.org/entity/>
+                PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                PREFIX p: <http://www.wikidata.org/prop/>
+                PREFIX ps: <http://www.wikidata.org/prop/statement/>
         SELECT DISTINCT ?db ?wd_prop WHERE {
             {?db wdt:P31 wd:Q2881060 . } UNION
             {?db wdt:P31 wd:Q4117139 . } UNION
@@ -1562,11 +1562,11 @@ class WDBaseDataType(object):
     """
 
     sparql_query = '''
-                PREFIX wd: <https://wikibase.url/entity/>
-                PREFIX wdt: <https://wikibase.url/prop/direct/>
-                PREFIX p: <https://wikibase.url/prop/>
-                PREFIX ps: <https://wikibase.url/prop/statement/>
-                PREFIX pq: <https://wikibase.url/prop/qualifier/>
+                PREFIX wd: <http://www.wikidata.org/entity/>
+                PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                PREFIX p: <http://www.wikidata.org/prop/>
+                PREFIX ps: <http://www.wikidata.org/prop/statement/>
+                PREFIX pq: <http://www.wikidata.org/prop/qualifier/>
     SELECT * WHERE {{
       ?item_id p:{pid} ?s .
       ?s ps:{pid} '{value}' .
@@ -2067,11 +2067,11 @@ class WDItemID(WDBaseDataType):
     """
     DTYPE = 'wikibase-item'
     sparql_query = '''
-                PREFIX wd: <https://wikibase.url/entity/>
-                PREFIX wdt: <https://wikibase.url/prop/direct/>
-                PREFIX p: <https://wikibase.url/prop/>
-                PREFIX ps: <https://wikibase.url/prop/statement/>
-                PREFIX pq: <https://wikibase.url/prop/qualifier/>
+                PREFIX wd: <http://www.wikidata.org/entity/>
+                PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                PREFIX p: <http://www.wikidata.org/prop/>
+                PREFIX ps: <http://www.wikidata.org/prop/statement/>
+                PREFIX pq: <http://www.wikidata.org/prop/qualifier/>
         SELECT * WHERE {{
           ?item_id p:{pid} ?s .
           ?s ps:{pid} wd:Q{value} .
@@ -2151,11 +2151,11 @@ class WDProperty(WDBaseDataType):
     """
     DTYPE = 'wikibase-property'
     sparql_query = '''
-                PREFIX wd: <https://wikibase.url/entity/>
-                PREFIX wdt: <https://wikibase.url/prop/direct/>
-                PREFIX p: <https://wikibase.url/prop/>
-                PREFIX ps: <https://wikibase.url/prop/statement/>
-                PREFIX pq: <https://wikibase.url/prop/qualifier/>
+                PREFIX wd: <http://www.wikidata.org/entity/>
+                PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                PREFIX p: <http://www.wikidata.org/prop/>
+                PREFIX ps: <http://www.wikidata.org/prop/statement/>
+                PREFIX pq: <http://www.wikidata.org/prop/qualifier/>
         SELECT * WHERE {{
           ?item_id p:{pid} ?s .
           ?s ps:{pid} wd:P{value} .
