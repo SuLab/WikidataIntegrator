@@ -217,7 +217,7 @@ class WDItemEngine(object):
         SELECT ?p WHERE {{
             ?p wdt:{1} wd:{2}
         }}
-        '''.format(self.wikibase_url, pcpid, dvcqid)
+        '''.format(cls.wikibase_url, pcpid, dvcqid)
         df = cls.execute_sparql_query(query, endpoint=sparql_endpoint_url, as_dataframe=True)
         if df.empty:
             warnings.warn("Warning: No distinct value properties found")
