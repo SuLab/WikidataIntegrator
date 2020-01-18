@@ -159,7 +159,7 @@ class WDItemEngine(object):
             raise ValueError("If using a custom ref mode, ref_handler must be set")
 
         if (core_props is None) and (self.sparql_endpoint_url not in self.DISTINCT_VALUE_PROPS):
-            self.get_distinct_value_props(self.sparql_endpoint_url)
+            self.get_distinct_value_props(self.sparql_endpoint_url, self.wikibase_url)
         self.core_props = core_props if core_props is not None else self.DISTINCT_VALUE_PROPS[self.sparql_endpoint_url]
 
         try:
@@ -190,7 +190,7 @@ class WDItemEngine(object):
             self.init_data_load()
 
     @classmethod
-    def get_distinct_value_props(cls, sparql_endpoint_url='https://query.wikidata.org/sparql'):
+    def get_distinct_value_props(cls, sparql_endpoint_url='https://query.wikidata.org/sparql', wikibase_url='http://www.wikidata.org'):
         """
         On wikidata, the default core IDs will be the properties with a distinct values constraint
         select ?p where {?p wdt:P2302 wd:Q21502410}
@@ -217,7 +217,7 @@ class WDItemEngine(object):
         SELECT ?p WHERE {{
             ?p wdt:{1} wd:{2}
         }}
-        '''.format(cls.wikibase_url, pcpid, dvcqid)
+        '''.format(wikibase_url, pcpid, dvcqid)
         df = cls.execute_sparql_query(query, endpoint=sparql_endpoint_url, as_dataframe=True)
         if df.empty:
             warnings.warn("Warning: No distinct value properties found")
