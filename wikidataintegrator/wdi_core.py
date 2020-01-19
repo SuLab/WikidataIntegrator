@@ -53,6 +53,7 @@ class WDItemEngine(object):
     def __init__(self, wd_item_id='', new_item=False, data=None,
                  mediawiki_api_url='https://www.wikidata.org/w/api.php',
                  sparql_endpoint_url='https://query.wikidata.org/sparql',
+                 wikibase_url='http://www.wikidata.org',
                  append_value=None, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
                  ref_handler=None, global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False,
                  search_only=False, item_data=None, user_agent=config['USER_AGENT_DEFAULT'],
@@ -129,6 +130,7 @@ class WDItemEngine(object):
         self.new_item = new_item
         self.mediawiki_api_url = mediawiki_api_url
         self.sparql_endpoint_url = sparql_endpoint_url
+        self.wikibase_url = wikibase_url
         self.property_constraint_pid = property_constraint_pid
         self.distinct_values_constraint_qid = distinct_values_constraint_qid
         self.data = [] if data is None else data
@@ -160,7 +162,7 @@ class WDItemEngine(object):
             raise ValueError("If using a custom ref mode, ref_handler must be set")
 
         if (core_props is None) and (self.sparql_endpoint_url not in self.DISTINCT_VALUE_PROPS):
-            self.get_distinct_value_props(self.sparql_endpoint_url, self.property_constraint_pid, self.distinct_values_constraint_qid)
+            self.get_distinct_value_props(self.sparql_endpoint_url, self.wikibase_url, self.property_constraint_pid, self.distinct_values_constraint_qid)
         self.core_props = core_props if core_props is not None else self.DISTINCT_VALUE_PROPS[self.sparql_endpoint_url]
 
         try:
@@ -191,7 +193,7 @@ class WDItemEngine(object):
             self.init_data_load()
 
     @classmethod
-    def get_distinct_value_props(cls, sparql_endpoint_url='https://query.wikidata.org/sparql', property_constraint_pid='P2302', distinct_values_constraint_qid='Q21502410'):
+    def get_distinct_value_props(cls, sparql_endpoint_url='https://query.wikidata.org/sparql', wikibase_url='http://www.wikidata.org', property_constraint_pid='P2302', distinct_values_constraint_qid='Q21502410'):
         """
         On wikidata, the default core IDs will be the properties with a distinct values constraint
         select ?p where {?p wdt:P2302 wd:Q21502410}
@@ -201,7 +203,14 @@ class WDItemEngine(object):
         pcpid = property_constraint_pid
         dvcqid = distinct_values_constraint_qid
 
-        query = "select ?p where {{?p wdt:{} wd:{}}}".format(pcpid, dvcqid)
+        query = '''
+        PREFIX wd: <{0}/entity/>
+        PREFIX wdt: <{0}/prop/direct/>
+
+        SELECT ?p WHERE {{
+            ?p wdt:{1} wd:{2}
+        }}
+        '''.format(wikibase_url, pcpid, dvcqid)
         df = cls.execute_sparql_query(query, endpoint=sparql_endpoint_url, as_dataframe=True)
         if df.empty:
             warnings.warn("Warning: No distinct value properties found\n" +
@@ -246,6 +255,7 @@ class WDItemEngine(object):
                                                        base_data_type=WDBaseDataType, engine=self.__class__,
                                                        sparql_endpoint_url=self.sparql_endpoint_url,
                                                        mediawiki_api_url=self.mediawiki_api_url,
+                                                       wikibase_url=self.wikibase_url,
                                                        use_refs=self.fast_run_use_refs,
                                                        ref_handler=self.ref_handler)
             WDItemEngine.fast_run_store.append(self.fast_run_container)
@@ -404,7 +414,7 @@ class WDItemEngine(object):
             if wd_property in core_props:
                 tmp_qids = set()
                 # if mrt_pid is "PXXX", this is fine, because the part of the SPARQL query using it is optional
-                query = statement.sparql_query.format(mrt_pid=mrt_pid, pid=wd_property, value=data_point)
+                query = statement.sparql_query.format(wb_url=self.wikibase_url, mrt_pid=mrt_pid, pid=wd_property, value=data_point)
                 results = WDItemEngine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)
 
                 for i in results['results']['bindings']:
@@ -1364,13 +1374,14 @@ class WDItemEngine(object):
 
         return merge_reply.json()
 
+    # TODO: adapt this function for wikibase (if possible)
     @classmethod
     def _init_ref_system(cls, sparql_endpoint_url=None):
         db_query = '''
         SELECT DISTINCT ?db ?wd_prop WHERE {
             {?db wdt:P31 wd:Q2881060 . } UNION
             {?db wdt:P31 wd:Q4117139 . } UNION
-            {?db wdt:P31 wd:Q8513 .} UNION
+            {?db wdt:P31 wd:Q8513 . } UNION
             {?db wdt:P31 wd:Q324254 .}
 
             OPTIONAL {
@@ -1553,6 +1564,11 @@ class WDBaseDataType(object):
     """
 
     sparql_query = '''
+    PREFIX wd: <{wb_url}/entity/>
+    PREFIX wdt: <{wb_url}/prop/direct/>
+    PREFIX p: <{wb_url}/prop/>
+    PREFIX ps: <{wb_url}/prop/statement/>
+    PREFIX pq: <{wb_url}/prop/qualifier/>
     SELECT * WHERE {{
       ?item_id p:{pid} ?s .
       ?s ps:{pid} '{value}' .
@@ -2053,6 +2069,11 @@ class WDItemID(WDBaseDataType):
     """
     DTYPE = 'wikibase-item'
     sparql_query = '''
+        PREFIX wd: <{wb_url}/entity/>
+        PREFIX wdt: <{wb_url}/prop/direct/>
+        PREFIX p: <{wb_url}/prop/>
+        PREFIX ps: <{wb_url}/prop/statement/>
+        PREFIX pq: <{wb_url}/prop/qualifier/>
         SELECT * WHERE {{
           ?item_id p:{pid} ?s .
           ?s ps:{pid} wd:Q{value} .
@@ -2132,6 +2153,11 @@ class WDProperty(WDBaseDataType):
     """
     DTYPE = 'wikibase-property'
     sparql_query = '''
+        PREFIX wd: <{wb_url}/entity/>
+        PREFIX wdt: <{wb_url}/prop/direct/>
+        PREFIX p: <{wb_url}/prop/>
+        PREFIX ps: <{wb_url}/prop/statement/>
+        PREFIX pq: <{wb_url}/prop/qualifier/>
         SELECT * WHERE {{
           ?item_id p:{pid} ?s .
           ?s ps:{pid} wd:P{value} .
