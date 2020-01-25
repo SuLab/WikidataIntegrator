@@ -36,7 +36,7 @@ class TestDataType(unittest.TestCase):
 
         value = dt_json['mainsnak']['datavalue']
 
-        if not value['value']['amount'] == '+34':
+        if not value['value']['amount'] == '+34.0':
             raise
 
         if not value['value']['unit'] == '1':
@@ -46,7 +46,7 @@ class TestDataType(unittest.TestCase):
 
         value = dt2.get_json_representation()['mainsnak']['datavalue']
 
-        if not value['value']['amount'] == '+34':
+        if not value['value']['amount'] == '+34.0':
             raise
 
         if not value['value']['unit'] == '1':
