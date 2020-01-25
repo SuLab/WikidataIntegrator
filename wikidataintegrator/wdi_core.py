@@ -54,6 +54,7 @@ class WDItemEngine(object):
                  mediawiki_api_url='https://www.wikidata.org/w/api.php',
                  sparql_endpoint_url='https://query.wikidata.org/sparql',
                  wikibase_url='http://www.wikidata.org',
+                 concept_base_uri='http://www.wikidata.org/entity/',
                  append_value=None, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
                  ref_handler=None, global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False,
                  search_only=False, item_data=None, user_agent=config['USER_AGENT_DEFAULT'],
@@ -131,6 +132,7 @@ class WDItemEngine(object):
         self.mediawiki_api_url = mediawiki_api_url
         self.sparql_endpoint_url = sparql_endpoint_url
         self.wikibase_url = wikibase_url
+        self.concept_base_uri = concept_base_uri
         self.property_constraint_pid = property_constraint_pid
         self.distinct_values_constraint_qid = distinct_values_constraint_qid
         self.data = [] if data is None else data
@@ -256,6 +258,7 @@ class WDItemEngine(object):
                                                        sparql_endpoint_url=self.sparql_endpoint_url,
                                                        mediawiki_api_url=self.mediawiki_api_url,
                                                        wikibase_url=self.wikibase_url,
+                                                       concept_base_uri=self.concept_base_uri,
                                                        use_refs=self.fast_run_use_refs,
                                                        ref_handler=self.ref_handler)
             WDItemEngine.fast_run_store.append(self.fast_run_container)
@@ -414,7 +417,7 @@ class WDItemEngine(object):
             if wd_property in core_props:
                 tmp_qids = set()
                 # if mrt_pid is "PXXX", this is fine, because the part of the SPARQL query using it is optional
-                query = statement.sparql_query.format(wb_url=self.wikibase_url, mrt_pid=mrt_pid, pid=wd_property, value=data_point)
+                query = statement.sparql_query.format(wb_url=self.wikibase_url, mrt_pid=mrt_pid, pid=wd_property, value=data_point.replace("'", r"\'"))
                 results = WDItemEngine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)
 
                 for i in results['results']['bindings']:
@@ -2441,7 +2444,7 @@ class WDQuantity(WDBaseDataType):
 
     def __init__(self, value, prop_nr, upper_bound=None, lower_bound=None, unit='1', is_reference=False,
                  is_qualifier=False, snak_type='value', references=None, qualifiers=None, rank='normal',
-                 check_qualifier_equality=True):
+                 check_qualifier_equality=True, concept_base_uri='http://www.wikidata.org/entity/'):
         """
         Constructor, calls the superclass WDBaseDataType
         :param value: The quantity value
@@ -2469,6 +2472,9 @@ class WDQuantity(WDBaseDataType):
         :type rank: str
         """
 
+        if unit.startswith('Q'):
+            unit = concept_base_uri + unit
+
         v = (value, unit, upper_bound, lower_bound)
 
         super(WDQuantity, self).__init__(value=v, snak_type=snak_type, data_type=self.DTYPE,
@@ -2482,7 +2488,7 @@ class WDQuantity(WDBaseDataType):
         value, unit, upper_bound, lower_bound = v
 
         if value is not None:
-            value = str('+{}'.format(value)) if not str(value).startswith('+') and float(value) > 0 else str(value)
+            value = str('+{}'.format(float(value))) if not str(value).startswith('+') and float(value) > 0 else str(value)
             unit = str(unit)
             if upper_bound:
                 upper_bound = str('+{}'.format(upper_bound)) if not str(upper_bound).startswith('+') \
