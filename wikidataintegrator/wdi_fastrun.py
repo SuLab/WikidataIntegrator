@@ -3,6 +3,8 @@ from collections import defaultdict
 from functools import lru_cache
 from itertools import chain
 
+from wikidataintegrator.wdi_config import config
+
 example_Q14911732 = {'P1057':
                          {'Q14911732-23F268EB-2848-4A82-A248-CF4DF6B256BC':
                               {'v': 'Q847102',
@@ -15,7 +17,7 @@ example_Q14911732 = {'P1057':
 
 
 class FastRunContainer(object):
-    def __init__(self, base_data_type, engine, sparql_endpoint_url=None, mediawiki_api_url=None,
+    def __init__(self, base_data_type, engine, mediawiki_api_url=None, sparql_endpoint_url=None,
                  wikibase_url=None, concept_base_uri=None, base_filter=None, use_refs=False, ref_handler=None):
         self.prop_data = {}
         self.loaded_langs = {}
@@ -27,14 +29,10 @@ class FastRunContainer(object):
         self.rev_lookup = defaultdict(set)
         self.base_data_type = base_data_type
         self.engine = engine
-        self.sparql_endpoint_url = sparql_endpoint_url if sparql_endpoint_url else \
-            'https://query.wikidata.org/sparql'
-        self.mediawiki_api_url = mediawiki_api_url if mediawiki_api_url else \
-            'https://www.wikidata.org/w/api.php'
-        self.wikibase_url = wikibase_url if wikibase_url else \
-            'http://www.wikidata.org'
-        self.concept_base_uri = concept_base_uri if concept_base_uri else \
-            'http://www.wikidata.org/entity/'
+        self.mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+        self.sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
+        self.wikibase_url = config['WIKIBASE_URL'] if wikibase_url is None else wikibase_url
+        self.concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
         self.debug = False
         self.reconstructed_statements = []
         self.use_refs = use_refs
