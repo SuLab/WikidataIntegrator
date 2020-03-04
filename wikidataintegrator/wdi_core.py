@@ -415,7 +415,7 @@ class WDItemEngine(object):
             if wd_property in core_props:
                 tmp_qids = set()
                 # if mrt_pid is "PXXX", this is fine, because the part of the SPARQL query using it is optional
-                query = statement.sparql_query.format(wb_url=self.wikibase_url, mrt_pid=mrt_pid, pid=wd_property, value=data_point)
+                query = statement.sparql_query.format(wb_url=self.wikibase_url, mrt_pid=mrt_pid, pid=wd_property, value=data_point.replace("'", r"\'"))
                 results = WDItemEngine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)
 
                 for i in results['results']['bindings']:
