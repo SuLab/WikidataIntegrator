@@ -16,7 +16,7 @@ example_Q14911732 = {'P1057':
 
 class FastRunContainer(object):
     def __init__(self, base_data_type, engine, sparql_endpoint_url=None, mediawiki_api_url=None,
-                 base_filter=None, use_refs=False, ref_handler=None):
+                 wikibase_url=None, base_filter=None, use_refs=False, ref_handler=None):
         self.prop_data = {}
         self.loaded_langs = {}
         self.statements = []
@@ -31,6 +31,8 @@ class FastRunContainer(object):
             'https://query.wikidata.org/sparql'
         self.mediawiki_api_url = mediawiki_api_url if mediawiki_api_url else \
             'https://www.wikidata.org/w/api.php'
+        self.wikibase_url = wikibase_url if wikibase_url else \
+            'http://www.wikidata.org'
         self.debug = False
         self.reconstructed_statements = []
         self.use_refs = use_refs
@@ -390,16 +392,25 @@ class FastRunContainer(object):
         num_pages = None
         if self.debug:
             # get the number of pages/queries so we can show a progress bar
-            query = """SELECT (COUNT(?item) as ?c) where {{
-                  {0}
-                  ?item p:{1} ?sid .
-            }}""".format(self.base_filter_string, prop_nr)
+            query = """PREFIX wd: <{0}/entity/>
+            PREFIX wdt: <{0}/prop/direct/>
+            PREFIX p: <{0}/prop/>
+            PREFIX ps: <{0}/prop/statement/>
+
+            SELECT (COUNT(?item) as ?c) where {{
+                  {1}
+                  ?item p:{2} ?sid .
+            }}""".format(self.wikibase_url, self.base_filter_string, prop_nr)
             r = self.engine.execute_sparql_query(query, endpoint=self.sparql_endpoint_url)['results']['bindings']
             count = int(r[0]['c']['value'])
             num_pages = (int(count) // page_size) + 1
             print("Query {}: {}/{}".format(prop_nr, page_count, num_pages))
         while True:
             query = """
+                PREFIX wd: <**wikibase_url**/entity/>
+                PREFIX wdt: <**wikibase_url**/prop/direct/>
+                PREFIX p: <**wikibase_url**/prop/>
+                PREFIX ps: <**wikibase_url**/prop/statement/>
                 #Tool: wdi_core fastrun
                 SELECT ?item ?qval ?pq ?sid ?v ?ref ?pr ?rval WHERE {
                   {
@@ -423,7 +434,8 @@ class FastRunContainer(object):
                   }
                 }""".replace("**offset**", str(page_count * page_size)). \
                 replace("**base_filter_string**", self.base_filter_string). \
-                replace("**prop_nr**", prop_nr).replace("**page_size**", str(page_size))
+                replace("**prop_nr**", prop_nr).replace("**page_size**", str(page_size)). \
+                replace("**wikibase_url**", self.wikibase_url)
 
             results = self.engine.execute_sparql_query(query, endpoint=self.sparql_endpoint_url)['results']['bindings']
             self.format_query_results(results, prop_nr)
@@ -439,19 +451,23 @@ class FastRunContainer(object):
             self._query_data_refs(prop_nr)
         else:
             query = '''
+                PREFIX wd: <{0}/entity/>
+                PREFIX wdt: <{0}/prop/direct/>
+                PREFIX p: <{0}/prop/>
+                PREFIX ps: <{0}/prop/statement/>
                 #Tool: wdi_core fastrun
                 select ?item ?qval ?pq ?sid ?v where {{
-                  {0}
+                  {1}
 
-                  ?item p:{1} ?sid .
+                  ?item p:{2} ?sid .
 
-                  ?sid ps:{1} ?v .
+                  ?sid ps:{2} ?v .
                   OPTIONAL {{
                     ?sid ?pq ?qval .
                     [] wikibase:qualifier ?pq
                   }}
                 }}
-                '''.format(self.base_filter_string, prop_nr)
+                '''.format(self.wikibase_url, self.base_filter_string, prop_nr)
             r = self.engine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)['results']['bindings']
             self.format_query_results(r, prop_nr)
             self.update_frc_from_query(r, prop_nr)
@@ -471,15 +487,19 @@ class FastRunContainer(object):
         }
 
         query = '''
+        PREFIX wd: <{0}/entity/>
+        PREFIX wdt: <{0}/prop/direct/>
+        PREFIX p: <{0}/prop/>
+        PREFIX ps: <{0}/prop/statement/>
         #Tool: wdi_core fastrun
         SELECT ?item ?label WHERE {{
-            {0}
+            {1}
 
             OPTIONAL {{
-                ?item {1} ?label FILTER (lang(?label) = "{2}") .
+                ?item {2} ?label FILTER (lang(?label) = "{3}") .
             }}
         }}
-        '''.format(self.base_filter_string, lang_data_type_dict[lang_data_type], lang)
+        '''.format(self.wikibase_url, self.base_filter_string, lang_data_type_dict[lang_data_type], lang)
 
         if self.debug:
             print(query)
@@ -498,7 +518,8 @@ class FastRunContainer(object):
     @lru_cache(maxsize=100000)
     def get_prop_datatype(self, prop_nr):
         item = self.engine(wd_item_id=prop_nr, sparql_endpoint_url=self.sparql_endpoint_url,
-                           mediawiki_api_url=self.mediawiki_api_url)
+                           mediawiki_api_url=self.mediawiki_api_url,
+                           wikibase_url=self.wikibase_url)
         return item.entity_metadata['datatype']
 
     def clear(self):
