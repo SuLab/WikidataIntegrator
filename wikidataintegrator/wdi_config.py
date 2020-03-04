@@ -22,7 +22,5 @@ config = {
     'BACKOFF_MAX_TRIES': None,
     'BACKOFF_MAX_VALUE': 3600,
     'USER_AGENT_DEFAULT': 'wikidataintegrator/{}'.format(__version__),
-    'MAXLAG': 5,
-    'PROPERTY_CONSTRAINT_PID': 'P2302',
-    'DISTINCT_VALUES_CONSTRAINT_QID': 'Q21502410'
+    'MAXLAG': 5
 }
