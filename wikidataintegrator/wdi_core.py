@@ -486,7 +486,7 @@ class WDItemEngine(object):
                 return False
 
             # stated in, title, retrieved
-            ref_properties = ['P248', 'P1476', 'P813']  # 'P407' language of work,
+            ref_properties = ['P248', 'P1476', 'P813']
 
             for v in values:
                 if prop_nrs[values.index(v)] == 'P248':
