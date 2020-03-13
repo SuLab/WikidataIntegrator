@@ -67,7 +67,7 @@ class WikibaseEngine(object):
                 propertyLabels.append(label)
         return propertyLabels
 
-    def copyProperties(self, login,  wikibase_source, wikibase_target, schema="https://www.wikidata.org/wiki/Special:EntitySchemaText/E37"):
+    def copyProperties(self,  wikibase_source, wikibase_target, schema="https://www.wikidata.org/wiki/Special:EntitySchemaText/E37"):
         if "TARGETUSER" in os.environ and "TARGETPASS" in os.environ:
             TARGETUSER = os.environ['TARGETUSER']
             TARGETPASS = os.environ['TARGETPASS']
@@ -79,7 +79,7 @@ class WikibaseEngine(object):
         loader = SchemaLoader()
         shex = requests.get(schema).text
         schema = loader.loads(shex)
-        self.source_login = wdi_login.WDLogin
+
 
         model = json.loads(schema._as_json_dumps())
         properties = []
