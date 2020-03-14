@@ -18,9 +18,8 @@ __license__ = 'MIT'
 
 
 class WikibaseEngine(object):
-    def __init__(self, wikibase_url='http://www.wikidata.org', wikibase_sparql="https://query.wikidata.org/sparql"):
+    def __init__(self, wikibase_url='http://www.wikidata.org'):
         self.wikibase_url = wikibase_url
-        self.wikibase_sparql = wikibase_sparql
         self.wikibase_api = wikibase_url+"/w/api.php"
 
     @classmethod
@@ -42,7 +41,7 @@ class WikibaseEngine(object):
         item = wdi_core.WDItemEngine(new_item=True, mediawiki_api_url=self.wikibase_api)
         for language in labels.keys():
 
-            if labels[language]["value"] in listProperties(self.wikibase_api):
+            if labels[language]["value"] in self.listProperties():
                 return labels[language]["value"] + " allready exists"
             if language in languages:
                 item.set_label(labels[language]["value"], lang=language)
@@ -57,6 +56,7 @@ class WikibaseEngine(object):
             if namespaces["query"]["namespaces"][namespace]["name"] == nsName:
                 return namespace
 
+
     def listProperties(self):
         propertyLabels = []
         ns = self.getNamespace("Property")
@@ -67,20 +67,10 @@ class WikibaseEngine(object):
                 propertyLabels.append(label)
         return propertyLabels
 
-    def copyProperties(self,  wikibase_source, wikibase_target, schema="https://www.wikidata.org/wiki/Special:EntitySchemaText/E37"):
-        if "TARGETUSER" in os.environ and "TARGETPASS" in os.environ:
-            TARGETUSER = os.environ['TARGETUSER']
-            TARGETPASS = os.environ['TARGETPASS']
-        else:
-            raise ValueError("TARGETUSER and TARGETPASS must be specified in local.py or as environment variables")
-
-        self.targetlogin = wdi_login.WDLogin(TARGETUSER, TARGETPASS)
-
+    def copyProperties(self, login, wikibase_source, source_schema):
         loader = SchemaLoader()
-        shex = requests.get(schema).text
+        shex = requests.get(source_schema).text
         schema = loader.loads(shex)
-
-
         model = json.loads(schema._as_json_dumps())
         properties = []
         self.extractProperties(model, properties)
@@ -90,8 +80,8 @@ class WikibaseEngine(object):
             if p[len(p) - 1].startswith("P"):
                 print(p[len(p) - 1])
                 page = json.loads(requests.get(
-                    "https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&ids=" + p[len(p) - 1]).text)
-                print(self.createProperty(self.targetlogin, page['entities'][p[len(p) - 1]]["labels"],
+                    wikibase_source+"/w/api.php?action=wbgetentities&format=json&ids=" + p[len(p) - 1]).text)
+                print(self.createProperty(login, page['entities'][p[len(p) - 1]]["labels"],
                                      page['entities'][p[len(p) - 1]]["descriptions"],
                                      page['entities'][p[len(p) - 1]]["datatype"]))
 
