@@ -12,16 +12,18 @@ Authors:
 This file is part of the WikidataIntegrator.
 
 """
-
 __author__ = 'Andra Waagmeester'
 __license__ = 'MIT'
 
-
 class WikibaseEngine(object):
-    def __init__(self, wikibase_url='http://www.wikidata.org'):
+
+    def __init__(self, wikibase_url=''):
+        """
+        constructor
+        :param wikibase_url: The base url of the wikibase being accessed (e.g. for wikidata https://www.wikidata.org
+        """
         self.wikibase_url = wikibase_url
         self.wikibase_api = wikibase_url+"/w/api.php"
-
     @classmethod
     def extractProperties(cls, d, properties):
         for k, v in d.items():
@@ -34,13 +36,10 @@ class WikibaseEngine(object):
             else:
                 if k == "predicate" and v != "label" and v != "description":
                     properties.append(v)
-
-
     def createProperty(self, login, labels, descriptions, property_datatype, languages=["en", "nl"]):
         s = []
         item = wdi_core.WDItemEngine(new_item=True, mediawiki_api_url=self.wikibase_api)
         for language in labels.keys():
-
             if labels[language]["value"] in self.listProperties():
                 return labels[language]["value"] + " allready exists"
             if language in languages:
@@ -55,7 +54,6 @@ class WikibaseEngine(object):
         for namespace in namespaces["query"]["namespaces"].keys():
             if namespaces["query"]["namespaces"][namespace]["name"] == nsName:
                 return namespace
-
 
     def listProperties(self):
         propertyLabels = []
