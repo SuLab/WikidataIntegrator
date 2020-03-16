@@ -1225,7 +1225,8 @@ class WDItemEngine(object):
         df = pd.DataFrame(results)
         return df
 
-
+    def extractEntitySchema(self, instanceOf=""):
+        pass
 
     @staticmethod
     def check_shex_conformance(qid, eid, endpoint="https://query.wikidata.org/sparql", output="confirm"):
