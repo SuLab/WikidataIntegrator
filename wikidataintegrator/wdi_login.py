@@ -6,7 +6,7 @@ from mwoauth import ConsumerToken, Handshaker
 from requests_oauthlib import OAuth1
 from wikidataintegrator.wdi_config import config
 
-from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
+from wikidataintegrator.wdi_backoff import wdi_backoff
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher, Tim Putman, Andra Waagmeester'
 __license__ = 'AGPLv3'
