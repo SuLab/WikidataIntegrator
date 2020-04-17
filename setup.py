@@ -35,6 +35,8 @@ setup(
         'requests',
         'python-dateutil',
         'simplejson',
+        'pandas',
+        'tqdm',
         'mwoauth',
         'oauthlib',
         'sparql_slurper',
