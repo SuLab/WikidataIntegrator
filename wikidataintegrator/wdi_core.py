@@ -18,7 +18,7 @@ import pyshex
 from sparql_slurper import SlurpyGraph
 from ShExJSG import ShExC
 
-from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
+from wikidataintegrator.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_helpers import MappingRelationHelper
