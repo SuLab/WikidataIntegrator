@@ -79,6 +79,10 @@ class FastRunContainer(object):
 
                 f = [x for x in self.base_data_type.__subclasses__() if x.DTYPE ==
                      self.prop_dt_map[prop_nr]][0]
+                if self.prop_dt_map[prop_nr] == 'quantity':
+                    reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
+                                    qualifiers=qualifiers, references=references, unit=d['unit'],
+                                    concept_base_uri=self.concept_base_uri))
                 reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
                                                   qualifiers=qualifiers, references=references))
 
@@ -118,6 +122,8 @@ class FastRunContainer(object):
                 current_value = 'Q{}'.format(current_value)
             elif self.prop_dt_map[prop_nr] == 'globe-coordinate':
                 write_required = True  # temporary workaround for handling globe coordinates
+            elif self.prop_dt_map[prop_nr] == 'quantity':
+                current_value = str('+{}'.format(current_value[0])) if not str(current_value[0]).startswith('+') and float(current_value[0]) > 0 else str(current_value[0])
 
             if self.debug:
                 print(current_value)
@@ -312,10 +318,11 @@ class FastRunContainer(object):
             ref: reference ID
             pr: reference property
             rval: reference value
+            unit: property unit
         """
         prop_dt = self.get_prop_datatype(prop_nr)
         for i in r:
-            for value in {'item', 'sid', 'pq', 'pr', 'ref'}:
+            for value in {'item', 'sid', 'pq', 'pr', 'ref', 'unit'}:
                 if value in i:
                     # these are always URIs for the local wikibase
                     i[value] = i[value]['value'].split('/')[-1]
@@ -335,6 +342,9 @@ class FastRunContainer(object):
             if 'v' in i:
                 if i['v']['type'] == 'uri' and prop_dt == 'wikibase-item':
                     i['v'] = i['v']['value'].split('/')[-1]
+                elif i['v']['type'] == 'literal' and prop_dt == 'quantity':
+                    i['v'] = str('+{}'.format(float(i['v']['value']))) if not str(i['v']['value']).startswith('+') \
+                                                and float(i['v']['value']) > 0 else str(i['v']['value'])
                 else:
                     i['v'] = i['v']['value']
 
@@ -385,6 +395,11 @@ class FastRunContainer(object):
                 if i['ref'] not in self.prop_data[qid][prop_nr][i['sid']]['ref']:
                     self.prop_data[qid][prop_nr][i['sid']]['ref'][i['ref']] = set()
                 self.prop_data[qid][prop_nr][i['sid']]['ref'][i['ref']].add((i['pr'], i['rval']))
+
+            if 'unit' not in self.prop_data[qid][prop_nr][i['sid']]:
+                self.prop_data[qid][prop_nr][i['sid']]['unit'] = '1'
+            if 'unit' in i:
+                self.prop_data[qid][prop_nr][i['sid']]['unit'] = i['unit']
 
     def _query_data_refs(self, prop_nr):
         page_size = 10000
@@ -456,7 +471,7 @@ class FastRunContainer(object):
                 PREFIX p: <{0}/prop/>
                 PREFIX ps: <{0}/prop/statement/>
                 #Tool: wdi_core fastrun
-                select ?item ?qval ?pq ?sid ?v where {{
+                select ?item ?qval ?pq ?sid ?v ?unit where {{
                   {1}
 
                   ?item p:{2} ?sid .
@@ -465,6 +480,10 @@ class FastRunContainer(object):
                   OPTIONAL {{
                     ?sid ?pq ?qval .
                     [] wikibase:qualifier ?pq
+                  }}
+                  OPTIONAL {{
+                    ?sid psv:P46 ?valuenode .
+                    ?valuenode wikibase:quantityUnit ?unit
                   }}
                 }}
                 '''.format(self.wikibase_url, self.base_filter_string, prop_nr)
