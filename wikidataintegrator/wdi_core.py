@@ -1507,6 +1507,14 @@ class WDItemEngine(object):
         SubCls.__name__ = name
         return SubCls
 
+    """A mixin implementing a simple __repr__."""
+    def __repr__(self):
+        return "<{klass} @{id:x} {attrs}>".format(
+            klass=self.__class__.__name__,
+            id=id(self) & 0xFFFFFF,
+            attrs="\r\n\t ".join("{}={!r}".format(k, v) for k, v in self.__dict__.items()),
+            )
+
 
 class JsonParser(object):
     references = []
