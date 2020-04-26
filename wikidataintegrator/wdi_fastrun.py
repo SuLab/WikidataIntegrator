@@ -123,7 +123,7 @@ class FastRunContainer(object):
             elif self.prop_dt_map[prop_nr] == 'globe-coordinate':
                 write_required = True  # temporary workaround for handling globe coordinates
             elif self.prop_dt_map[prop_nr] == 'quantity':
-                current_value = str('+{}'.format(current_value[0])) if not str(current_value[0]).startswith('+') and float(current_value[0]) > 0 else str(current_value[0])
+                current_value = str('+{}'.format(current_value[0])) if not str(current_value[0]).startswith('+') and float(current_value[0]) >= 0 else str(current_value[0])
 
             if self.debug:
                 print(current_value)
@@ -343,7 +343,7 @@ class FastRunContainer(object):
                     i['v'] = i['v']['value'].split('/')[-1]
                 elif i['v']['type'] == 'literal' and prop_dt == 'quantity':
                     i['v'] = str('+{}'.format(float(i['v']['value']))) if not str(i['v']['value']).startswith('+') \
-                                                and float(i['v']['value']) > 0 else str(i['v']['value'])
+                                                and float(i['v']['value']) >= 0 else str(i['v']['value'])
                 else:
                     i['v'] = i['v']['value']
 

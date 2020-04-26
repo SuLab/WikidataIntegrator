@@ -2532,14 +2532,14 @@ class WDQuantity(WDBaseDataType):
         value, unit, upper_bound, lower_bound = v
 
         if value is not None:
-            value = str('+{}'.format(value)) if not str(value).startswith('+') and float(value) > 0 else str(value)
+            value = str('+{}'.format(value)) if not str(value).startswith('+') and float(value) >= 0 else str(value)
             unit = str(unit)
             if upper_bound:
                 upper_bound = str('+{}'.format(upper_bound)) if not str(upper_bound).startswith('+') \
-                                                                and float(upper_bound) > 0 else str(upper_bound)
+                                                                and float(upper_bound) >= 0 else str(upper_bound)
             if lower_bound:
                 lower_bound = str('+{}'.format(lower_bound)) if not str(lower_bound).startswith('+') \
-                                                                and float(lower_bound) > 0 else str(lower_bound)
+                                                                and float(lower_bound) >= 0 else str(lower_bound)
 
             # Integrity checks for value and bounds
             try:
