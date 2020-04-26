@@ -79,8 +79,13 @@ class FastRunContainer(object):
 
                 f = [x for x in self.base_data_type.__subclasses__() if x.DTYPE ==
                      self.prop_dt_map[prop_nr]][0]
-                reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
-                                                  qualifiers=qualifiers, references=references))
+                if self.prop_dt_map[prop_nr] == 'quantity' and d['unit'] != '1':
+                    reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
+                                    qualifiers=qualifiers, references=references, unit=d['unit'],
+                                    concept_base_uri=self.concept_base_uri))
+                else:
+                    reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
+                                    qualifiers=qualifiers, references=references))
 
         # this isn't used. done for debugging purposes
         self.reconstructed_statements = reconstructed_statements
@@ -118,6 +123,8 @@ class FastRunContainer(object):
                 current_value = 'Q{}'.format(current_value)
             elif self.prop_dt_map[prop_nr] == 'globe-coordinate':
                 write_required = True  # temporary workaround for handling globe coordinates
+            elif self.prop_dt_map[prop_nr] == 'quantity':
+                current_value = self.format_amount(current_value[0])
 
             if self.debug:
                 print(current_value)
@@ -127,7 +134,7 @@ class FastRunContainer(object):
                 temp_set = set(self.rev_lookup[current_value])
             else:
                 if self.debug:
-                    print(current_value)
+                    print(self.rev_lookup)
                     print('no matches for rev lookup')
                 return True
             match_sets.append(temp_set)
@@ -311,10 +318,11 @@ class FastRunContainer(object):
             ref: reference ID
             pr: reference property
             rval: reference value
+            unit: property unit
         """
         prop_dt = self.get_prop_datatype(prop_nr)
         for i in r:
-            for value in {'item', 'sid', 'pq', 'pr', 'ref'}:
+            for value in {'item', 'sid', 'pq', 'pr', 'ref', 'unit'}:
                 if value in i:
                     # these are always URIs for the local wikibase
                     i[value] = i[value]['value'].split('/')[-1]
@@ -334,6 +342,8 @@ class FastRunContainer(object):
             if 'v' in i:
                 if i['v']['type'] == 'uri' and prop_dt == 'wikibase-item':
                     i['v'] = i['v']['value'].split('/')[-1]
+                elif i['v']['type'] == 'literal' and prop_dt == 'quantity':
+                    i['v'] = self.format_amount(i['v']['value'])
                 else:
                     i['v'] = i['v']['value']
 
@@ -357,6 +367,18 @@ class FastRunContainer(object):
                     i['rval'] = i['rval']['value'].split('/')[-1]
                 else:
                     i['rval'] = i['rval']['value']
+
+    def format_amount(self, amount):
+        # Remove .0 by casting to int
+        if float(amount) % 1 == 0:
+            amount = int(float(amount))
+
+        # Adding prefix + for positive number and 0
+        if not str(amount).startswith('+') and float(amount) >= 0:
+            amount = str('+{}'.format(amount))
+
+        # return as string
+        return str(amount)
 
     def update_frc_from_query(self, r, prop_nr):
         # r is the output of format_query_results
@@ -384,6 +406,11 @@ class FastRunContainer(object):
                 if i['ref'] not in self.prop_data[qid][prop_nr][i['sid']]['ref']:
                     self.prop_data[qid][prop_nr][i['sid']]['ref'][i['ref']] = set()
                 self.prop_data[qid][prop_nr][i['sid']]['ref'][i['ref']].add((i['pr'], i['rval']))
+
+            if 'unit' not in self.prop_data[qid][prop_nr][i['sid']]:
+                self.prop_data[qid][prop_nr][i['sid']]['unit'] = '1'
+            if 'unit' in i:
+                self.prop_data[qid][prop_nr][i['sid']]['unit'] = i['unit']
 
     def _query_data_refs(self, prop_nr):
         page_size = 10000
@@ -454,8 +481,9 @@ class FastRunContainer(object):
                 PREFIX wdt: <{0}/prop/direct/>
                 PREFIX p: <{0}/prop/>
                 PREFIX ps: <{0}/prop/statement/>
+                PREFIX psv: <{0}/prop/statement/value/>
                 #Tool: wdi_core fastrun
-                select ?item ?qval ?pq ?sid ?v where {{
+                select ?item ?qval ?pq ?sid ?v ?unit where {{
                   {1}
 
                   ?item p:{2} ?sid .
@@ -464,6 +492,10 @@ class FastRunContainer(object):
                   OPTIONAL {{
                     ?sid ?pq ?qval .
                     [] wikibase:qualifier ?pq
+                  }}
+                  OPTIONAL {{
+                    ?sid psv:{2} ?valuenode .
+                    ?valuenode wikibase:quantityUnit ?unit
                   }}
                 }}
                 '''.format(self.wikibase_url, self.base_filter_string, prop_nr)

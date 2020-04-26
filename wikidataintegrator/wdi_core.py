@@ -178,12 +178,11 @@ class WDItemEngine(object):
 
         if self.fast_run:
             self.init_fastrun()
-
-        if not __debug__:
-            if self.require_write and self.fast_run:
-                print('fastrun skipped, because no full data match, updating item...')
-            elif not self.require_write and self.fast_run:
-                print('successful fastrun, no write to Wikidata required')
+            if not __debug__:
+                if self.require_write:
+                    print('fastrun skipped, because no full data match, updating item...')
+                else:
+                    print('successful fastrun, no write to Wikidata required')
 
         if self.wd_item_id != '' and self.create_new_item == True:
             raise IDMissingError('Cannot create a new item, when a wikidata identifier is given')
@@ -2301,7 +2300,7 @@ class WDTime(WDBaseDataType):
         :type precision: int
         :param timezone: The timezone which applies to the date and time as specified in the WD data model
         :type timezone: int
-        :param calendarmodel: The calendar model used for the date. URL to the WD calendar model item.
+        :param calendarmodel: The calendar model used for the date. URL to the WD calendar model item or the QID.
         :type calendarmodel: str
         :param is_reference: Whether this snak is a reference
         :type is_reference: boolean
@@ -2319,7 +2318,7 @@ class WDTime(WDBaseDataType):
 
         calendarmodel = config['CALENDAR_MODEL_QID'] if calendarmodel is None else calendarmodel
         concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
-        
+
         if calendarmodel.startswith('Q'):
             calendarmodel = concept_base_uri + calendarmodel
 
@@ -2499,7 +2498,7 @@ class WDQuantity(WDBaseDataType):
 
     def __init__(self, value, prop_nr, upper_bound=None, lower_bound=None, unit='1', is_reference=False,
                  is_qualifier=False, snak_type='value', references=None, qualifiers=None, rank='normal',
-                 check_qualifier_equality=True):
+                 check_qualifier_equality=True, concept_base_uri=None):
         """
         Constructor, calls the superclass WDBaseDataType
         :param value: The quantity value
@@ -2510,7 +2509,7 @@ class WDQuantity(WDBaseDataType):
         :type upper_bound: float, str
         :param lower_bound: Lower bound of the value if it exists, e.g. for standard deviations
         :type lower_bound: float, str
-        :param unit: The WD unit item URL a certain quantity has been measured
+        :param unit: The WD unit item URL or the QID a certain quantity has been measured
                         in (https://www.wikidata.org/wiki/Wikidata:Units). The default is dimensionless, represented by
                         a '1'
         :type unit: str
@@ -2527,6 +2526,11 @@ class WDQuantity(WDBaseDataType):
         :type rank: str
         """
 
+        concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
+
+        if unit.startswith('Q'):
+            unit = concept_base_uri + unit
+
         v = (value, unit, upper_bound, lower_bound)
 
         super(WDQuantity, self).__init__(value=v, snak_type=snak_type, data_type=self.DTYPE,
@@ -2540,14 +2544,12 @@ class WDQuantity(WDBaseDataType):
         value, unit, upper_bound, lower_bound = v
 
         if value is not None:
-            value = str('+{}'.format(value)) if not str(value).startswith('+') and float(value) > 0 else str(value)
+            value = self.format_amount(value)
             unit = str(unit)
             if upper_bound:
-                upper_bound = str('+{}'.format(upper_bound)) if not str(upper_bound).startswith('+') \
-                                                                and float(upper_bound) > 0 else str(upper_bound)
+                upper_bound = self.format_amount(upper_bound)
             if lower_bound:
-                lower_bound = str('+{}'.format(lower_bound)) if not str(lower_bound).startswith('+') \
-                                                                and float(lower_bound) > 0 else str(lower_bound)
+                lower_bound = self.format_amount(lower_bound)
 
             # Integrity checks for value and bounds
             try:
@@ -2597,6 +2599,17 @@ class WDQuantity(WDBaseDataType):
         return cls(value=value['amount'], prop_nr=jsn['property'], upper_bound=upper_bound,
                    lower_bound=lower_bound, unit=value['unit'])
 
+    def format_amount(self, amount):
+        # Remove .0 by casting to int
+        if float(amount) % 1 == 0:
+            amount = int(float(amount))
+
+        # Adding prefix + for positive number and 0
+        if not str(amount).startswith('+') and float(amount) >= 0:
+            amount = str('+{}'.format(amount))
+
+        # return as string
+        return str(amount)
 
 class WDCommonsMedia(WDBaseDataType):
     """
