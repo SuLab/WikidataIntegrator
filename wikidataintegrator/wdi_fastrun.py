@@ -123,7 +123,7 @@ class FastRunContainer(object):
             elif self.prop_dt_map[prop_nr] == 'globe-coordinate':
                 write_required = True  # temporary workaround for handling globe coordinates
             elif self.prop_dt_map[prop_nr] == 'quantity':
-                current_value = str('+{}'.format(current_value[0])) if not str(current_value[0]).startswith('+') and float(current_value[0]) >= 0 else str(current_value[0])
+                current_value = self.format_amount(current_value[0])
 
             if self.debug:
                 print(current_value)
@@ -133,7 +133,7 @@ class FastRunContainer(object):
                 temp_set = set(self.rev_lookup[current_value])
             else:
                 if self.debug:
-                    print(current_value)
+                    print(self.rev_lookup)
                     print('no matches for rev lookup')
                 return True
             match_sets.append(temp_set)
@@ -342,8 +342,7 @@ class FastRunContainer(object):
                 if i['v']['type'] == 'uri' and prop_dt == 'wikibase-item':
                     i['v'] = i['v']['value'].split('/')[-1]
                 elif i['v']['type'] == 'literal' and prop_dt == 'quantity':
-                    i['v'] = str('+{}'.format(float(i['v']['value']))) if not str(i['v']['value']).startswith('+') \
-                                                and float(i['v']['value']) >= 0 else str(i['v']['value'])
+                    i['v'] = self.format_amount(i['v']['value'])
                 else:
                     i['v'] = i['v']['value']
 
@@ -367,6 +366,18 @@ class FastRunContainer(object):
                     i['rval'] = i['rval']['value'].split('/')[-1]
                 else:
                     i['rval'] = i['rval']['value']
+
+    def format_amount(self, amount):
+        # Remove .0 by casting to int
+        if float(amount) % 1 == 0:
+            amount = int(float(amount))
+
+        # Adding prefix + for positive number and 0
+        if not str(amount).startswith('+') and float(amount) >= 0:
+            amount = str('+{}'.format(amount))
+
+        # return as string
+        return str(amount)
 
     def update_frc_from_query(self, r, prop_nr):
         # r is the output of format_query_results

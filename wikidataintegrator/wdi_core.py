@@ -178,12 +178,11 @@ class WDItemEngine(object):
 
         if self.fast_run:
             self.init_fastrun()
-
-        if not __debug__:
-            if self.require_write and self.fast_run:
-                print('fastrun skipped, because no full data match, updating item...')
-            elif not self.require_write and self.fast_run:
-                print('successful fastrun, no write to Wikidata required')
+            if not __debug__:
+                if self.require_write:
+                    print('fastrun skipped, because no full data match, updating item...')
+                else:
+                    print('successful fastrun, no write to Wikidata required')
 
         if self.wd_item_id != '' and self.create_new_item == True:
             raise IDMissingError('Cannot create a new item, when a wikidata identifier is given')
@@ -2532,14 +2531,12 @@ class WDQuantity(WDBaseDataType):
         value, unit, upper_bound, lower_bound = v
 
         if value is not None:
-            value = str('+{}'.format(value)) if not str(value).startswith('+') and float(value) >= 0 else str(value)
+            value = self.format_amount(value)
             unit = str(unit)
             if upper_bound:
-                upper_bound = str('+{}'.format(upper_bound)) if not str(upper_bound).startswith('+') \
-                                                                and float(upper_bound) >= 0 else str(upper_bound)
+                upper_bound = self.format_amount(upper_bound)
             if lower_bound:
-                lower_bound = str('+{}'.format(lower_bound)) if not str(lower_bound).startswith('+') \
-                                                                and float(lower_bound) >= 0 else str(lower_bound)
+                lower_bound = self.format_amount(lower_bound)
 
             # Integrity checks for value and bounds
             try:
@@ -2589,6 +2586,17 @@ class WDQuantity(WDBaseDataType):
         return cls(value=value['amount'], prop_nr=jsn['property'], upper_bound=upper_bound,
                    lower_bound=lower_bound, unit=value['unit'])
 
+    def format_amount(self, amount):
+        # Remove .0 by casting to int
+        if float(amount) % 1 == 0:
+            amount = int(float(amount))
+
+        # Adding prefix + for positive number and 0
+        if not str(amount).startswith('+') and float(amount) >= 0:
+            amount = str('+{}'.format(amount))
+
+        # return as string
+        return str(amount)
 
 class WDCommonsMedia(WDBaseDataType):
     """
