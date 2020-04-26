@@ -2292,7 +2292,7 @@ class WDTime(WDBaseDataType):
         :type precision: int
         :param timezone: The timezone which applies to the date and time as specified in the WD data model
         :type timezone: int
-        :param calendarmodel: The calendar model used for the date. URL to the WD calendar model item.
+        :param calendarmodel: The calendar model used for the date. URL to the WD calendar model item or the QID.
         :type calendarmodel: str
         :param is_reference: Whether this snak is a reference
         :type is_reference: boolean
@@ -2310,7 +2310,7 @@ class WDTime(WDBaseDataType):
 
         calendarmodel = config['CALENDAR_MODEL_QID'] if calendarmodel is None else calendarmodel
         concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
-        
+
         if calendarmodel.startswith('Q'):
             calendarmodel = concept_base_uri + calendarmodel
 
@@ -2490,7 +2490,7 @@ class WDQuantity(WDBaseDataType):
 
     def __init__(self, value, prop_nr, upper_bound=None, lower_bound=None, unit='1', is_reference=False,
                  is_qualifier=False, snak_type='value', references=None, qualifiers=None, rank='normal',
-                 check_qualifier_equality=True):
+                 check_qualifier_equality=True, concept_base_uri=None):
         """
         Constructor, calls the superclass WDBaseDataType
         :param value: The quantity value
@@ -2501,7 +2501,7 @@ class WDQuantity(WDBaseDataType):
         :type upper_bound: float, str
         :param lower_bound: Lower bound of the value if it exists, e.g. for standard deviations
         :type lower_bound: float, str
-        :param unit: The WD unit item URL a certain quantity has been measured
+        :param unit: The WD unit item URL or the QID a certain quantity has been measured
                         in (https://www.wikidata.org/wiki/Wikidata:Units). The default is dimensionless, represented by
                         a '1'
         :type unit: str
@@ -2517,6 +2517,11 @@ class WDQuantity(WDBaseDataType):
         :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
         :type rank: str
         """
+
+        concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
+
+        if unit.startswith('Q'):
+            unit = concept_base_uri + unit
 
         v = (value, unit, upper_bound, lower_bound)
 

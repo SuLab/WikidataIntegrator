@@ -79,12 +79,13 @@ class FastRunContainer(object):
 
                 f = [x for x in self.base_data_type.__subclasses__() if x.DTYPE ==
                      self.prop_dt_map[prop_nr]][0]
-                if self.prop_dt_map[prop_nr] == 'quantity':
+                if self.prop_dt_map[prop_nr] == 'quantity' and d['unit'] != '1':
                     reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
                                     qualifiers=qualifiers, references=references, unit=d['unit'],
                                     concept_base_uri=self.concept_base_uri))
-                reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
-                                                  qualifiers=qualifiers, references=references))
+                else:
+                    reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
+                                    qualifiers=qualifiers, references=references))
 
         # this isn't used. done for debugging purposes
         self.reconstructed_statements = reconstructed_statements
@@ -480,6 +481,7 @@ class FastRunContainer(object):
                 PREFIX wdt: <{0}/prop/direct/>
                 PREFIX p: <{0}/prop/>
                 PREFIX ps: <{0}/prop/statement/>
+                PREFIX psv: <{0}/prop/statement/value/>
                 #Tool: wdi_core fastrun
                 select ?item ?qval ?pq ?sid ?v ?unit where {{
                   {1}
@@ -492,7 +494,7 @@ class FastRunContainer(object):
                     [] wikibase:qualifier ?pq
                   }}
                   OPTIONAL {{
-                    ?sid psv:P46 ?valuenode .
+                    ?sid psv:{2} ?valuenode .
                     ?valuenode wikibase:quantityUnit ?unit
                   }}
                 }}
