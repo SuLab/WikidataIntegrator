@@ -3,7 +3,7 @@ from collections import defaultdict
 from functools import lru_cache
 from itertools import chain
 
-from wikibaseintegrator.wdi_config import config
+from wikidataintegrator.wdi_config import config
 
 example_Q14911732 = {'P1057':
                          {'Q14911732-23F268EB-2848-4A82-A248-CF4DF6B256BC':
