@@ -1452,6 +1452,24 @@ class WDItemEngine(object):
 
             print(r.json())
 
+    @staticmethod
+    def delete_statement(statement_id, revision, login, mediawiki_api_url='https://www.wikidata.org/w/api.php',
+                         user_agent=config['USER_AGENT_DEFAULT']):
+        params = {
+            'action': 'wbremoveclaims',
+            'claim': statement_id,
+            'token': login.get_edit_token(),
+            'baserevid': revision,
+            'bot': True
+        }
+
+        headers = {
+            'User-Agent': user_agent
+        }
+        r = requests.post(url=mediawiki_api_url, data=params, cookies=login.get_edit_cookie(), headers=headers)
+
+        print(r.json())
+
     @classmethod
     def wikibase_item_engine_factory(cls, mediawiki_api_url, sparql_endpoint_url, name='LocalItemEngine'):
         """
