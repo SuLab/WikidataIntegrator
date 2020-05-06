@@ -4,7 +4,6 @@ requests
 pandas
 python-dateutil
 requests_oauthlib
-tqdm
 jsonasobj
 sparql_slurper
 ShExJSG
@@ -13,3 +12,4 @@ oauthlib
 pyshexc
 pyshex
 tqdm
+backoff

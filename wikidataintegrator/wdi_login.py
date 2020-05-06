@@ -6,7 +6,7 @@ from mwoauth import ConsumerToken, Handshaker
 from requests_oauthlib import OAuth1
 from wikidataintegrator.wdi_config import config
 
-from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
+from wikidataintegrator.wdi_backoff import wdi_backoff
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher, Tim Putman, Andra Waagmeester'
 __license__ = 'AGPLv3'
@@ -22,7 +22,7 @@ class WDLogin(object):
     """
 
     @wdi_backoff()
-    def __init__(self, user=None, pwd=None, mediawiki_api_url='https://www.wikidata.org/w/api.php',
+    def __init__(self, user=None, pwd=None, mediawiki_api_url=None,
                  token_renew_period=1800, use_clientlogin=False,
                  consumer_key=None, consumer_secret=None, callback_url='oob', user_agent=None):
         """
@@ -45,6 +45,10 @@ class WDLogin(object):
         :type user_agent: str
         :return: None
         """
+
+        if mediawiki_api_url is None:
+            mediawiki_api_url = config['MEDIAWIKI_API_URL']
+
         self.base_url = mediawiki_api_url
         print(self.base_url)
         self.s = requests.Session()

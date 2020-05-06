@@ -8,7 +8,7 @@ from functools import partial
 
 import requests
 
-from wikidataintegrator.backoff import backoff
+import backoff
 from wikidataintegrator.wdi_config import config
 
 

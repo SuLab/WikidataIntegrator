@@ -18,7 +18,7 @@ import pyshex
 from sparql_slurper import SlurpyGraph
 from ShExJSG import ShExC
 
-from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
+from wikidataintegrator.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_helpers import MappingRelationHelper
@@ -51,14 +51,15 @@ class WDItemEngine(object):
     logger = None
 
     def __init__(self, wd_item_id='', new_item=False, data=None,
-                 mediawiki_api_url='https://www.wikidata.org/w/api.php',
-                 sparql_endpoint_url='https://query.wikidata.org/sparql',
-                 wikibase_url='http://www.wikidata.org',
+                 mediawiki_api_url=None,
+                 sparql_endpoint_url=None,
+                 wikibase_url=None,
+                 concept_base_uri=None,
                  append_value=None, fast_run=False, fast_run_base_filter=None, fast_run_use_refs=False,
                  ref_handler=None, global_ref_mode='KEEP_GOOD', good_refs=None, keep_good_ref_statements=False,
-                 search_only=False, item_data=None, user_agent=config['USER_AGENT_DEFAULT'],
-                 core_props=None, core_prop_match_thresh=0.66, property_constraint_pid='P2302',
-                 distinct_values_constraint_qid='Q21502410'):
+                 search_only=False, item_data=None, user_agent=None,
+                 core_props=None, core_prop_match_thresh=0.66, property_constraint_pid=None,
+                 distinct_values_constraint_qid=None):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -129,11 +130,12 @@ class WDItemEngine(object):
         self.core_prop_match_thresh = core_prop_match_thresh
         self.wd_item_id = wd_item_id
         self.new_item = new_item
-        self.mediawiki_api_url = mediawiki_api_url
-        self.sparql_endpoint_url = sparql_endpoint_url
-        self.wikibase_url = wikibase_url
-        self.property_constraint_pid = property_constraint_pid
-        self.distinct_values_constraint_qid = distinct_values_constraint_qid
+        self.mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+        self.sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
+        self.wikibase_url = config['WIKIBASE_URL'] if wikibase_url is None else wikibase_url
+        self.concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
+        self.property_constraint_pid = config['PROPERTY_CONSTRAINT_PID'] if property_constraint_pid is None else property_constraint_pid
+        self.distinct_values_constraint_qid = config['DISTINCT_VALUES_CONSTRAINT_QID'] if distinct_values_constraint_qid is None else distinct_values_constraint_qid
         self.data = [] if data is None else data
         self.append_value = [] if append_value is None else append_value
         self.fast_run = fast_run
@@ -145,7 +147,7 @@ class WDItemEngine(object):
         self.keep_good_ref_statements = keep_good_ref_statements
         self.search_only = search_only
         self.item_data = item_data
-        self.user_agent = user_agent
+        self.user_agent = config['USER_AGENT_DEFAULT'] if user_agent is None else user_agent
 
         self.create_new_item = False
         self.wd_json_representation = {}
@@ -176,12 +178,11 @@ class WDItemEngine(object):
 
         if self.fast_run:
             self.init_fastrun()
-
-        if not __debug__:
-            if self.require_write and self.fast_run:
-                print('fastrun skipped, because no full data match, updating item...')
-            elif not self.require_write and self.fast_run:
-                print('successful fastrun, no write to Wikidata required')
+            if not __debug__:
+                if self.require_write:
+                    print('fastrun skipped, because no full data match, updating item...')
+                else:
+                    print('successful fastrun, no write to Wikidata required')
 
         if self.wd_item_id != '' and self.create_new_item == True:
             raise IDMissingError('Cannot create a new item, when a wikidata identifier is given')
@@ -194,13 +195,19 @@ class WDItemEngine(object):
             self.init_data_load()
 
     @classmethod
-    def get_distinct_value_props(cls, sparql_endpoint_url='https://query.wikidata.org/sparql', wikibase_url='http://www.wikidata.org', property_constraint_pid='P2302', distinct_values_constraint_qid='Q21502410'):
+    def get_distinct_value_props(cls, sparql_endpoint_url=None, wikibase_url=None, property_constraint_pid=None, distinct_values_constraint_qid=None):
         """
         On wikidata, the default core IDs will be the properties with a distinct values constraint
         select ?p where {?p wdt:P2302 wd:Q21502410}
         See: https://www.wikidata.org/wiki/Help:Property_constraints_portal
         https://www.wikidata.org/wiki/Help:Property_constraints_portal/Unique_value
         """
+
+        sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
+        wikibase_url = config['WIKIBASE_URL'] if wikibase_url is None else wikibase_url
+        property_constraint_pid = config['PROPERTY_CONSTRAINT_PID'] if property_constraint_pid is None else property_constraint_pid
+        distinct_values_constraint_qid = config['DISTINCT_VALUES_CONSTRAINT_QID'] if distinct_values_constraint_qid is None else distinct_values_constraint_qid
+
         pcpid = property_constraint_pid
         dvcqid = distinct_values_constraint_qid
 
@@ -257,6 +264,7 @@ class WDItemEngine(object):
                                                        sparql_endpoint_url=self.sparql_endpoint_url,
                                                        mediawiki_api_url=self.mediawiki_api_url,
                                                        wikibase_url=self.wikibase_url,
+                                                       concept_base_uri=self.concept_base_uri,
                                                        use_refs=self.fast_run_use_refs,
                                                        ref_handler=self.ref_handler)
             WDItemEngine.fast_run_store.append(self.fast_run_container)
@@ -312,8 +320,8 @@ class WDItemEngine(object):
         return wd_data
 
     @staticmethod
-    def get_wd_search_results(search_string='', mediawiki_api_url='https://www.wikidata.org/w/api.php',
-                              user_agent=config['USER_AGENT_DEFAULT'],
+    def get_wd_search_results(search_string='', mediawiki_api_url=None,
+                              user_agent=None,
                               max_results=500, language='en'):
         """
         Performs a search in WD for a certain WD search string
@@ -329,6 +337,10 @@ class WDItemEngine(object):
         :type language: str
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         """
+
+        mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+        user_agent = config['USER_AGENT_DEFAULT'] if user_agent is None else user_agent
+
         params = {
             'action': 'wbsearchentities',
             'language': language,
@@ -966,7 +978,7 @@ class WDItemEngine(object):
         return self.wd_item_id
 
     @staticmethod
-    def mediawiki_api_call(method, mediawiki_api_url='https://www.wikidata.org/w/api.php',
+    def mediawiki_api_call(method, mediawiki_api_url=None,
                            session=None, max_retries=1000, retry_after=60, **kwargs):
         """
         :param method: 'GET' or 'POST'
@@ -980,6 +992,9 @@ class WDItemEngine(object):
         :param kwargs: Passed to requests.request
         :return:
         """
+
+        mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+
         response = None
         session = session if session else requests.session()
         for n in range(max_retries):
@@ -1108,8 +1123,8 @@ class WDItemEngine(object):
         cls.logger.log(level=log_levels[level], msg=message)
 
     @classmethod
-    def generate_item_instances(cls, items, mediawiki_api_url='https://www.wikidata.org/w/api.php', login=None,
-                                user_agent=config['USER_AGENT_DEFAULT']):
+    def generate_item_instances(cls, items, mediawiki_api_url=None, login=None,
+                                user_agent=None):
         """
         A method which allows for retrieval of a list of Wikidata items or properties. The method generates a list of
         tuples where the first value in the tuple is the QID or property ID, whereas the second is the new instance of
@@ -1124,6 +1139,10 @@ class WDItemEngine(object):
         :return: A list of tuples, first value in the tuple is the QID or property ID string, second value is the
             instance of WDItemEngine with the corresponding item data.
         """
+
+        mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+        user_agent = config['USER_AGENT_DEFAULT'] if user_agent is None else user_agent
+
         assert type(items) == list
 
         url = mediawiki_api_url
@@ -1151,8 +1170,8 @@ class WDItemEngine(object):
 
     @staticmethod
     @wdi_backoff()
-    def execute_sparql_query(query, prefix=None, endpoint='https://query.wikidata.org/sparql',
-                             user_agent=config['USER_AGENT_DEFAULT'], as_dataframe=False, max_retries=1000, retry_after=60):
+    def execute_sparql_query(query, prefix=None, endpoint=None,
+                             user_agent=None, as_dataframe=False, max_retries=1000, retry_after=60):
         """
         Static method which can be used to execute any SPARQL query
         :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
@@ -1166,8 +1185,8 @@ class WDItemEngine(object):
         :return: The results of the query are returned in JSON format
         """
 
-        if not endpoint:
-            endpoint = 'https://query.wikidata.org/sparql'
+        sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if endpoint is None else endpoint
+        user_agent = config['USER_AGENT_DEFAULT'] if user_agent is None else user_agent
 
         if prefix:
             query = prefix + '\n' + query
@@ -1185,7 +1204,7 @@ class WDItemEngine(object):
 
         for n in range(max_retries):
             try:
-                response = requests.post(endpoint, params=params, headers=headers)
+                response = requests.post(sparql_endpoint_url, params=params, headers=headers)
             except requests.exceptions.ConnectionError as e:
                 print("Connection error: {}. Sleeping for {} seconds.".format(e, retry_after))
                 time.sleep(retry_after)
@@ -1228,16 +1247,19 @@ class WDItemEngine(object):
 
 
     @staticmethod
-    def check_shex_conformance(qid, eid, endpoint="https://query.wikidata.org/sparql", output="confirm"):
+    def check_shex_conformance(qid, eid, sparql_endpoint_url=None, output='confirm'):
         """
                 Static method which can be used to execute any SPARQL query
                 :param qid: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
                 :param eid: The EntitySchema identifier from Wikidata
-                :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
+                :param sparql_endpoint_url: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
                 :param output: results of a test of conformance on a given shape expression
                 :return: The results of the query are returned in string format
         """
-        slurpeddata = SlurpyGraph(endpoint)
+
+        sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
+
+        slurpeddata = SlurpyGraph(sparql_endpoint_url)
         schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText/"+eid).text
         for p, o in slurpeddata.predicate_objects(qid):
             pass
@@ -1292,21 +1314,24 @@ class WDItemEngine(object):
         return manifest_results
 
     @staticmethod
-    def get_linked_by(qid, mediawiki_api_url='https://www.wikidata.org/w/api.php'):
+    def get_linked_by(qid, mediawiki_api_url=None):
         """
             :param qid: Wikidata identifier to which other wikidata items link
             :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
             :return:
         """
+
+        mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+
         linkedby = []
         whatlinkshere = json.loads(requests.get(
-            "https://www.wikidata.org/w/api.php?action=query&list=backlinks&format=json&bllimit=500&bltitle=" + qid).text)
+            mediawiki_api_url + "?action=query&list=backlinks&format=json&bllimit=500&bltitle=" + qid).text)
         for link in whatlinkshere["query"]["backlinks"]:
             if link["title"].startswith("Q"):
                 linkedby.append(link["title"])
         while 'continue' in whatlinkshere.keys():
             whatlinkshere = json.loads(requests.get(
-                "https://www.wikidata.org/w/api.php?action=query&list=backlinks&blcontinue=" +
+                mediawiki_api_url + "?action=query&list=backlinks&blcontinue=" +
                 whatlinkshere['continue']['blcontinue'] + "&format=json&bllimit=50&bltitle=" + "Q42").text)
             for link in whatlinkshere["query"]["backlinks"]:
                 if link["title"].startswith("Q"):
@@ -1314,20 +1339,23 @@ class WDItemEngine(object):
         return (linkedby)
 
     @staticmethod
-    def get_rdf(qid, format="turtle"):
+    def get_rdf(qid, format="turtle", mediawiki_api_url=None):
         """
             :param qid: Wikidata identifier to which other wikidata items link
             :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
             :return:
         """
+
+        mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+
         localcopy = Graph()
-        localcopy.parse("https://www.wikidata.org/w/api.php?action=query&prop=links&titles="+qid)
+        localcopy.parse(mediawiki_api_url + "?action=query&prop=links&titles="+qid)
         return (localcopy.serialize(format=format))
 
 
     @staticmethod
-    def merge_items(from_id, to_id, login_obj, mediawiki_api_url='https://www.wikidata.org/w/api.php',
-                    ignore_conflicts='', user_agent=config['USER_AGENT_DEFAULT']):
+    def merge_items(from_id, to_id, login_obj, mediawiki_api_url=None,
+                    ignore_conflicts='', user_agent=None):
         """
         A static method to merge two Wikidata items
         :param from_id: The QID which should be merged into another item
@@ -1342,7 +1370,9 @@ class WDItemEngine(object):
                 by a pipe ('|') if using more than one of those.
         :type ignore_conflicts: str
         """
-        url = mediawiki_api_url
+
+        url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+        user_agent = config['USER_AGENT_DEFAULT'] if user_agent is None else user_agent
 
         headers = {
             'content-type': 'application/x-www-form-urlencoded',
@@ -1400,8 +1430,7 @@ class WDItemEngine(object):
                 cls.databases[db_qid].append(x['wd_prop']['value'].split('/')[-1])
 
     @staticmethod
-    def delete_items(item_list, reason, login, mediawiki_api_url='https://www.wikidata.org/w/api.php',
-                     user_agent=config['USER_AGENT_DEFAULT']):
+    def delete_items(item_list, reason, login, mediawiki_api_url=None, user_agent=None):
         """
         Takes a list of items and posts them for deletion by Wikidata moderators, appends at the end of the deletion
         request page.
@@ -1413,7 +1442,9 @@ class WDItemEngine(object):
         :type login: wdi_login.WDLogin
         """
 
-        url = mediawiki_api_url
+        url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+        user_agent = config['USER_AGENT_DEFAULT'] if user_agent is None else user_agent
+
         bulk_deletion_string = '\n==Bulk deletion request==\n'
         bulk_deletion_string += '{{{{subst:Rfd group | {0} | reason = {1} }}}}'.format(' | '.join(item_list), reason)
 
@@ -1471,7 +1502,7 @@ class WDItemEngine(object):
         print(r.json())
 
     @classmethod
-    def wikibase_item_engine_factory(cls, mediawiki_api_url, sparql_endpoint_url, name='LocalItemEngine'):
+    def wikibase_item_engine_factory(cls, mediawiki_api_url=config['MEDIAWIKI_API_URL'], sparql_endpoint_url=config['SPARQL_ENDPOINT_URL'], name='LocalItemEngine'):
         """
         Helper function for creating a WDItemEngine class with arguments set for a different Wikibase instance than
         Wikidata.
@@ -1481,6 +1512,9 @@ class WDItemEngine(object):
         :return: a subclass of WDItemEngine with the mediawiki_api_url and sparql_endpoint_url arguments set
         """
 
+        mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+        sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
+
         class SubCls(cls):
             def __init__(self, *args, **kwargs):
                 kwargs['mediawiki_api_url'] = mediawiki_api_url
@@ -1489,6 +1523,14 @@ class WDItemEngine(object):
 
         SubCls.__name__ = name
         return SubCls
+
+    """A mixin implementing a simple __repr__."""
+    def __repr__(self):
+        return "<{klass} @{id:x} {attrs}>".format(
+            klass=self.__class__.__name__,
+            id=id(self) & 0xFFFFFF,
+            attrs="\r\n\t ".join("{}={!r}".format(k, v) for k, v in self.__dict__.items()),
+            )
 
 
 class JsonParser(object):
@@ -1920,6 +1962,14 @@ class WDBaseDataType(object):
         else:
             return False
 
+    """A mixin implementing a simple __repr__."""
+    def __repr__(self):
+        return "<{klass} @{id:x} {attrs}>".format(
+            klass=self.__class__.__name__,
+            id=id(self) & 0xFFFFFF,
+            attrs=" ".join("{}={!r}".format(k, v) for k, v in self.__dict__.items()),
+            )
+
 
 class WDString(WDBaseDataType):
     """
@@ -2255,9 +2305,9 @@ class WDTime(WDBaseDataType):
     """
     DTYPE = 'time'
 
-    def __init__(self, time, prop_nr, precision=11, timezone=0, calendarmodel='http://www.wikidata.org/entity/Q1985727',
-                 is_reference=False, is_qualifier=False, snak_type='value', references=None, qualifiers=None,
-                 rank='normal', check_qualifier_equality=True):
+    def __init__(self, time, prop_nr, precision=11, timezone=0, calendarmodel=None,
+                 concept_base_uri=None, is_reference=False, is_qualifier=False, snak_type='value',
+                 references=None, qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
         :param time: A time representation string in the following format: '+%Y-%m-%dT%H:%M:%SZ'
@@ -2268,7 +2318,7 @@ class WDTime(WDBaseDataType):
         :type precision: int
         :param timezone: The timezone which applies to the date and time as specified in the WD data model
         :type timezone: int
-        :param calendarmodel: The calendar model used for the date. URL to the WD calendar model item.
+        :param calendarmodel: The calendar model used for the date. URL to the WD calendar model item or the QID.
         :type calendarmodel: str
         :param is_reference: Whether this snak is a reference
         :type is_reference: boolean
@@ -2283,6 +2333,12 @@ class WDTime(WDBaseDataType):
         :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
         :type rank: str
         """
+
+        calendarmodel = config['CALENDAR_MODEL_QID'] if calendarmodel is None else calendarmodel
+        concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
+
+        if calendarmodel.startswith('Q'):
+            calendarmodel = concept_base_uri + calendarmodel
 
         # the value is composed of what is requried to define the WD time object
         value = (time, timezone, precision, calendarmodel)
@@ -2460,7 +2516,7 @@ class WDQuantity(WDBaseDataType):
 
     def __init__(self, value, prop_nr, upper_bound=None, lower_bound=None, unit='1', is_reference=False,
                  is_qualifier=False, snak_type='value', references=None, qualifiers=None, rank='normal',
-                 check_qualifier_equality=True):
+                 check_qualifier_equality=True, concept_base_uri=None):
         """
         Constructor, calls the superclass WDBaseDataType
         :param value: The quantity value
@@ -2471,7 +2527,7 @@ class WDQuantity(WDBaseDataType):
         :type upper_bound: float, str
         :param lower_bound: Lower bound of the value if it exists, e.g. for standard deviations
         :type lower_bound: float, str
-        :param unit: The WD unit item URL a certain quantity has been measured
+        :param unit: The WD unit item URL or the QID a certain quantity has been measured
                         in (https://www.wikidata.org/wiki/Wikidata:Units). The default is dimensionless, represented by
                         a '1'
         :type unit: str
@@ -2488,6 +2544,11 @@ class WDQuantity(WDBaseDataType):
         :type rank: str
         """
 
+        concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
+
+        if unit.startswith('Q'):
+            unit = concept_base_uri + unit
+
         v = (value, unit, upper_bound, lower_bound)
 
         super(WDQuantity, self).__init__(value=v, snak_type=snak_type, data_type=self.DTYPE,
@@ -2501,14 +2562,12 @@ class WDQuantity(WDBaseDataType):
         value, unit, upper_bound, lower_bound = v
 
         if value is not None:
-            value = str('+{}'.format(value)) if not str(value).startswith('+') and float(value) > 0 else str(value)
+            value = self.format_amount(value)
             unit = str(unit)
             if upper_bound:
-                upper_bound = str('+{}'.format(upper_bound)) if not str(upper_bound).startswith('+') \
-                                                                and float(upper_bound) > 0 else str(upper_bound)
+                upper_bound = self.format_amount(upper_bound)
             if lower_bound:
-                lower_bound = str('+{}'.format(lower_bound)) if not str(lower_bound).startswith('+') \
-                                                                and float(lower_bound) > 0 else str(lower_bound)
+                lower_bound = self.format_amount(lower_bound)
 
             # Integrity checks for value and bounds
             try:
@@ -2558,6 +2617,17 @@ class WDQuantity(WDBaseDataType):
         return cls(value=value['amount'], prop_nr=jsn['property'], upper_bound=upper_bound,
                    lower_bound=lower_bound, unit=value['unit'])
 
+    def format_amount(self, amount):
+        # Remove .0 by casting to int
+        if float(amount) % 1 == 0:
+            amount = int(float(amount))
+
+        # Adding prefix + for positive number and 0
+        if not str(amount).startswith('+') and float(amount) >= 0:
+            amount = str('+{}'.format(amount))
+
+        # return as string
+        return str(amount)
 
 class WDCommonsMedia(WDBaseDataType):
     """
@@ -2617,8 +2687,8 @@ class WDGlobeCoordinate(WDBaseDataType):
     """
     DTYPE = 'globe-coordinate'
 
-    def __init__(self, latitude, longitude, precision, prop_nr, globe='http://www.wikidata.org/entity/Q2',
-                 is_reference=False, is_qualifier=False,
+    def __init__(self, latitude, longitude, precision, prop_nr, globe=None,
+                 concept_base_uri=None, is_reference=False, is_qualifier=False,
                  snak_type='value', references=None, qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
@@ -2643,10 +2713,14 @@ class WDGlobeCoordinate(WDBaseDataType):
         :param rank: WD rank of a snak with value 'preferred', 'normal' or 'deprecated'
         :type rank: str
         """
+
+        globe = config['COORDINATE_GLOBE_QID'] if globe is None else globe
+        concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
+
         # TODO: implement globe parameter, so it becomes clear which globe the coordinates are referring to
         value = (latitude, longitude, precision)
         self.latitude, self.longitude, self.precision = value
-        self.globe = globe
+        self.globe = concept_base_uri + globe
 
         super(WDGlobeCoordinate, self) \
             .__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
