@@ -1493,13 +1493,10 @@ class WDItemEngine(object):
             'baserevid': revision,
             'bot': True
         }
-
         headers = {
             'User-Agent': user_agent
         }
         r = requests.post(url=mediawiki_api_url, data=params, cookies=login.get_edit_cookie(), headers=headers)
-
-        print(r.json())
 
     @classmethod
     def wikibase_item_engine_factory(cls, mediawiki_api_url=config['MEDIAWIKI_API_URL'], sparql_endpoint_url=config['SPARQL_ENDPOINT_URL'], name='LocalItemEngine'):
