@@ -321,8 +321,8 @@ class WDItemEngine(object):
 
     @staticmethod
     def get_wd_search_results(search_string='', mediawiki_api_url=None,
-                              user_agent=None,
-                              max_results=500, language='en'):
+                              user_agent=None, max_results=500,
+                              language='en', dict_id_label=False):
         """
         Performs a search in WD for a certain WD search string
         :param search_string: a string which should be searched for in WD
@@ -336,6 +336,8 @@ class WDItemEngine(object):
         :param language: The language in which to perform the search. Default 'en'
         :type language: str
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
+        :type dict_id_label: boolean
+        :return: function return a list with a dict of id and label
         """
 
         mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
@@ -354,8 +356,7 @@ class WDItemEngine(object):
         }
 
         cont_count = 1
-        id_list = []
-        id_labels = []
+        results = []
 
         while cont_count > 0:
             params.update({'continue': 0 if cont_count == 1 else cont_count})
@@ -368,8 +369,10 @@ class WDItemEngine(object):
                 raise WDSearchError('WD search failed')
             else:
                 for i in search_results['search']:
-                    id_list.append(i['id'])
-                    id_labels.append(i['label'])
+                    if dict_id_label:
+                        results.append({'id':i['id'],'label':i['label']})
+                    else:
+                        results.append(i['id'])
 
             if 'search-continue' not in search_results:
                 cont_count = 0
@@ -379,7 +382,7 @@ class WDItemEngine(object):
             if cont_count > max_results:
                 break
 
-        return id_list
+        return results
 
     def get_property_list(self):
         """
