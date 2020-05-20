@@ -1,10 +1,12 @@
-import unittest
-import requests
 import sys
+import unittest
+
+import requests
 
 from wikidataintegrator import wdi_login
 from wikidataintegrator.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_config import config
+
 pyv = sys.version_info.major
 if pyv == 3:
     import json

@@ -5,16 +5,6 @@ from itertools import chain
 
 from wikidataintegrator.wdi_config import config
 
-example_Q14911732 = {'P1057':
-                         {'Q14911732-23F268EB-2848-4A82-A248-CF4DF6B256BC':
-                              {'v': 'Q847102',
-                               'ref': {'9d96507726508344ef1b8f59092fb350171b3d99':
-                                           {('P248', 'Q29458763'), ('P594', 'ENSG00000123374')}},
-                               'qual': {('P659', 'Q21067546'), ('P659', 'Q20966585')},
-                               }
-                          }
-                     }
-
 
 class FastRunContainer(object):
     def __init__(self, base_data_type, engine, mediawiki_api_url=None, sparql_endpoint_url=None,
@@ -80,12 +70,12 @@ class FastRunContainer(object):
                 f = [x for x in self.base_data_type.__subclasses__() if x.DTYPE ==
                      self.prop_dt_map[prop_nr]][0]
                 if self.prop_dt_map[prop_nr] == 'quantity' and d['unit'] != '1':
-                    reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
-                                    qualifiers=qualifiers, references=references, unit=d['unit'],
-                                    concept_base_uri=self.concept_base_uri))
+                    reconstructed_statements.append(f(d['v'], prop_nr=prop_nr, qualifiers=qualifiers,
+                                                      references=references, unit=d['unit'],
+                                                      concept_base_uri=self.concept_base_uri))
                 else:
-                    reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
-                                    qualifiers=qualifiers, references=references))
+                    reconstructed_statements.append(f(d['v'], prop_nr=prop_nr, qualifiers=qualifiers,
+                                                      references=references))
 
         # this isn't used. done for debugging purposes
         self.reconstructed_statements = reconstructed_statements
@@ -266,8 +256,11 @@ class FastRunContainer(object):
         """
         get language data for specified qid
         :param qid:
+        :type qid: string
         :param lang: language code
+        :type lang: string
         :param lang_data_type: 'label', 'description' or 'aliases'
+        :type lang_data_type: string
         :return: list of strings
         If nothing is found:
             If lang_data_type == label: returns ['']
@@ -285,6 +278,7 @@ class FastRunContainer(object):
     def check_language_data(self, qid, lang_data, lang, lang_data_type):
         """
         Method to check if certain language data exists as a label, description or aliases
+        :param qid:
         :param lang_data: list of string values to check
         :type lang_data: list
         :param lang: language code
@@ -296,7 +290,7 @@ class FastRunContainer(object):
 
         for s in lang_data:
             if s.strip().lower() not in all_lang_strings:
-                print('fastrun failed at label: {}, string: {}'.format(lang_data_type, s))
+                print('fastrun failed at {}, string: {}'.format(lang_data_type, s))
                 return True
 
         return False
@@ -368,7 +362,8 @@ class FastRunContainer(object):
                 else:
                     i['rval'] = i['rval']['value']
 
-    def format_amount(self, amount):
+    @staticmethod
+    def format_amount(amount):
         # Remove .0 by casting to int
         if float(amount) % 1 == 0:
             amount = int(float(amount))

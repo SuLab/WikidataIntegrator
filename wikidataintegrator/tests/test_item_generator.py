@@ -1,7 +1,7 @@
-import unittest
 import pprint
-import sys
-from wikidataintegrator import wdi_core, wdi_fastrun, wdi_login
+import unittest
+
+from wikidataintegrator import wdi_core
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
 __license__ = 'AGPLv3'

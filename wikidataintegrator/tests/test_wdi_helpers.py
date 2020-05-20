@@ -16,6 +16,7 @@ def test_get_pmc_item():
     qid, _, _ = PublicationHelper("3425984", id_type='pmcid', source="europepmc").get_or_create(None)
     assert qid == "Q42758027"
 
+
 def test_pubmedstub_bad_pmid():
     # invalid pubmed id
     qid, _, _ = PublicationHelper("999999999", id_type='pmid', source='europepmc').get_or_create(login='fake login')

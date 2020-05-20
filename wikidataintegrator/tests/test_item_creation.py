@@ -1,7 +1,7 @@
 import unittest
-import sys
 
-from .. import wdi_core
+from wikidataintegrator import wdi_core
+
 
 class TestItemCreation(unittest.TestCase):
     def test_new_item_creation(self):

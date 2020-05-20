@@ -1,29 +1,25 @@
 import copy
 import datetime
+import json
 import logging
 import os
 import re
 import time
+import warnings
 from collections import defaultdict
 from typing import List
-import warnings
 
 import pandas as pd
 import requests
-import json
-
-from rdflib import Graph
-from pyshex import ShExEvaluator
-import pyshex
-from sparql_slurper import SlurpyGraph
 from ShExJSG import ShExC
+from pyshex import ShExEvaluator
+from rdflib import Graph
+from sparql_slurper import SlurpyGraph
 
 from wikidataintegrator.wdi_backoff import wdi_backoff
-from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_config import config
+from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_helpers import MappingRelationHelper
-from wikidataintegrator.wdi_helpers import WikibaseHelper
-import sys
 
 """
 Authors:
@@ -134,8 +130,10 @@ class WDItemEngine(object):
         self.sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
         self.wikibase_url = config['WIKIBASE_URL'] if wikibase_url is None else wikibase_url
         self.concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
-        self.property_constraint_pid = config['PROPERTY_CONSTRAINT_PID'] if property_constraint_pid is None else property_constraint_pid
-        self.distinct_values_constraint_qid = config['DISTINCT_VALUES_CONSTRAINT_QID'] if distinct_values_constraint_qid is None else distinct_values_constraint_qid
+        self.property_constraint_pid = config[
+            'PROPERTY_CONSTRAINT_PID'] if property_constraint_pid is None else property_constraint_pid
+        self.distinct_values_constraint_qid = config[
+            'DISTINCT_VALUES_CONSTRAINT_QID'] if distinct_values_constraint_qid is None else distinct_values_constraint_qid
         self.data = [] if data is None else data
         self.append_value = [] if append_value is None else append_value
         self.fast_run = fast_run
@@ -165,7 +163,8 @@ class WDItemEngine(object):
             raise ValueError("If using a custom ref mode, ref_handler must be set")
 
         if (core_props is None) and (self.sparql_endpoint_url not in self.DISTINCT_VALUE_PROPS):
-            self.get_distinct_value_props(self.sparql_endpoint_url, self.wikibase_url, self.property_constraint_pid, self.distinct_values_constraint_qid)
+            self.get_distinct_value_props(self.sparql_endpoint_url, self.wikibase_url, self.property_constraint_pid,
+                                          self.distinct_values_constraint_qid)
         self.core_props = core_props if core_props is not None else self.DISTINCT_VALUE_PROPS[self.sparql_endpoint_url]
 
         try:
@@ -195,7 +194,8 @@ class WDItemEngine(object):
             self.init_data_load()
 
     @classmethod
-    def get_distinct_value_props(cls, sparql_endpoint_url=None, wikibase_url=None, property_constraint_pid=None, distinct_values_constraint_qid=None):
+    def get_distinct_value_props(cls, sparql_endpoint_url=None, wikibase_url=None, property_constraint_pid=None,
+                                 distinct_values_constraint_qid=None):
         """
         On wikidata, the default core IDs will be the properties with a distinct values constraint
         select ?p where {?p wdt:P2302 wd:Q21502410}
@@ -205,8 +205,10 @@ class WDItemEngine(object):
 
         sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
         wikibase_url = config['WIKIBASE_URL'] if wikibase_url is None else wikibase_url
-        property_constraint_pid = config['PROPERTY_CONSTRAINT_PID'] if property_constraint_pid is None else property_constraint_pid
-        distinct_values_constraint_qid = config['DISTINCT_VALUES_CONSTRAINT_QID'] if distinct_values_constraint_qid is None else distinct_values_constraint_qid
+        property_constraint_pid = config[
+            'PROPERTY_CONSTRAINT_PID'] if property_constraint_pid is None else property_constraint_pid
+        distinct_values_constraint_qid = config[
+            'DISTINCT_VALUES_CONSTRAINT_QID'] if distinct_values_constraint_qid is None else distinct_values_constraint_qid
 
         pcpid = property_constraint_pid
         dvcqid = distinct_values_constraint_qid
@@ -222,8 +224,8 @@ class WDItemEngine(object):
         df = cls.execute_sparql_query(query, endpoint=sparql_endpoint_url, as_dataframe=True)
         if df.empty:
             warnings.warn("Warning: No distinct value properties found\n" +
-                  "Please set P2302 and Q21502410 in your wikibase or set `core_props` manually.\n" +
-                  "Continuing with no core_props")
+                          "Please set P2302 and Q21502410 in your wikibase or set `core_props` manually.\n" +
+                          "Continuing with no core_props")
             cls.DISTINCT_VALUE_PROPS[sparql_endpoint_url] = set()
             return None
         df.p = df.p.str.rsplit("/", 1).str[-1]
@@ -370,7 +372,7 @@ class WDItemEngine(object):
             else:
                 for i in search_results['search']:
                     if dict_id_label:
-                        results.append({'id':i['id'],'label':i['label']})
+                        results.append({'id': i['id'], 'label': i['label']})
                     else:
                         results.append(i['id'])
 
@@ -430,7 +432,8 @@ class WDItemEngine(object):
             if wd_property in core_props:
                 tmp_qids = set()
                 # if mrt_pid is "PXXX", this is fine, because the part of the SPARQL query using it is optional
-                query = statement.sparql_query.format(wb_url=self.wikibase_url, mrt_pid=mrt_pid, pid=wd_property, value=data_point.replace("'", r"\'"))
+                query = statement.sparql_query.format(wb_url=self.wikibase_url, mrt_pid=mrt_pid, pid=wd_property,
+                                                      value=data_point.replace("'", r"\'"))
                 results = WDItemEngine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)
 
                 for i in results['results']['bindings']:
@@ -1247,8 +1250,6 @@ class WDItemEngine(object):
         df = pd.DataFrame(results)
         return df
 
-
-
     @staticmethod
     def check_shex_conformance(qid, eid, sparql_endpoint_url=None, output='confirm'):
         """
@@ -1263,7 +1264,7 @@ class WDItemEngine(object):
         sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
 
         slurpeddata = SlurpyGraph(sparql_endpoint_url)
-        schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText/"+eid).text
+        schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText/" + eid).text
         for p, o in slurpeddata.predicate_objects(qid):
             pass
 
@@ -1304,7 +1305,7 @@ class WDItemEngine(object):
                 df = WDItemEngine.execute_sparql_query(sparql_query)
                 for row in df["results"]["bindings"]:
                     wdid = row["item"]["value"]
-                    if wdid not in  manifest_results.keys():
+                    if wdid not in manifest_results.keys():
                         manifest_results[wdid] = dict()
                     slurpeddata = SlurpyGraph(sparql_endpoint)
                     results = evaluator.evaluate(rdf=slurpeddata, focus=wdid, debug=debug)
@@ -1352,9 +1353,8 @@ class WDItemEngine(object):
         mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
 
         localcopy = Graph()
-        localcopy.parse(mediawiki_api_url + "?action=query&prop=links&titles="+qid)
-        return (localcopy.serialize(format=format))
-
+        localcopy.parse(mediawiki_api_url + "?action=query&prop=links&titles=" + qid)
+        return localcopy.serialize(format=format)
 
     @staticmethod
     def merge_items(from_id, to_id, login_obj, mediawiki_api_url=None,
@@ -1503,7 +1503,8 @@ class WDItemEngine(object):
         print(r.json())
 
     @classmethod
-    def wikibase_item_engine_factory(cls, mediawiki_api_url=config['MEDIAWIKI_API_URL'], sparql_endpoint_url=config['SPARQL_ENDPOINT_URL'], name='LocalItemEngine'):
+    def wikibase_item_engine_factory(cls, mediawiki_api_url=config['MEDIAWIKI_API_URL'],
+                                     sparql_endpoint_url=config['SPARQL_ENDPOINT_URL'], name='LocalItemEngine'):
         """
         Helper function for creating a WDItemEngine class with arguments set for a different Wikibase instance than
         Wikidata.
@@ -1525,13 +1526,13 @@ class WDItemEngine(object):
         SubCls.__name__ = name
         return SubCls
 
-    """A mixin implementing a simple __repr__."""
     def __repr__(self):
+        """A mixin implementing a simple __repr__."""
         return "<{klass} @{id:x} {attrs}>".format(
             klass=self.__class__.__name__,
             id=id(self) & 0xFFFFFF,
             attrs="\r\n\t ".join("{}={!r}".format(k, v) for k, v in self.__dict__.items()),
-            )
+        )
 
 
 class JsonParser(object):
@@ -1963,13 +1964,13 @@ class WDBaseDataType(object):
         else:
             return False
 
-    """A mixin implementing a simple __repr__."""
     def __repr__(self):
+        """A mixin implementing a simple __repr__."""
         return "<{klass} @{id:x} {attrs}>".format(
             klass=self.__class__.__name__,
             id=id(self) & 0xFFFFFF,
             attrs=" ".join("{}={!r}".format(k, v) for k, v in self.__dict__.items()),
-            )
+        )
 
 
 class WDString(WDBaseDataType):
@@ -2618,7 +2619,8 @@ class WDQuantity(WDBaseDataType):
         return cls(value=value['amount'], prop_nr=jsn['property'], upper_bound=upper_bound,
                    lower_bound=lower_bound, unit=value['unit'])
 
-    def format_amount(self, amount):
+    @staticmethod
+    def format_amount(amount):
         # Remove .0 by casting to int
         if float(amount) % 1 == 0:
             amount = int(float(amount))
@@ -2629,6 +2631,7 @@ class WDQuantity(WDBaseDataType):
 
         # return as string
         return str(amount)
+
 
 class WDCommonsMedia(WDBaseDataType):
     """

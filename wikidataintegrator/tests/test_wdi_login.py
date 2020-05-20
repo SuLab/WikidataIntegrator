@@ -1,8 +1,9 @@
 from __future__ import print_function
+
+import os
 import sys
 
 from wikidataintegrator import wdi_login
-import os
 
 # look for environment variables. if none set, don't do anything
 WDUSER = os.getenv("WDUSER")

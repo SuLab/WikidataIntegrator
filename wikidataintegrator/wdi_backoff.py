@@ -1,18 +1,15 @@
 """
 Set up backoff module for wikidataintegrator
-
 """
 
 import sys
 from functools import partial
 
-import requests
-
 import backoff
-from wikidataintegrator.wdi_config import config
-
-
+import requests
 import simplejson as json
+
+from wikidataintegrator.wdi_config import config
 
 JSONDecodeError = json.JSONDecodeError
 

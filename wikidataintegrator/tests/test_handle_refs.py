@@ -1,6 +1,8 @@
 import copy
+
 from wikidataintegrator import wdi_fastrun, wdi_core
 from wikidataintegrator.ref_handlers import strict_overwrite
+
 # not testing the functionality of KEEP_GOOD here, just skipping the query of all pmids
 wdi_core.WDItemEngine.databases = ['a']
 wdi_core.WDItemEngine.pmids = ['a']
@@ -10,6 +12,7 @@ wdi_fastrun.FastRunContainer.debug = True
 Tests the global ref modes: KEEP_GOOD, STRICT_OVERWRITE, STRICT_KEEP and the append mode
 Tests custom ref handler strict_overwrite (as an example)
 """
+
 
 # the frc class, wditemengine class and orig_statements represent the same data
 class frc_fake_query_data_paper(wdi_fastrun.FastRunContainer):
@@ -200,7 +203,7 @@ def test_ref_keep():
 
 def test_custom_no_change():
     statements = copy.deepcopy(orig_statements)
-    item = fake_itemengine(wd_item_id='Q20814663',ref_handler=strict_overwrite, global_ref_mode='CUSTOM')
+    item = fake_itemengine(wd_item_id='Q20814663', ref_handler=strict_overwrite, global_ref_mode='CUSTOM')
     orig = item.wd_json_representation['claims']['P698']
     item.update(data=statements)
     new = item.wd_json_representation['claims']['P698']
@@ -211,6 +214,7 @@ def test_custom_no_change():
     frc = frc_fake_query_data_paper(base_data_type=wdi_core.WDBaseDataType, engine=wdi_core.WDItemEngine, use_refs=True,
                                     ref_handler=strict_overwrite)
     assert not frc.write_required(data=statements)
+
 
 def test_custom_change_value():
     statements = copy.deepcopy(orig_statements)
@@ -228,6 +232,7 @@ def test_custom_change_value():
     frc = frc_fake_query_data_paper(base_data_type=wdi_core.WDBaseDataType, engine=wdi_core.WDItemEngine, use_refs=True,
                                     ref_handler=strict_overwrite)
     assert frc.write_required(data=statements)
+
 
 def test_custom_change_ref():
     # same value as existing, different ref

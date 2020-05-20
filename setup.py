@@ -15,7 +15,7 @@ setup(
     # packages=['wikidataintegrator',
     #          'wikidataintegrator.ref_handlers', 'wikidataintegrator.wdi_helpers'],
     include_package_data=True,
-    ## long_description=read('README.md'),
+    # long_description=read('README.md'),
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.6",

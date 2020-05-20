@@ -1,4 +1,5 @@
 import unittest
+
 from wikidataintegrator import wdi_core
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
