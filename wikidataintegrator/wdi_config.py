@@ -28,6 +28,7 @@ config = {
     'COORDINATE_GLOBE_QID': 'Q2',
     'CALENDAR_MODEL_QID': 'Q1985727',
     'MEDIAWIKI_API_URL': 'https://www.wikidata.org/w/api.php',
+    'MEDIAWIKI_INDEX_URL': 'https://www.wikidata.org/w/index.php',
     'SPARQL_ENDPOINT_URL': 'https://query.wikidata.org/sparql',
     'WIKIBASE_URL': 'http://www.wikidata.org',
     'CONCEPT_BASE_URI': 'http://www.wikidata.org/entity/'
