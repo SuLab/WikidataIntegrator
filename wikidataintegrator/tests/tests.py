@@ -1,12 +1,11 @@
-import unittest
-import pprint
-
 import copy
+import pprint
+import unittest
 
 import requests
 
-from wikidataintegrator import wdi_core, wdi_fastrun, wdi_login
-from wikidataintegrator.wdi_core import WDBaseDataType, WDApiError
+from wikidataintegrator import wdi_core, wdi_fastrun
+from wikidataintegrator.wdi_core import WDApiError
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
 __license__ = 'AGPLv3'
@@ -89,8 +88,7 @@ class TestDataType(unittest.TestCase):
             # TODO: get json directly from the API and compare part to WDItemEngine
 
     def test_deletion_request(self):
-        items_for_deletion = ['Q423', 'Q43345']
-        wdi_core.WDItemEngine.delete_items(item_list=items_for_deletion, reason='test deletion', login=None)
+        wdi_core.WDItemEngine.delete_item(item='Q423', reason='test deletion', login=None)
 
 
 class TestFastRun(unittest.TestCase):
@@ -119,7 +117,7 @@ class TestFastRun(unittest.TestCase):
         print(fast_run_result, message)
 
         # here, fastrun should succeed, if not, test failed
-        #if fast_run_result:
+        # if fast_run_result:
         #    raise ValueError
 
     def test_fastrun_label(self):
