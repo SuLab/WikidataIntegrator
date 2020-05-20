@@ -1494,7 +1494,8 @@ class WDItemEngine(object):
             'claim': statement_id,
             'token': login.get_edit_token(),
             'baserevid': revision,
-            'bot': True
+            'bot': True,
+            'format': 'json'
         }
         headers = {
             'User-Agent': user_agent
