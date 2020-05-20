@@ -22,8 +22,7 @@ class WDLogin(object):
     """
 
     @wdi_backoff()
-    def __init__(self, user=None, pwd=None, mediawiki_api_url=None,
-                 token_renew_period=1800, use_clientlogin=False,
+    def __init__(self, user=None, pwd=None, mediawiki_api_url=None, token_renew_period=1800, use_clientlogin=False,
                  consumer_key=None, consumer_secret=None, callback_url='oob', user_agent=None):
         """
         This class handles several types of login procedures. Either use user and pwd authentication or OAuth.

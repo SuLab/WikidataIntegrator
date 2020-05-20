@@ -7,8 +7,8 @@ from wikidataintegrator.wdi_config import config
 
 
 class FastRunContainer(object):
-    def __init__(self, base_data_type, engine, mediawiki_api_url=None, sparql_endpoint_url=None,
-                 wikibase_url=None, concept_base_uri=None, base_filter=None, use_refs=False, ref_handler=None):
+    def __init__(self, base_data_type, engine, mediawiki_api_url=None, sparql_endpoint_url=None, wikibase_url=None,
+                 concept_base_uri=None, base_filter=None, use_refs=False, ref_handler=None, debug=False):
         self.prop_data = {}
         self.loaded_langs = {}
         self.statements = []
@@ -23,7 +23,7 @@ class FastRunContainer(object):
         self.sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
         self.wikibase_url = config['WIKIBASE_URL'] if wikibase_url is None else wikibase_url
         self.concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
-        self.debug = False
+        self.debug = debug
         self.reconstructed_statements = []
         self.use_refs = use_refs
         self.ref_handler = ref_handler
@@ -255,7 +255,7 @@ class FastRunContainer(object):
     def get_language_data(self, qid, lang, lang_data_type):
         """
         get language data for specified qid
-        :param qid:
+        :param qid: Item ID
         :type qid: string
         :param lang: language code
         :type lang: string
@@ -278,11 +278,12 @@ class FastRunContainer(object):
     def check_language_data(self, qid, lang_data, lang, lang_data_type):
         """
         Method to check if certain language data exists as a label, description or aliases
-        :param qid:
+        :param qid: Item ID
+        :type qid: string
         :param lang_data: list of string values to check
         :type lang_data: list
         :param lang: language code
-        :type lang: str
+        :type lang: string
         :param lang_data_type: What kind of data is it? 'label', 'description' or 'aliases'?
         :return:
         """
@@ -499,13 +500,6 @@ class FastRunContainer(object):
             self.update_frc_from_query(r, prop_nr)
 
     def _query_lang(self, lang, lang_data_type):
-        """
-
-        :param lang:
-        :param lang_data_type:
-        :return:
-        """
-
         lang_data_type_dict = {
             'label': 'rdfs:label',
             'description': 'schema:description',
@@ -550,7 +544,7 @@ class FastRunContainer(object):
 
     def clear(self):
         """
-        convinience function to empty this fastrun container
+        convenience function to empty this fastrun container
         """
         self.prop_dt_map = dict()
         self.prop_data = dict()
