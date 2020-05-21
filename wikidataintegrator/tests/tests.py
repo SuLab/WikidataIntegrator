@@ -87,9 +87,6 @@ class TestDataType(unittest.TestCase):
 
             # TODO: get json directly from the API and compare part to WDItemEngine
 
-    def test_deletion_request(self):
-        wdi_core.WDItemEngine.delete_item(item='Q423', reason='test deletion', login=None)
-
 
 class TestFastRun(unittest.TestCase):
     """
