@@ -1433,58 +1433,33 @@ class WDItemEngine(object):
                 cls.databases[db_qid].append(x['wd_prop']['value'].split('/')[-1])
 
     @staticmethod
-    def delete_items(item_list, reason, login, mediawiki_api_url=None, user_agent=None):
+    def delete_item(item, reason, login, mediawiki_api_url=None, user_agent=None):
         """
         Takes a list of items and posts them for deletion by Wikidata moderators, appends at the end of the deletion
         request page.
-        :param item_list: a list of QIDs which should be deleted
-        :type item_list: list
+        :param item: a QID which should be deleted
+        :type item: string
         :param reason: short text about the reason for the deletion request
         :type reason: str
         :param login: A WDI login object which contains username and password the edit should be performed with.
         :type login: wdi_login.WDLogin
         """
 
-        url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+        mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
         user_agent = config['USER_AGENT_DEFAULT'] if user_agent is None else user_agent
 
-        bulk_deletion_string = '\n==Bulk deletion request==\n'
-        bulk_deletion_string += '{{{{subst:Rfd group | {0} | reason = {1} }}}}'.format(' | '.join(item_list), reason)
-
-        # get page text
         params = {
-            'action': 'query',
-            'titles': 'Wikidata:Requests_for_deletions',
-            'prop': 'revisions',
-            'rvprop': 'content',
+            'action': 'delete',
+            'title': 'Item:' + item,
+            'reason': reason,
+            'token': login.get_edit_token(),
             'format': 'json'
         }
-
         headers = {
             'User-Agent': user_agent
         }
-
-        page_text = [x['revisions'][0]['*']
-                     for x in requests.get(url=url, params=params, headers=headers).json()['query']['pages'].values()][
-            0]
-
-        if not login:
-            print(page_text)
-            print(bulk_deletion_string)
-        else:
-            # Append new deletion request to existing list of deletions being processed
-            params = {
-                'action': 'edit',
-                'title': 'Portal:Gene_Wiki/Quick_Links',
-                'section': '0',
-                'text': page_text + bulk_deletion_string,
-                'token': login.get_edit_token(),
-                'format': 'json'
-            }
-
-            r = requests.post(url=url, data=params, cookies=login.get_edit_cookie(), headers=headers)
-
-            print(r.json())
+        r = requests.post(url=mediawiki_api_url, data=params, cookies=login.get_edit_cookie(), headers=headers)
+        print(r.json())
 
     @staticmethod
     def delete_statement(statement_id, revision, login, mediawiki_api_url='https://www.wikidata.org/w/api.php',
