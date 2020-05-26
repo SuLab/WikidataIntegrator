@@ -17,8 +17,8 @@ example_Q14911732 = {'P1057':
 
 
 class FastRunContainer(object):
-    def __init__(self, base_data_type, engine, mediawiki_api_url=None, sparql_endpoint_url=None,
-                 wikibase_url=None, concept_base_uri=None, base_filter=None, use_refs=False, ref_handler=None):
+    def __init__(self, base_data_type, engine, mediawiki_api_url=None, sparql_endpoint_url=None, wikibase_url=None,
+                 concept_base_uri=None, base_filter=None, use_refs=False, ref_handler=None, debug=False):
         self.prop_data = {}
         self.loaded_langs = {}
         self.statements = []
@@ -33,7 +33,7 @@ class FastRunContainer(object):
         self.sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
         self.wikibase_url = config['WIKIBASE_URL'] if wikibase_url is None else wikibase_url
         self.concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
-        self.debug = False
+        self.debug = debug
         self.reconstructed_statements = []
         self.use_refs = use_refs
         self.ref_handler = ref_handler
@@ -80,12 +80,12 @@ class FastRunContainer(object):
                 f = [x for x in self.base_data_type.__subclasses__() if x.DTYPE ==
                      self.prop_dt_map[prop_nr]][0]
                 if self.prop_dt_map[prop_nr] == 'quantity' and d['unit'] != '1':
-                    reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
-                                    qualifiers=qualifiers, references=references, unit=d['unit'],
-                                    concept_base_uri=self.concept_base_uri))
+                    reconstructed_statements.append(
+                        f(d['v'], prop_nr=prop_nr, qualifiers=qualifiers, references=references, unit=d['unit'],
+                          concept_base_uri=self.concept_base_uri))
                 else:
-                    reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
-                                    qualifiers=qualifiers, references=references))
+                    reconstructed_statements.append(
+                        f(d['v'], prop_nr=prop_nr, qualifiers=qualifiers, references=references))
 
         # this isn't used. done for debugging purposes
         self.reconstructed_statements = reconstructed_statements
