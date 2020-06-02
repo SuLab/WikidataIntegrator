@@ -2701,10 +2701,10 @@ class WDGlobeCoordinate(WDBaseDataType):
         globe = config['COORDINATE_GLOBE_QID'] if globe is None else globe
         concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
 
-        # TODO: implement globe parameter, so it becomes clear which globe the coordinates are referring to
-        value = (latitude, longitude, precision)
-        self.latitude, self.longitude, self.precision = value
-        self.globe = concept_base_uri + globe
+        if globe.startswith('Q'):
+            globe = concept_base_uri + globe
+
+        value = (latitude, longitude, precision, globe)
 
         super(WDGlobeCoordinate, self) \
             .__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
@@ -2716,7 +2716,7 @@ class WDGlobeCoordinate(WDBaseDataType):
     def set_value(self, value):
         # TODO: Introduce validity checks for coordinates
 
-        self.latitude, self.longitude, self.precision = value
+        self.latitude, self.longitude, self.precision, self.globe = value
 
         self.json_representation['datavalue'] = {
             'value': {
