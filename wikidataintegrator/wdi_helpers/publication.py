@@ -36,7 +36,7 @@ class Publication:
         'europepmc': 'Q5412157'
     }
 
-    def __init__(self, title=None, instance_of=None, subtitle=None, authors=list(),
+    def __init__(self, title=None, instance_of=None, subtitle=None, authors=None,
                  publication_date=None, original_language_of_work=None,
                  published_in_issn=None, published_in_isbn=None,
                  volume=None, issue=None, pages=None, number_of_pages=None, cites=None,
@@ -52,7 +52,7 @@ class Publication:
         :param authors: authors is a list of dicts, containing the following keys: full_name, orcid (optional)
                 example: {'full_name': "Andrew I. Su", 'orcid': "0000-0002-9859-4104"}
                 If author name can't be parsed, use value None. i.e. {'full_name': None}
-        :type authors: list
+        :type authors: Optional[list]
         :param publication_date:
         :type publication_date: datetime.datetime
         :param published_in_issn: The issn# for the journal
@@ -86,6 +86,9 @@ class Publication:
         :param sponsor: Not implemented
         :param data_available_at: Not implemented
         """
+        if authors is None:
+            authors = []
+
         # Input is an API agnostic representation of a publication
         self.warnings = []
         self._instance_of = instance_of
