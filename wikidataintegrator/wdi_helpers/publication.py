@@ -23,17 +23,20 @@ class Publication:
     ID_TYPES = {
         "doi": "P356",
         "pmid": "P698",
-        "pmcid": "P932"
+        "pmcid": "P932",
+        'arxiv': 'P818',
     }
 
     INSTANCE_OF = {
         "scientific_article": "Q13442814",
-        "publication": "Q732577"
+        "publication": "Q732577",
+        'preprint': 'Q580922',
     }
 
     SOURCES = {
         'crossref': 'Q5188229',
-        'europepmc': 'Q5412157'
+        'europepmc': 'Q5412157',
+        'arxiv': 'Q118398',
     }
 
     def __init__(self, title=None, instance_of=None, subtitle=None, authors=None,
@@ -195,20 +198,22 @@ class Publication:
     def make_reference(self):
         if self.source == "crossref":
             assert 'doi' in self.ids
-            extid = wdi_core.WDString(self.ids['doi'], PROPS['DOI'], is_reference=True)
-            ref_url = wdi_core.WDUrl(self.ref_url, PROPS['reference URL'], is_reference=True)
-            stated_in = wdi_core.WDItemID(self.SOURCES[self.source], PROPS['stated in'], is_reference=True)
-            retrieved = wdi_core.WDTime(strftime("+%Y-%m-%dT00:00:00Z", gmtime()), PROPS['retrieved'],
-                                        is_reference=True)
-            self.reference = [stated_in, extid, ref_url, retrieved]
+            edt_id_id, ext_id_prop = self.ids['doi'], PROPS['DOI']
         elif self.source == "europepmc":
             assert 'pmcid' in self.ids
-            extid = wdi_core.WDString(self.ids['pmcid'], PROPS['PMCID'], is_reference=True)
-            ref_url = wdi_core.WDUrl(self.ref_url, PROPS['reference URL'], is_reference=True)
-            stated_in = wdi_core.WDItemID(self.SOURCES[self.source], PROPS['stated in'], is_reference=True)
-            retrieved = wdi_core.WDTime(strftime("+%Y-%m-%dT00:00:00Z", gmtime()), PROPS['retrieved'],
-                                        is_reference=True)
-            self.reference = [stated_in, extid, ref_url, retrieved]
+            edt_id_id, ext_id_prop = self.ids['pmcid'], PROPS['PMCID']
+        elif self.source == 'arxiv':
+            assert 'arxiv' in self.ids
+            edt_id_id, ext_id_prop = self.ids['arxiv'], PROPS['arxiv id']
+        else:
+            raise ValueError(f'Unhandled source: {self.source}')
+
+        extid = wdi_core.WDString(edt_id_id, ext_id_prop, is_reference=True)
+        ref_url = wdi_core.WDUrl(self.ref_url, PROPS['reference URL'], is_reference=True)
+        stated_in = wdi_core.WDItemID(self.SOURCES[self.source], PROPS['stated in'], is_reference=True)
+        retrieved = wdi_core.WDTime(strftime("+%Y-%m-%dT00:00:00Z", gmtime()), PROPS['retrieved'],
+                                    is_reference=True)
+        self.reference = [stated_in, extid, ref_url, retrieved]
 
     def set_label(self, item):
         # item is a WDItemEngine
@@ -228,6 +233,8 @@ class Publication:
             item.set_description("{}".format(self.instance_of.replace("_", " ")))
 
     def make_statements(self):
+        if self.instance_of_qid is None:
+            raise ValueError('can not create WDItemID with None')
         self.statements.append(
             wdi_core.WDItemID(self.instance_of_qid, PROPS['instance of'], references=[self.reference]))
         self.statements.append(wdi_core.WDMonolingualText(self.title, PROPS['title'], references=[self.reference]))
@@ -284,7 +291,10 @@ class Publication:
         self.set_label(item)
         self.set_description(item)
 
-        success = try_write(item, self.ids['doi'], PROPS["DOI"], login)
+        if self.source == 'arxiv':
+            success = try_write(item, self.ids['arxiv'], PROPS["arxiv id"], login)
+        else:
+            success = try_write(item, self.ids['doi'], PROPS["DOI"], login)
         return item.wd_item_id, self.warnings, success
 
 
@@ -437,10 +447,37 @@ def europepmc_api_to_publication(ext_id, id_type):
     return p
 
 
+
+def arxiv_api_to_publication(ext_id, id_type='arxiv'):
+    """Make a Publication from an arXiv identifier."""
+    from manubot.cite.arxiv import get_arxiv_csl_item
+    j = get_arxiv_csl_item(ext_id)
+
+    year, month, day = j['issued']['date-parts'][0]
+
+    publication = Publication(
+        title=j['title'],
+        ref_url=j['URL'],
+        authors=[
+            {
+                'full_name': f'{author["given"]} {author["family"]}',
+            }
+            for author in j['author']
+        ],
+        publication_date=datetime.datetime(year=year, month=month, day=day),
+        ids={'arxiv': ext_id},
+        source='arxiv',
+        full_work_available_at=f'https://arxiv.org/pdf/{ext_id}',
+    )
+    publication.instance_of = 'preprint'
+    return publication
+
+
 class PublicationHelper:
     SOURCE_FUNCT = {
         'crossref': crossref_api_to_publication,
         'europepmc': europepmc_api_to_publication,
+        'arxiv': arxiv_api_to_publication,
     }
 
     def __init__(self, ext_id, id_type, source):
