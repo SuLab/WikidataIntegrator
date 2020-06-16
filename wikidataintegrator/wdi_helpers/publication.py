@@ -486,7 +486,9 @@ if __name__ == "__main__":
             WDUSER = os.environ['WDUSER']
             WDPASS = os.environ['WDPASS']
         else:
-            raise ValueError("WDUSER and WDPASS must be specified in local.py or as environment variables")
+            import getpass
+            WDUSER = input('Wikidata Username: ')
+            WDPASS = getpass.getpass('Wikidata Password: ')
 
     parser = argparse.ArgumentParser(description='run publication creator')
     parser.add_argument("ext_id", help="comma-separated list of IDs")
