@@ -515,7 +515,7 @@ class PublicationHelper:
             return None, [], self.e
 
 
-if __name__ == "__main__":
+def main():
     try:
         from local import WDUSER, WDPASS
     except ImportError:
@@ -550,3 +550,7 @@ if __name__ == "__main__":
             except Exception as e:
                 print("{},{},{},{}".format(ext_id, None, e, False))
                 print("{},{},{},{}".format(ext_id, None, e, False), file=f)
+
+
+if __name__ == "__main__":
+    main()
