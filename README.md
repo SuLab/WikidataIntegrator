@@ -110,21 +110,26 @@ used as a backend for e.g. a web app, where the callback will provide the authen
 
 
 ## Wikidata Data Types ##
-Currently, Wikidata supports 11 different data types. The data types are represented as their own classes in wdi_core. Each data type has its specialties, which means that some of them
+Currently, Wikidata supports 17 different data types. The data types are represented as their own classes in wdi_core. Each data type has its specialties, which means that some of them
 require special parameters (e.g. Globe Coordinates).
 
 The data types currently implemented:
 
 * wdi_core.WDCommonsMedia
 * wdi_core.WDExternalID
+* wdi_core.WDForm
 * wdi_core.WDGeoShape
 * wdi_core.WDGlobeCoordinate
 * wdi_core.WDItemID
+* wdi_core.WDLexeme
 * wdi_core.WDMath
 * wdi_core.WDMonolingualText
+* wdi_core.WDMusicalNotation
 * wdi_core.WDProperty
 * wdi_core.WDQuantity
+* wdi_core.WDSense
 * wdi_core.WDString
+* wdi_core.WDTabularData
 * wdi_core.WDTime
 * wdi_core.WDUrl
 
