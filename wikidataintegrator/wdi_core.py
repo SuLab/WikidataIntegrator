@@ -2170,7 +2170,7 @@ class WDItemID(WDBaseDataType):
         elif isinstance(value, int):
             self.value = value
         elif value.startswith("Q"):
-            pattern = re.compile('[0-9]*')
+            pattern = re.compile('[0-9]+')
             matches = pattern.match(value[1:])
 
             if len(value[1:]) == len(matches.group(0)):
@@ -2254,7 +2254,7 @@ class WDProperty(WDBaseDataType):
         elif isinstance(value, int):
             self.value = value
         elif value.startswith("P"):
-            pattern = re.compile('[0-9]*')
+            pattern = re.compile('[0-9]+')
             matches = pattern.match(value[1:])
 
             if len(value[1:]) == len(matches.group(0)):
@@ -2782,6 +2782,12 @@ class WDGeoShape(WDBaseDataType):
 
     def set_value(self, value):
         assert isinstance(value, str) or value is None, "Expected str, found {} ({})".format(type(value), value)
+        pattern = re.compile('Data:((?![:|#]).)+\.map')
+        matches = pattern.match(value)
+
+        if not matches:
+            raise ValueError('Value must start with Data: and end with .map. In addition title should not contain characters like colon, hash or pipe.')
+
         self.value = value
 
         self.json_representation['datavalue'] = {
@@ -2890,6 +2896,12 @@ class WDTabularData(WDBaseDataType):
 
     def set_value(self, value):
         assert isinstance(value, str) or value is None, "Expected str, found {} ({})".format(type(value), value)
+        pattern = re.compile('Data:((?![:|#]).)+\.tab')
+        matches = pattern.match(value)
+
+        if not matches:
+            raise ValueError('Value must start with Data: and end with .tab. In addition title should not contain characters like colon, hash or pipe.')
+
         self.value = value
 
         self.json_representation['datavalue'] = {
@@ -2962,7 +2974,7 @@ class WDLexeme(WDBaseDataType):
         elif isinstance(value, int):
             self.value = value
         elif value.startswith("L"):
-            pattern = re.compile('[0-9]*')
+            pattern = re.compile('[0-9]+')
             matches = pattern.match(value[1:])
 
             if len(value[1:]) == len(matches.group(0)):
@@ -3027,11 +3039,8 @@ class WDForm(WDBaseDataType):
         self.set_value(value=value)
 
     def set_value(self, value):
-        assert isinstance(value, (str, int)) or value is None, \
-            "Expected str or int, found {} ({})".format(type(value), value)
+        assert isinstance(value, str) or value is None, "Expected str, found {} ({})".format(type(value), value)
         if value is None:
-            self.value = value
-        elif isinstance(value, int):
             self.value = value
         elif value.startswith("L"):
             pattern = re.compile('^L[0-9]+-F[0-9]+$')
@@ -3096,11 +3105,8 @@ class WDSense(WDBaseDataType):
         self.set_value(value=value)
 
     def set_value(self, value):
-        assert isinstance(value, (str, int)) or value is None, \
-            "Expected str or int, found {} ({})".format(type(value), value)
+        assert isinstance(value, str) or value is None, "Expected str, found {} ({})".format(type(value), value)
         if value is None:
-            self.value = value
-        elif isinstance(value, int):
             self.value = value
         elif value.startswith("L"):
             pattern = re.compile('^L[0-9]+-S[0-9]+$')
