@@ -3031,7 +3031,7 @@ class WDForm(WDBaseDataType):
         :type rank: str
         """
 
-        super(WDLexeme, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE,
+        super(WDForm, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE,
                                          is_reference=is_reference, is_qualifier=is_qualifier, references=references,
                                          qualifiers=qualifiers, rank=rank, prop_nr=prop_nr,
                                          check_qualifier_equality=check_qualifier_equality)
@@ -3059,7 +3059,7 @@ class WDForm(WDBaseDataType):
             'type': 'wikibase-entityid'
         }
 
-        super(WDLexeme, self).set_value(value=value)
+        super(WDForm, self).set_value(value=value)
 
     @classmethod
     @JsonParser
