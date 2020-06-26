@@ -42,7 +42,8 @@ PROPS = {
     'orcid id': "P496",
     'stated in': "P248",
     'retrieved': 'P813',
-    'mapping relation type': 'P4390'
+    'mapping relation type': 'P4390',
+    'arxiv id': 'P818',
 }
 
 # https://www.wikidata.org/wiki/Property:P4390
