@@ -6,7 +6,7 @@ from mwoauth import ConsumerToken, Handshaker
 from requests_oauthlib import OAuth1
 from wikidataintegrator.wdi_config import config
 
-from wikidataintegrator.backoff.wdi_backoff import wdi_backoff
+from wikidataintegrator.wdi_backoff import wdi_backoff
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher, Tim Putman, Andra Waagmeester'
 __license__ = 'AGPLv3'
@@ -22,9 +22,9 @@ class WDLogin(object):
     """
 
     @wdi_backoff()
-    def __init__(self, user=None, pwd=None, mediawiki_api_url='https://www.wikidata.org/w/api.php',
-                 token_renew_period=1800, use_clientlogin=False,
-                 consumer_key=None, consumer_secret=None, callback_url='oob', user_agent=None):
+    def __init__(self, user=None, pwd=None, mediawiki_api_url=None, mediawiki_index_url=None, token_renew_period=1800,
+                 use_clientlogin=False, consumer_key=None, consumer_secret=None, callback_url='oob', user_agent=None,
+                 debug=False):
         """
         This class handles several types of login procedures. Either use user and pwd authentication or OAuth.
         Wikidata clientlogin can also be used. If using one method, do NOT pass parameters for another method.
@@ -45,14 +45,18 @@ class WDLogin(object):
         :type user_agent: str
         :return: None
         """
-        self.base_url = mediawiki_api_url
-        print(self.base_url)
+
+        self.mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+        self.mediawiki_index_url = config['MEDIAWIKI_INDEX_URL'] if mediawiki_index_url is None else mediawiki_index_url
+
+        if debug:
+            print(self.mediawiki_api_url)
+
         self.s = requests.Session()
         self.edit_token = ''
         self.instantiation_time = time.time()
         self.token_renew_period = token_renew_period
 
-        self.mw_url = "https://www.mediawiki.org/w/index.php"
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
         self.response_qs = None
@@ -76,7 +80,7 @@ class WDLogin(object):
             self.consumer_token = ConsumerToken(self.consumer_key, self.consumer_secret)
 
             # Construct handshaker with wiki URI and consumer
-            self.handshaker = Handshaker(self.mw_url, self.consumer_token, callback=self.callback_url,
+            self.handshaker = Handshaker(self.mediawiki_index_url, self.consumer_token, callback=self.callback_url,
                                          user_agent=self.user_agent)
 
             # Step 1: Initialize -- ask MediaWiki for a temp key/secret for user
@@ -92,7 +96,7 @@ class WDLogin(object):
                 'amirequestsfor': 'login'
             }
 
-            self.s.get(self.base_url, params=params)
+            self.s.get(self.mediawiki_api_url, params=params)
 
             params2 = {
                 'action': 'query',
@@ -100,7 +104,7 @@ class WDLogin(object):
                 'meta': 'tokens',
                 'type': 'login'
             }
-            login_token = self.s.get(self.base_url, params=params2).json()['query']['tokens']['logintoken']
+            login_token = self.s.get(self.mediawiki_api_url, params=params2).json()['query']['tokens']['logintoken']
 
             data = {
                 'action': 'clientlogin',
@@ -111,8 +115,9 @@ class WDLogin(object):
                 'loginreturnurl': 'http://example.org/'
             }
 
-            login_result = self.s.post(self.base_url, data=data).json()
-            print(login_result)
+            login_result = self.s.post(self.mediawiki_api_url, data=data).json()
+            if debug:
+                print(login_result)
 
             if login_result['clientlogin']['status'] == 'FAIL':
                 raise ValueError('Login FAILED')
@@ -127,11 +132,11 @@ class WDLogin(object):
             }
 
             # get login token
-            login_token = self.s.post(self.base_url, data=params).json()['login']['token']
+            login_token = self.s.post(self.mediawiki_api_url, data=params).json()['login']['token']
 
             # do the login using the login token
             params.update({'lgtoken': login_token})
-            r = self.s.post(self.base_url, data=params).json()
+            r = self.s.post(self.mediawiki_api_url, data=params).json()
 
             if r['login']['result'] != 'Success':
                 print('login failed:', r['login']['reason'])
@@ -151,7 +156,7 @@ class WDLogin(object):
             'meta': 'tokens',
             'format': 'json'
         }
-        response = self.s.get(self.base_url, params=params)
+        response = self.s.get(self.mediawiki_api_url, params=params)
         self.edit_token = response.json()['query']['tokens']['csrftoken']
 
         return self.s.cookies

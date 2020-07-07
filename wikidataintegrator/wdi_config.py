@@ -22,5 +22,14 @@ config = {
     'BACKOFF_MAX_TRIES': None,
     'BACKOFF_MAX_VALUE': 3600,
     'USER_AGENT_DEFAULT': 'wikidataintegrator/{}'.format(__version__),
-    'MAXLAG': 5
+    'MAXLAG': 5,
+    'PROPERTY_CONSTRAINT_PID': 'P2302',
+    'DISTINCT_VALUES_CONSTRAINT_QID': 'Q21502410',
+    'COORDINATE_GLOBE_QID': 'http://www.wikidata.org/entity/Q2',
+    'CALENDAR_MODEL_QID': 'http://www.wikidata.org/entity/Q1985727',
+    'MEDIAWIKI_API_URL': 'https://www.wikidata.org/w/api.php',
+    'MEDIAWIKI_INDEX_URL': 'https://www.wikidata.org/w/index.php',
+    'SPARQL_ENDPOINT_URL': 'https://query.wikidata.org/sparql',
+    'WIKIBASE_URL': 'http://www.wikidata.org',
+    'CONCEPT_BASE_URI': 'http://www.wikidata.org/entity/'
 }

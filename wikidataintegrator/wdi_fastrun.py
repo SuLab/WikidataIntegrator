@@ -3,6 +3,8 @@ from collections import defaultdict
 from functools import lru_cache
 from itertools import chain
 
+from wikidataintegrator.wdi_config import config
+
 example_Q14911732 = {'P1057':
                          {'Q14911732-23F268EB-2848-4A82-A248-CF4DF6B256BC':
                               {'v': 'Q847102',
@@ -15,8 +17,8 @@ example_Q14911732 = {'P1057':
 
 
 class FastRunContainer(object):
-    def __init__(self, base_data_type, engine, sparql_endpoint_url=None, mediawiki_api_url=None,
-                 wikibase_url=None, base_filter=None, use_refs=False, ref_handler=None):
+    def __init__(self, base_data_type, engine, mediawiki_api_url=None, sparql_endpoint_url=None, wikibase_url=None,
+                 concept_base_uri=None, base_filter=None, use_refs=False, ref_handler=None, debug=False):
         self.prop_data = {}
         self.loaded_langs = {}
         self.statements = []
@@ -27,13 +29,11 @@ class FastRunContainer(object):
         self.rev_lookup = defaultdict(set)
         self.base_data_type = base_data_type
         self.engine = engine
-        self.sparql_endpoint_url = sparql_endpoint_url if sparql_endpoint_url else \
-            'https://query.wikidata.org/sparql'
-        self.mediawiki_api_url = mediawiki_api_url if mediawiki_api_url else \
-            'https://www.wikidata.org/w/api.php'
-        self.wikibase_url = wikibase_url if wikibase_url else \
-            'http://www.wikidata.org'
-        self.debug = False
+        self.mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+        self.sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
+        self.wikibase_url = config['WIKIBASE_URL'] if wikibase_url is None else wikibase_url
+        self.concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
+        self.debug = debug
         self.reconstructed_statements = []
         self.use_refs = use_refs
         self.ref_handler = ref_handler
@@ -79,8 +79,13 @@ class FastRunContainer(object):
 
                 f = [x for x in self.base_data_type.__subclasses__() if x.DTYPE ==
                      self.prop_dt_map[prop_nr]][0]
-                reconstructed_statements.append(f(d['v'], prop_nr=prop_nr,
-                                                  qualifiers=qualifiers, references=references))
+                if self.prop_dt_map[prop_nr] == 'quantity' and d['unit'] != '1':
+                    reconstructed_statements.append(
+                        f(d['v'], prop_nr=prop_nr, qualifiers=qualifiers, references=references, unit=d['unit'],
+                          concept_base_uri=self.concept_base_uri))
+                else:
+                    reconstructed_statements.append(
+                        f(d['v'], prop_nr=prop_nr, qualifiers=qualifiers, references=references))
 
         # this isn't used. done for debugging purposes
         self.reconstructed_statements = reconstructed_statements
@@ -118,6 +123,8 @@ class FastRunContainer(object):
                 current_value = 'Q{}'.format(current_value)
             elif self.prop_dt_map[prop_nr] == 'globe-coordinate':
                 write_required = True  # temporary workaround for handling globe coordinates
+            elif self.prop_dt_map[prop_nr] == 'quantity':
+                current_value = self.format_amount(current_value[0])
 
             if self.debug:
                 print(current_value)
@@ -127,7 +134,7 @@ class FastRunContainer(object):
                 temp_set = set(self.rev_lookup[current_value])
             else:
                 if self.debug:
-                    print(current_value)
+                    print(self.rev_lookup)
                     print('no matches for rev lookup')
                 return True
             match_sets.append(temp_set)
@@ -215,7 +222,6 @@ class FastRunContainer(object):
                 print("bool_vec: {}".format(bool_vec))
                 print('-----------------------------------')
                 for x in tmp_rs:
-
                     if date == x and x.get_prop_nr() not in del_props:
                         print(x.get_prop_nr(), x.get_value(), [z.get_value() for z in x.get_qualifiers()])
                         print(date.get_prop_nr(), date.get_value(), [z.get_value() for z in date.get_qualifiers()])
@@ -227,7 +233,7 @@ class FastRunContainer(object):
             if not any(bool_vec):
                 if self.debug:
                     print(len(bool_vec))
-                    print('fast run failed at ', date.get_prop_nr())
+                    print('fast run failed at', date.get_prop_nr())
                 write_required = True
             else:
                 tmp_rs.pop(bool_vec.index(True))
@@ -312,10 +318,11 @@ class FastRunContainer(object):
             ref: reference ID
             pr: reference property
             rval: reference value
+            unit: property unit
         """
         prop_dt = self.get_prop_datatype(prop_nr)
         for i in r:
-            for value in {'item', 'sid', 'pq', 'pr', 'ref'}:
+            for value in {'item', 'sid', 'pq', 'pr', 'ref', 'unit'}:
                 if value in i:
                     # these are always URIs for the local wikibase
                     i[value] = i[value]['value'].split('/')[-1]
@@ -335,6 +342,8 @@ class FastRunContainer(object):
             if 'v' in i:
                 if i['v']['type'] == 'uri' and prop_dt == 'wikibase-item':
                     i['v'] = i['v']['value'].split('/')[-1]
+                elif i['v']['type'] == 'literal' and prop_dt == 'quantity':
+                    i['v'] = self.format_amount(i['v']['value'])
                 else:
                     i['v'] = i['v']['value']
 
@@ -358,6 +367,18 @@ class FastRunContainer(object):
                     i['rval'] = i['rval']['value'].split('/')[-1]
                 else:
                     i['rval'] = i['rval']['value']
+
+    def format_amount(self, amount):
+        # Remove .0 by casting to int
+        if float(amount) % 1 == 0:
+            amount = int(float(amount))
+
+        # Adding prefix + for positive number and 0
+        if not str(amount).startswith('+') and float(amount) >= 0:
+            amount = str('+{}'.format(amount))
+
+        # return as string
+        return str(amount)
 
     def update_frc_from_query(self, r, prop_nr):
         # r is the output of format_query_results
@@ -385,6 +406,11 @@ class FastRunContainer(object):
                 if i['ref'] not in self.prop_data[qid][prop_nr][i['sid']]['ref']:
                     self.prop_data[qid][prop_nr][i['sid']]['ref'][i['ref']] = set()
                 self.prop_data[qid][prop_nr][i['sid']]['ref'][i['ref']].add((i['pr'], i['rval']))
+
+            if 'unit' not in self.prop_data[qid][prop_nr][i['sid']]:
+                self.prop_data[qid][prop_nr][i['sid']]['unit'] = '1'
+            if 'unit' in i:
+                self.prop_data[qid][prop_nr][i['sid']]['unit'] = i['unit']
 
     def _query_data_refs(self, prop_nr):
         page_size = 10000
@@ -455,8 +481,9 @@ class FastRunContainer(object):
                 PREFIX wdt: <{0}/prop/direct/>
                 PREFIX p: <{0}/prop/>
                 PREFIX ps: <{0}/prop/statement/>
+                PREFIX psv: <{0}/prop/statement/value/>
                 #Tool: wdi_core fastrun
-                select ?item ?qval ?pq ?sid ?v where {{
+                select ?item ?qval ?pq ?sid ?v ?unit where {{
                   {1}
 
                   ?item p:{2} ?sid .
@@ -465,6 +492,10 @@ class FastRunContainer(object):
                   OPTIONAL {{
                     ?sid ?pq ?qval .
                     [] wikibase:qualifier ?pq
+                  }}
+                  OPTIONAL {{
+                    ?sid psv:{2} ?valuenode .
+                    ?valuenode wikibase:quantityUnit ?unit
                   }}
                 }}
                 '''.format(self.wikibase_url, self.base_filter_string, prop_nr)

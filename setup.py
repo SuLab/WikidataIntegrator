@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = "0.6.0"
+VERSION = "0.6.5"
 
 setup(
     name='wikidataintegrator',
@@ -12,7 +12,7 @@ setup(
     keywords='Wikidata genewiki biology chemistry medicine ShEx citations',
     url='https://github.com/sulab/WikidataIntegrator',
     packages=find_packages(),
-    # packages=['wikidataintegrator', 'wikidataintegrator.backoff',
+    # packages=['wikidataintegrator',
     #          'wikidataintegrator.ref_handlers', 'wikidataintegrator.wdi_helpers'],
     include_package_data=True,
     ## long_description=read('README.md'),
@@ -35,11 +35,14 @@ setup(
         'requests',
         'python-dateutil',
         'simplejson',
+        'pandas',
+        'tqdm',
         'mwoauth',
         'oauthlib',
         'sparql_slurper',
         'ShExJSG',
         'jsonasobj',
-        'pyshex'
+        'pyshex',
+        'backoff'
     ],
 )

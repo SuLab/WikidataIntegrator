@@ -3,6 +3,10 @@
 [![Pyversions](https://img.shields.io/pypi/pyversions/wikidataintegrator.svg)](https://pypi.python.org/pypi/wikidataintegrator)
 [![PyPi](https://img.shields.io/pypi/v/wikidataintegrator.svg)](https://pypi.python.org/pypi/wikidataintegrator)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SuLab/WikidataIntegrator/master)
+[<img src="https://img.shields.io/badge/slack-@genewiki/wdi_bot_dev-green.svg?logo=slack">](https://suwulab.slack.com/archives/C014ADW3SGZ)
+
+# Slack channel 
+We have a slack channel for Wikidata bot developers using the Wikidata Integrator. Send us a [request](mailto:andra@micel.io) to join this channel. 
 
 # Installation #
 The easiest way to install WikidataIntegrator is using `pip` or `pip3`. WikidataIntegrator supports python 3.6 and higher, hence the suggestion for pip3. If python2 is installed pip will lead to an error indicating missing dependencies. 
@@ -106,23 +110,28 @@ used as a backend for e.g. a web app, where the callback will provide the authen
 
 
 ## Wikidata Data Types ##
-Currently, Wikidata supports 11 different data types. The data types are represented as their own classes in wdi_core. Each data type has its specialties, which means that some of them
+Currently, Wikidata supports 17 different data types. The data types are represented as their own classes in wdi_core. Each data type has its specialties, which means that some of them
 require special parameters (e.g. Globe Coordinates).
 
 The data types currently implemented:
 
-* wdi_core.WDString
+* wdi_core.WDCommonsMedia
+* wdi_core.WDExternalID
+* wdi_core.WDForm
+* wdi_core.WDGeoShape
+* wdi_core.WDGlobeCoordinate
 * wdi_core.WDItemID
+* wdi_core.WDLexeme
+* wdi_core.WDMath
 * wdi_core.WDMonolingualText
-* wdi_core.WDQuantity
+* wdi_core.WDMusicalNotation
 * wdi_core.WDProperty
 * wdi_core.WDQuantity
+* wdi_core.WDSense
+* wdi_core.WDString
+* wdi_core.WDTabularData
 * wdi_core.WDTime
 * wdi_core.WDUrl
-* wdi_core.WDGlobeCoordinate
-* wdi_core.WDCommonsMedia
-* wdi_core.WDMath
-* wdi_core.WDGeoShape
 
 For details of how to create values (=instances) with these data types, please (for now) consult the docstrings in the source code. Of note, these data type instances hold the values and, if specified,
 data type instances for references and qualifiers. Furthermore, calling the get_value() method of an instance returns either an integer, a string or a tuple, depending on the complexity of the data type.
