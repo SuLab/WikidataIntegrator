@@ -13,3 +13,4 @@ pyshexc
 pyshex
 tqdm
 backoff
+shexer
