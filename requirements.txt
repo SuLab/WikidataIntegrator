@@ -12,8 +12,5 @@ oauthlib
 pyshexc
 pyshex
 tqdm
-<<<<<<< HEAD
-shexer==0.0.7
-=======
 backoff
->>>>>>> 124cdf5c85b739955011ca5f97323e7e8902d8be
+shexer
