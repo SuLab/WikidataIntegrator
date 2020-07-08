@@ -1254,6 +1254,7 @@ class WDItemEngine(object):
         df = pd.DataFrame(results)
         return df
 
+    ## SHEX related functions
     @staticmethod
     def check_shex_conformance(qid, eid, sparql_endpoint_url=None, output='confirm'):
         """

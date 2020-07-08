@@ -20,7 +20,6 @@ class TestItemCreation(unittest.TestCase):
             wdi_core.WDGlobeCoordinate(1.2345, 1.2345, 12, prop_nr="P12"),
             wdi_core.WDGeoShape("Data:xxx.map", prop_nr="P13"),
             wdi_core.WDProperty("P123", "P14"),
-            wdi_core.WDTabularData("Data:xxx.tab", prop_nr="P15"),
             wdi_core.WDMusicalNotation("\relative c' { c d e f | g2 g | a4 a a a | g1 |}", prop_nr="P16"),
             wdi_core.WDLexeme("L123", prop_nr="P17"),
             wdi_core.WDForm("L123-F123", prop_nr="P18"),
