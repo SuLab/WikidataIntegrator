@@ -1258,7 +1258,7 @@ class WDItemEngine(object):
     @staticmethod
     def check_shex_conformance(qid, eid, sparql_endpoint_url=None, output='confirm'):
         """
-                Static method which can be used to execute any SPARQL query
+                Static method which can be used to check for conformence of a Wikidata item to an EntitySchema  any SPARQL query
                 :param qid: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
                 :param eid: The EntitySchema identifier from Wikidata
                 :param sparql_endpoint_url: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
@@ -1268,12 +1268,12 @@ class WDItemEngine(object):
 
         sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
 
-        slurpeddata = SlurpyGraph(sparql_endpoint_url)
-        schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText/" + eid).text
-        for p, o in slurpeddata.predicate_objects(qid):
-            pass
 
-        for result in ShExEvaluator(rdf=slurpeddata, schema=schema, focus=qid).evaluate():
+        schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText/" + eid).text
+        rdfdata = Graph()
+        rdfdata.parse(config["ONCEPT_BASE_URI"]+qid+".ttl")
+
+        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["ONCEPT_BASE_URI"]+qid).evaluate():
             shex_result = dict()
             if result.result:
                 shex_result["result"] = True

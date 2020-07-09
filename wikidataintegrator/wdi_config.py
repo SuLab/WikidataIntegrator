@@ -31,5 +31,5 @@ config = {
     'MEDIAWIKI_INDEX_URL': 'https://www.wikidata.org/w/index.php',
     'SPARQL_ENDPOINT_URL': 'https://query.wikidata.org/sparql',
     'WIKIBASE_URL': 'http://www.wikidata.org',
-    'CONCEPT_BASE_URI': 'http://www.wikidata.org/entity/'
+    '"CONCEPT_BASE_URI"': 'http://www.wikidata.org/entity/'
 }
