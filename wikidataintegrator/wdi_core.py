@@ -1271,9 +1271,9 @@ class WDItemEngine(object):
 
         schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText/" + eid).text
         rdfdata = Graph()
-        rdfdata.parse(config["ONCEPT_BASE_URI"]+qid+".ttl")
+        rdfdata.parse(config["CONCEPT_BASE_URI"]+qid+".ttl")
 
-        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["ONCEPT_BASE_URI"]+qid).evaluate():
+        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["CONCEPT_BASE_URI"]+qid).evaluate():
             shex_result = dict()
             if result.result:
                 shex_result["result"] = True
