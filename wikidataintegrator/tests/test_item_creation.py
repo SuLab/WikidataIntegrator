@@ -22,7 +22,7 @@ class TestItemCreation(unittest.TestCase):
             wdi_core.WDProperty("P123", "P14"),
             wdi_core.WDMusicalNotation("\relative c' { c d e f | g2 g | a4 a a a | g1 |}", prop_nr="P16"),
         ]
-        ## For future inclusion. 
+        ## For future inclusion.
         # wdi_core.WDLexeme("L123", prop_nr="P17"),
         # wdi_core.WDForm("L123-F123", prop_nr="P18"),
         # wdi_core.WDSense("L123-S123", prop_nr="P19")
