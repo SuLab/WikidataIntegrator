@@ -43,6 +43,7 @@ setup(
         'ShExJSG',
         'jsonasobj',
         'pyshex',
-        'backoff'
+        'backoff',
+        'shexer'
     ],
 )
