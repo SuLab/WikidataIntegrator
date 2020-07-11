@@ -11,11 +11,8 @@ from typing import List
 
 import pandas as pd
 import requests
-from ShExJSG import ShExC
 from pyshex import ShExEvaluator
 from rdflib import Graph
-from sparql_slurper import SlurpyGraph
-
 from shexer.shaper import Shaper
 
 from wikidataintegrator.wdi_backoff import wdi_backoff
@@ -1270,9 +1267,9 @@ class WDItemEngine(object):
 
         schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText/" + eid).text
         rdfdata = Graph()
-        rdfdata.parse(config["CONCEPT_BASE_URI"]+qid+".ttl")
+        rdfdata.parse(config["CONCEPT_BASE_URI"] + qid + ".ttl")
 
-        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["CONCEPT_BASE_URI"]+qid).evaluate():
+        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["CONCEPT_BASE_URI"] + qid).evaluate():
             shex_result = dict()
             if result.result:
                 shex_result["result"] = True
