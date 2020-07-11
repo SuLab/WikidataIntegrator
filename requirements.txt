@@ -14,3 +14,4 @@ pyshex
 tqdm
 backoff
 shexer
+rdflib
