@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = "0.7.2"
+VERSION = "0.7.3"
 
 setup(
     name='wikidataintegrator',
@@ -20,7 +20,7 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Development Status :: 4 - Beta",
         "Operating System :: POSIX",
         "Operating System :: MacOS :: MacOS X",
