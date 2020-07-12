@@ -1376,7 +1376,7 @@ class WDItemEngine(object):
         mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
 
         localcopy = Graph()
-        localcopy.parse(mediawiki_api_url + "?action=query&prop=links&titles=" + qid)
+        localcopy.parse(config["CONCEPT_BASE_URI"] + qid + ".ttl")
         return (localcopy.serialize(format=format))
 
     @staticmethod
