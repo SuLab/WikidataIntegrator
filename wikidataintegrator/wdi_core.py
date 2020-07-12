@@ -1368,7 +1368,8 @@ class WDItemEngine(object):
     @staticmethod
     def get_rdf(qid, format="turtle", mediawiki_api_url=None):
         """
-            :param qid: Wikidata identifier to which other wikidata items link
+            :param qid: Wikidata identifier to extract the RDF of
+            :format RDF from to return takes (turtle, ntriples, rdfxml, see https://rdflib.readthedocs.io/en/stable/apidocs/rdflib.html)
             :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
             :return:
         """
