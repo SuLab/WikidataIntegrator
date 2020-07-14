@@ -1255,7 +1255,7 @@ class WDItemEngine(object):
     @staticmethod
     def check_shex_conformance(qid, eid, sparql_endpoint_url=None, output='confirm'):
         """
-                Static method which can be used to check for conformence of a Wikidata item to an EntitySchema any SPARQL query
+                Static method which can be used to check for conformance of a Wikidata item to an EntitySchema any SPARQL query
                 :param qid: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
                 :param eid: The EntitySchema identifier from Wikidata
                 :param sparql_endpoint_url: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
