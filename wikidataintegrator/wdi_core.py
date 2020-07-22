@@ -1502,6 +1502,24 @@ class WDItemEngine(object):
         r = requests.post(url=mediawiki_api_url, data=params, cookies=login.get_edit_cookie(), headers=headers)
         print(r.json())
 
+    ## References
+    @staticmethod
+    def count_references(self, pid, user_agent=config['USER_AGENT_DEFAULT']):
+        params = {
+            'action': 'wbgetclaims',
+            'entity': self.wd_item_id,
+            'property': pid,
+            'format': 'json'
+        }
+        headers = {
+            'User-Agent': user_agent
+        }
+        json_data = mediawiki_api_call("GET", "https://www.wikidata.org/w/api.php", params=params,
+                                                             headers=headers)
+        # len(json_data["references"])
+        for claim in json_data["claims"]["P31"]:
+            print(claim["id"], len(claim["references"]))
+
     @classmethod
     def wikibase_item_engine_factory(cls, mediawiki_api_url=config['MEDIAWIKI_API_URL'],
                                      sparql_endpoint_url=config['SPARQL_ENDPOINT_URL'], name='LocalItemEngine'):

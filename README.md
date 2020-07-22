@@ -182,16 +182,13 @@ for more information.
 ## Test for conformance to a Shape Expression ##
 Shape Expressions (ShEx) is a structural schema language for RDF graphs. It allows to express the graph structures such a Wikidata items. 
 The class wdi_core.check_shex_conformance tests a wikidata item on conformance to a given ShEx.
-In the example below two wikidata items on human diseases (Q18556942 and Q6949365)  are checked for conformance to a disease schema expressed as shape expressions. 
+In the example below the wikidata item [helium (!560)](https://www.wikidata.org/wiki/Q560)  is checked for conformance to a schema expressed as shape expression for [chemical element (E46)](https://www.wikidata.org/wiki/EntitySchema:E46). 
 
 
 ```Python
 from wikidataintegrator import wdi_core
-import requests
 
-shex = requests.get("https://raw.githubusercontent.com/SuLab/Genewiki-ShEx/master/diseases/wikidata-disease-ontology.shex").text
-print("wd:Q18556942", wdi_core.WDItemEngine.check_shex_conformance(item_iri="http://www.wikidata.org/entity/Q18556942", shex=shex)) # Returns True
-print("wd:Q6949365", wdi_core.WDItemEngine.check_shex_conformance(item_iri="http://www.wikidata.org/entity/Q6949365", shex=shex)) # Returns False
+print("Q560 conforms to E46"+wdi_core.WDItemEngine.check_shex_conformance("Q560", "E46"))
 ```
 
 # Examples (in normal mode) #
