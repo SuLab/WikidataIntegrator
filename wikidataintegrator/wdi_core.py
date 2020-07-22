@@ -1503,22 +1503,28 @@ class WDItemEngine(object):
         print(r.json())
 
     ## References
-    @staticmethod
+    @classmethod
     def count_references(self, pid, user_agent=config['USER_AGENT_DEFAULT']):
-        params = {
-            'action': 'wbgetclaims',
-            'entity': self.wd_item_id,
-            'property': pid,
-            'format': 'json'
-        }
-        headers = {
-            'User-Agent': user_agent
-        }
-        json_data = mediawiki_api_call("GET", "https://www.wikidata.org/w/api.php", params=params,
-                                                             headers=headers)
-        # len(json_data["references"])
-        for claim in json_data["claims"]["P31"]:
-            print(claim["id"], len(claim["references"]))
+        counts = dict()
+        for claim in self.get_wd_json_representation()["claims"][prop_id]:
+            counts[claim["id"]] = len(claim["references"])
+        return counts
+
+    @classmethod
+    def get_reference_properties(self, prop_id, user_agent=config['USER_AGENT_DEFAULT']):
+        references = []
+        for statements in self.get_wd_json_representation()["claims"][prop_id]:
+            for reference in statements["references"]:
+                references.append(reference["snaks"].keys())
+        return references
+
+    @classmethod
+    def get_qualifier_properties(self, prop_id, user_agent=config['USER_AGENT_DEFAULT']):
+        qualifiers = []
+        for statements in self.get_wd_json_representation()["claims"][prop_id]:
+            for reference in statements["qualifiers"]:
+                qualifiers.append(reference["snaks"].keys())
+        return qualifiers
 
     @classmethod
     def wikibase_item_engine_factory(cls, mediawiki_api_url=config['MEDIAWIKI_API_URL'],
