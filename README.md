@@ -1,8 +1,8 @@
 # Wikidata Integrator #
-[![Build Status](https://travis-ci.org/SuLab/WikidataIntegrator.svg?branch=master)](https://travis-ci.org/SuLab/WikidataIntegrator)
+[![Build Status](https://travis-ci.org/SuLab/WikidataIntegrator.svg?branch=main)](https://travis-ci.org/SuLab/WikidataIntegrator)
 [![Pyversions](https://img.shields.io/pypi/pyversions/wikidataintegrator.svg)](https://pypi.python.org/pypi/wikidataintegrator)
 [![PyPi](https://img.shields.io/pypi/v/wikidataintegrator.svg)](https://pypi.python.org/pypi/wikidataintegrator)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SuLab/WikidataIntegrator/master)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SuLab/WikidataIntegrator/main)
 [<img src="https://img.shields.io/badge/slack-@genewiki/wdi_bot_dev-green.svg?logo=slack">](https://suwulab.slack.com/archives/C014ADW3SGZ)
 
 # Slack channel 
