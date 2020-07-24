@@ -18,7 +18,8 @@ example_Q14911732 = {'P1057':
 
 class FastRunContainer(object):
     def __init__(self, base_data_type, engine, mediawiki_api_url=None, sparql_endpoint_url=None, wikibase_url=None,
-                 concept_base_uri=None, base_filter=None, use_refs=False, ref_handler=None, debug=False):
+                 concept_base_uri=None, base_filter=None, use_refs=False, ref_handler=None, case_insensitive=False,
+                 debug=False):
         self.prop_data = {}
         self.loaded_langs = {}
         self.statements = []
@@ -27,12 +28,14 @@ class FastRunContainer(object):
         self.prop_dt_map = {}
         self.current_qid = ''
         self.rev_lookup = defaultdict(set)
+        self.rev_lookup_ci = defaultdict(set)
         self.base_data_type = base_data_type
         self.engine = engine
         self.mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
         self.sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
         self.wikibase_url = config['WIKIBASE_URL'] if wikibase_url is None else wikibase_url
         self.concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
+        self.case_insensitive = case_insensitive
         self.debug = debug
         self.reconstructed_statements = []
         self.use_refs = use_refs
@@ -91,28 +94,19 @@ class FastRunContainer(object):
         self.reconstructed_statements = reconstructed_statements
         return reconstructed_statements
 
-    def write_required(self, data, append_props=None, cqid=None):
-        del_props = set()
-        data_props = set()
-        if not append_props:
-            append_props = []
-
-        for x in data:
-            if x.value and x.data_type:
-                data_props.add(x.get_prop_nr())
-        write_required = False
+    def load_item(self, data, cqid=None):
         match_sets = []
         for date in data:
             # skip to next if statement has no value or no data type defined, e.g. for deletion objects
             current_value = date.get_value()
             if not current_value and not date.data_type:
-                del_props.add(date.get_prop_nr())
                 continue
 
             prop_nr = date.get_prop_nr()
 
             if prop_nr not in self.prop_dt_map:
-                print("{} not found in fastrun".format(prop_nr))
+                if self.debug:
+                    print("{} not found in fastrun".format(prop_nr))
                 self.prop_dt_map.update({prop_nr: self.get_prop_datatype(prop_nr)})
                 self._query_data(prop_nr)
 
@@ -121,8 +115,6 @@ class FastRunContainer(object):
                 current_value = current_value[0]
             elif self.prop_dt_map[prop_nr] == 'wikibase-item':
                 current_value = 'Q{}'.format(current_value)
-            elif self.prop_dt_map[prop_nr] == 'globe-coordinate':
-                write_required = True  # temporary workaround for handling globe coordinates
             elif self.prop_dt_map[prop_nr] == 'quantity':
                 current_value = self.format_amount(current_value[0])
 
@@ -132,9 +124,15 @@ class FastRunContainer(object):
             if current_value in self.rev_lookup:
                 # quick check for if the value has ever been seen before, if not, write required
                 temp_set = set(self.rev_lookup[current_value])
+            elif self.case_insensitive and current_value.casefold() in self.rev_lookup_ci:
+                temp_set = set(self.rev_lookup_ci[current_value.casefold()])
             else:
                 if self.debug:
-                    print(self.rev_lookup)
+                    if self.case_insensitive:
+                        print('case insensitive enabled')
+                        print(self.rev_lookup_ci)
+                    else:
+                        print(self.rev_lookup)
                     print('no matches for rev lookup')
                 return True
             match_sets.append(temp_set)
@@ -154,7 +152,19 @@ class FastRunContainer(object):
         qid = matching_qids.pop()
         self.current_qid = qid
 
-        reconstructed_statements = self.reconstruct_statements(qid)
+    def write_required(self, data, append_props=None, cqid=None):
+        del_props = set()
+        data_props = set()
+        if not append_props:
+            append_props = []
+
+        for x in data:
+            if x.value and x.data_type:
+                data_props.add(x.get_prop_nr())
+        write_required = False
+        self.load_item(data, cqid)
+
+        reconstructed_statements = self.reconstruct_statements(self.current_qid)
         tmp_rs = copy.deepcopy(reconstructed_statements)
 
         # handle append properties
@@ -180,7 +190,6 @@ class FastRunContainer(object):
                 return True
 
         tmp_rs = [x for x in tmp_rs if x.get_prop_nr() not in append_props and x.get_prop_nr() in data_props]
-        # print("154: {}".format(tmp_rs))
 
         for date in data:
             # ensure that statements meant for deletion get handled properly
@@ -196,12 +205,16 @@ class FastRunContainer(object):
             if date.get_prop_nr() in append_props:
                 continue
 
+            if not date.get_value() and not date.data_type:
+                del_props.add(date.get_prop_nr())
+
             # this is where the magic happens
             # date is a new statement, proposed to be written
             # tmp_rs are the reconstructed statements == current state of the item
             bool_vec = []
             for x in tmp_rs:
-                if x.get_value() == date.get_value() and x.get_prop_nr() not in del_props:
+                if (x.get_value() == date.get_value() or (
+                        self.case_insensitive and x.get_value().casefold() == date.get_value().casefold())) and x.get_prop_nr() not in del_props:
                     if self.use_refs and self.ref_handler:
                         to_be = copy.deepcopy(x)
                         self.ref_handler(to_be, date)
@@ -351,6 +364,8 @@ class FastRunContainer(object):
                 # see for example: select * where { wd:Q7207 p:P40 ?c . ?c ?d ?e }
                 if type(i['v']) is not dict:
                     self.rev_lookup[i['v']].add(i['item'])
+                    if self.case_insensitive:
+                        self.rev_lookup_ci[i['v'].casefold()].add(i['item'])
 
             # handle qualifier value
             if 'qval' in i:
@@ -427,6 +442,10 @@ class FastRunContainer(object):
                   {1}
                   ?item p:{2} ?sid .
             }}""".format(self.wikibase_url, self.base_filter_string, prop_nr)
+
+            if self.debug:
+                print(query)
+
             r = self.engine.execute_sparql_query(query, endpoint=self.sparql_endpoint_url)['results']['bindings']
             count = int(r[0]['c']['value'])
             num_pages = (int(count) // page_size) + 1
@@ -462,6 +481,9 @@ class FastRunContainer(object):
                 replace("**base_filter_string**", self.base_filter_string). \
                 replace("**prop_nr**", prop_nr).replace("**page_size**", str(page_size)). \
                 replace("**wikibase_url**", self.wikibase_url)
+
+            if self.debug:
+                print(query)
 
             results = self.engine.execute_sparql_query(query, endpoint=self.sparql_endpoint_url)['results']['bindings']
             self.format_query_results(results, prop_nr)
@@ -499,6 +521,10 @@ class FastRunContainer(object):
                   }}
                 }}
                 '''.format(self.wikibase_url, self.base_filter_string, prop_nr)
+
+            if self.debug:
+                print(query)
+
             r = self.engine.execute_sparql_query(query=query, endpoint=self.sparql_endpoint_url)['results']['bindings']
             self.format_query_results(r, prop_nr)
             self.update_frc_from_query(r, prop_nr)
@@ -560,3 +586,13 @@ class FastRunContainer(object):
         self.prop_dt_map = dict()
         self.prop_data = dict()
         self.rev_lookup = defaultdict(set)
+        self.rev_lookup_ci = defaultdict(set)
+
+    """A mixin implementing a simple __repr__."""
+
+    def __repr__(self):
+        return "<{klass} @{id:x} {attrs}>".format(
+            klass=self.__class__.__name__,
+            id=id(self) & 0xFFFFFF,
+            attrs="\r\n\t ".join("{}={!r}".format(k, v) for k, v in self.__dict__.items()),
+        )
