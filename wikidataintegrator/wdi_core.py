@@ -1502,28 +1502,28 @@ class WDItemEngine(object):
         r = requests.post(url=mediawiki_api_url, data=params, cookies=login.get_edit_cookie(), headers=headers)
         print(r.json())
 
-    ## References
+    # References
     @classmethod
-    def count_references(self, pid, user_agent=config['USER_AGENT_DEFAULT']):
+    def count_references(cls, prop_id):
         counts = dict()
-        for claim in self.get_wd_json_representation()["claims"][prop_id]:
-            counts[claim["id"]] = len(claim["references"])
+        for claim in cls.get_wd_json_representation()['claims'][prop_id]:
+            counts[claim['id']] = len(claim['references'])
         return counts
 
     @classmethod
-    def get_reference_properties(self, prop_id, user_agent=config['USER_AGENT_DEFAULT']):
+    def get_reference_properties(cls, prop_id):
         references = []
-        for statements in self.get_wd_json_representation()["claims"][prop_id]:
-            for reference in statements["references"]:
-                references.append(reference["snaks"].keys())
+        for statements in cls.get_wd_json_representation()['claims'][prop_id]:
+            for reference in statements['references']:
+                references.append(reference['snaks'].keys())
         return references
 
     @classmethod
-    def get_qualifier_properties(self, prop_id, user_agent=config['USER_AGENT_DEFAULT']):
+    def get_qualifier_properties(cls, prop_id):
         qualifiers = []
-        for statements in self.get_wd_json_representation()["claims"][prop_id]:
-            for reference in statements["qualifiers"]:
-                qualifiers.append(reference["snaks"].keys())
+        for statements in cls.get_wd_json_representation()['claims'][prop_id]:
+            for reference in statements['qualifiers']:
+                qualifiers.append(reference['snaks'].keys())
         return qualifiers
 
     @classmethod
