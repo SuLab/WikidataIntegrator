@@ -258,6 +258,13 @@ class WDItemEngine(object):
                     (c.sparql_endpoint_url == self.sparql_endpoint_url):
                 self.fast_run_container = c
                 self.fast_run_container.ref_handler = self.ref_handler
+                self.fast_run_container.current_qid = ''
+                self.fast_run_container.base_data_type = WDBaseDataType
+                self.fast_run_container.engine = self.__class__
+                self.fast_run_container.mediawiki_api_url = self.mediawiki_api_url
+                self.fast_run_container.wikibase_url = self.wikibase_url
+                self.fast_run_container.concept_base_uri = self.concept_base_uri
+                self.fast_run_container.debug = self.debug
 
         if not self.fast_run_container:
             self.fast_run_container = FastRunContainer(base_filter=self.fast_run_base_filter,
