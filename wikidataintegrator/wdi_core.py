@@ -50,7 +50,7 @@ class WDItemEngine(object):
                  fast_run_use_refs=False, ref_handler=None, global_ref_mode='KEEP_GOOD', good_refs=None,
                  keep_good_ref_statements=False, search_only=False, item_data=None, user_agent=None, core_props=None,
                  core_prop_match_thresh=0.66, property_constraint_pid=None, distinct_values_constraint_qid=None,
-                 debug=False):
+                 fast_run_case_insensitive=False, debug=False):
         """
         constructor
         :param wd_item_id: Wikidata item id
@@ -136,6 +136,7 @@ class WDItemEngine(object):
         self.fast_run = fast_run
         self.fast_run_base_filter = fast_run_base_filter
         self.fast_run_use_refs = fast_run_use_refs
+        self.fast_run_case_insensitive = fast_run_case_insensitive
         self.ref_handler = ref_handler
         self.global_ref_mode = global_ref_mode
         self.good_refs = good_refs
@@ -156,6 +157,9 @@ class WDItemEngine(object):
 
         self.debug = debug
 
+        if fast_run_case_insensitive and not search_only:
+            raise ValueError("If using fast run case insensitive, search_only must be set")
+
         if self.ref_handler:
             assert callable(self.ref_handler)
         if self.global_ref_mode == "CUSTOM" and self.ref_handler is None:
@@ -172,13 +176,17 @@ class WDItemEngine(object):
             # if the "equivalent property" and "mappingRelation" property are not found, we can't know what the
             # QIDs for the mapping relation types are
             self.mrh = None
-            warnings.warn("mapping relation types are being ignored")
+            if self.debug:
+                warnings.warn("mapping relation types are being ignored")
 
         if self.fast_run:
             self.init_fastrun()
             if self.debug:
                 if self.require_write:
-                    print('fastrun skipped, because no full data match, updating item...')
+                    if search_only:
+                        print('successful fastrun, search_only mode, we can\'t determine if data is up to date')
+                    else:
+                        print('successful fastrun, because no full data match you need to update the item...')
                 else:
                     print('successful fastrun, no write to Wikidata required')
 
@@ -187,8 +195,6 @@ class WDItemEngine(object):
         elif self.new_item == True and len(self.data) > 0:
             self.create_new_item = True
             self.__construct_claim_json()
-        elif self.wd_item_id and self.require_write:
-            self.init_data_load()
         elif self.require_write:
             self.init_data_load()
 
@@ -253,11 +259,14 @@ class WDItemEngine(object):
             self.data = []
 
     def init_fastrun(self):
+        # We search if we already have a FastRunContainer with the same parameters to re-use it
         for c in WDItemEngine.fast_run_store:
             if (c.base_filter == self.fast_run_base_filter) and (c.use_refs == self.fast_run_use_refs) and \
                     (c.sparql_endpoint_url == self.sparql_endpoint_url):
                 self.fast_run_container = c
                 self.fast_run_container.ref_handler = self.ref_handler
+                if self.debug:
+                    print('Found an already existing FastRunContainer')
 
         if not self.fast_run_container:
             self.fast_run_container = FastRunContainer(base_filter=self.fast_run_base_filter,
@@ -269,15 +278,21 @@ class WDItemEngine(object):
                                                        concept_base_uri=self.concept_base_uri,
                                                        use_refs=self.fast_run_use_refs,
                                                        ref_handler=self.ref_handler,
+                                                       case_insensitive=self.fast_run_case_insensitive,
                                                        debug=self.debug)
             WDItemEngine.fast_run_store.append(self.fast_run_container)
 
-        self.require_write = self.fast_run_container.write_required(self.data, append_props=self.append_value,
-                                                                    cqid=self.wd_item_id)
-
-        # set item id based on fast run data
-        if not self.require_write and not self.wd_item_id:
-            self.wd_item_id = self.fast_run_container.current_qid
+        if not self.search_only:
+            self.require_write = self.fast_run_container.write_required(self.data, append_props=self.append_value,
+                                                                        cqid=self.wd_item_id)
+            # set item id based on fast run data
+            if not self.require_write and not self.wd_item_id:
+                self.wd_item_id = self.fast_run_container.current_qid
+        else:
+            self.fast_run_container.load_item(self.data)
+            # set item id based on fast run data
+            if not self.wd_item_id:
+                self.wd_item_id = self.fast_run_container.current_qid
 
     def get_wd_entity(self):
         """
@@ -1592,8 +1607,6 @@ class JsonParser(object):
                         jsn = ref_block['snaks'][prop]
 
                         for prop_ref in jsn:
-                            # pprint.pprint(prop_ref)
-
                             ref_class = self.get_class_representation(prop_ref)
                             ref_class.is_reference = True
                             ref_class.snak_type = prop_ref['snaktype']
