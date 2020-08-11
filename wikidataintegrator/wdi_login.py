@@ -141,7 +141,7 @@ class WDLogin(object):
             if r['login']['result'] != 'Success':
                 print('login failed:', r['login']['reason'])
                 raise ValueError('login FAILED!!')
-            else:
+            elif debug:
                 print('Successfully logged in as', r['login']['lgusername'])
 
             self.generate_edit_credentials()
