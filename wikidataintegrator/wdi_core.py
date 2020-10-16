@@ -22,9 +22,9 @@ from wikidataintegrator.wdi_helpers import MappingRelationHelper
 
 """
 Authors:
-  Andra Waagmeester (andra' at ' micelio.be)
-  Gregory Stupp (stuppie' at 'gmail.com )
-  Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
+Andra Waagmeester (andra' at ' micelio.be)
+Gregory Stupp (stuppie' at 'gmail.com )
+Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
 
 This file is part of the WikidataIntegrator.
 
@@ -40,11 +40,14 @@ class WDFunctionsEngine(object):
 
     @staticmethod
     def get_rdf(wd_item_id='', format="turtle", mediawiki_api_url=None):
+
         """
-            :param wd_item_id='': Wikidata identifier to extract the RDF of
-            :format RDF from to return takes (turtle, ntriples, rdfxml, see https://rdflib.readthedocs.io/en/stable/apidocs/rdflib.html)
-            :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
-            :return:
+        function to get RDF of a Wikidata item
+
+        :param wd_item_id='': Wikidata identifier to extract the RDF of
+        :param format RDF from to return takes (turtle, ntriples, rdfxml, see https://rdflib.readthedocs.io/en/stable/apidocs/rdflib.html)
+        :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
+        :return:
         """
         localcopy = Graph()
         localcopy.parse(config["CONCEPT_BASE_URI"] + wd_item_id + ".ttl")
@@ -52,10 +55,11 @@ class WDFunctionsEngine(object):
 
     @staticmethod
     @wdi_backoff()
-    def execute_sparql_query(query, prefix=None, endpoint=None,
-                             user_agent=None, as_dataframe=False, max_retries=1000, retry_after=60):
+    def execute_sparql_query(query, prefix=None, endpoint=None, user_agent=None, as_dataframe=False, max_retries=1000, retry_after=60):
+
         """
         Static method which can be used to execute any SPARQL query
+
         :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
         :param query: The actual SPARQL query string
         :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
@@ -150,65 +154,65 @@ class WDItemEngine(object):
         :param new_item: This parameter lets the user indicate if a new item should be created
         :type new_item: True or False
         :param data: a dictionary with WD property strings as keys and the data which should be written to
-            a WD item as the property values
+        a WD item as the property values
         :type data: List[WDBaseDataType]
         :param append_value: a list of properties where potential existing values should not be overwritten by the data
-            passed in the :parameter data.
+        passed in the :parameter data.
         :type append_value: list of property number strings
         :param fast_run: True if this item should be run in fastrun mode, otherwise False. User setting this to True
-            should also specify the fast_run_base_filter for these item types
+        should also specify the fast_run_base_filter for these item types
         :type fast_run: bool
         :param fast_run_base_filter: A property value dict determining the Wikidata property and the corresponding value
-            which should be used as a filter for this item type. Several filter criteria can be specified. The values
-            can be either Wikidata item QIDs, strings or empty strings if the value should be a variable in SPARQL.
-            Example: {'P352': '', 'P703': 'Q15978631'} if the basic common type of things this bot runs on is
-            human proteins (specified by Uniprot IDs (P352) and 'found in taxon' homo sapiens 'Q15978631').
+        which should be used as a filter for this item type. Several filter criteria can be specified. The values
+        can be either Wikidata item QIDs, strings or empty strings if the value should be a variable in SPARQL.
+        Example: {'P352': '', 'P703': 'Q15978631'} if the basic common type of things this bot runs on is
+        human proteins (specified by Uniprot IDs (P352) and 'found in taxon' homo sapiens 'Q15978631').
         :type fast_run_base_filter: dict
         :param fast_run_use_refs: If `True`, fastrun mode will consider references in determining if a statement should
-            be updated and written to Wikidata. Otherwise, only the value and qualifiers are used. Default: False
+        be updated and written to Wikidata. Otherwise, only the value and qualifiers are used. Default: False
         :type fast_run_use_refs: bool
         :param ref_handler: This parameter defines a function that will manage the reference handling in a custom
-            manner. This argument should be a function handle that accepts two arguments, the old/current statement
-            (first argument) and new/proposed/to be written statement (second argument), both of type: a subclass of
-            WDBaseDataType. The function should return an new item that is the item to be written. The item's values
-            properties or qualifiers should not be modified; only references. This function is also used in fastrun mode.
-            This will only be used if the ref_mode is set to "CUSTOM".
+        manner. This argument should be a function handle that accepts two arguments, the old/current statement
+        (first argument) and new/proposed/to be written statement (second argument), both of type: a subclass of
+        WDBaseDataType. The function should return an new item that is the item to be written. The item's values
+        properties or qualifiers should not be modified; only references. This function is also used in fastrun mode.
+        This will only be used if the ref_mode is set to "CUSTOM".
         :type ref_handler: function
         :param global_ref_mode: sets the reference handling mode for an item. Four modes are possible, 'STRICT_KEEP'
-            keeps all references as they are, 'STRICT_KEEP_APPEND' keeps the references as they are and appends
-            new ones. 'STRICT_OVERWRITE' overwrites all existing references for given. 'CUSTOM' will use the function
-            defined in ref_handler
+        keeps all references as they are, 'STRICT_KEEP_APPEND' keeps the references as they are and appends
+        new ones. 'STRICT_OVERWRITE' overwrites all existing references for given. 'CUSTOM' will use the function
+        defined in ref_handler
         :type global_ref_mode: str of value 'STRICT_KEEP', 'STRICT_KEEP_APPEND', 'STRICT_OVERWRITE', 'KEEP_GOOD', 'CUSTOM'
         :param good_refs: This parameter lets the user define blocks of good references. It is a list of dictionaries.
-            One block is a dictionary with  Wikidata properties as keys and potential values as the required value for
-            a property. There can be arbitrarily many key: value pairs in one reference block.
-            Example: [{'P248': 'Q905695', 'P352': None, 'P407': None, 'P1476': None, 'P813': None}]
-            This example contains one good reference block, stated in: Uniprot, Uniprot ID, title of Uniprot entry,
-            language of work and date when the information has been retrieved. A None type indicates that the value
-            varies from reference to reference. In this case, only the value for the Wikidata item for the
-            Uniprot database stays stable over all of these references. Key value pairs work here, as Wikidata
-            references can hold only one value for one property. The number of good reference blocks is not limited.
-            This parameter OVERRIDES any other reference mode set!!
+        One block is a dictionary with  Wikidata properties as keys and potential values as the required value for
+        a property. There can be arbitrarily many key: value pairs in one reference block.
+        Example: [{'P248': 'Q905695', 'P352': None, 'P407': None, 'P1476': None, 'P813': None}]
+        This example contains one good reference block, stated in: Uniprot, Uniprot ID, title of Uniprot entry,
+        language of work and date when the information has been retrieved. A None type indicates that the value
+        varies from reference to reference. In this case, only the value for the Wikidata item for the
+        Uniprot database stays stable over all of these references. Key value pairs work here, as Wikidata
+        references can hold only one value for one property. The number of good reference blocks is not limited.
+        This parameter OVERRIDES any other reference mode set!!
         :type good_refs: list containing dictionaries.
         :param keep_good_ref_statements: Do not delete any statement which has a good reference, either defined in the
-            good_refs list or by any other referencing mode.
+        good_refs list or by any other referencing mode.
         :type keep_good_ref_statements: bool
         :param search_only: If this flag is set to True, the data provided will only be used to search for the
-            corresponding Wikidata item, but no actual data updates will performed. This is useful, if certain states or
-            values on the target item need to be checked before certain data is written to it. In order to write new
-            data to the item, the method update() will take data, modify the Wikidata item and a write() call will
-            then perform the actual write to Wikidata.
+        corresponding Wikidata item, but no actual data updates will performed. This is useful, if certain states or
+        values on the target item need to be checked before certain data is written to it. In order to write new
+        data to the item, the method update() will take data, modify the Wikidata item and a write() call will
+        then perform the actual write to Wikidata.
         :type search_only: bool
         :param item_data: A Python JSON object corresponding to the Wikidata item in wd_item_id. This can be used in
-            conjunction with wd_item_id in order to provide raw data.
+        conjunction with wd_item_id in order to provide raw data.
         :param user_agent: The user agent string to use when making http requests
         :type user_agent: str
         :param core_props: Core properties are used to retrieve a Wikidata item based on `data` if a `wd_item_id` is
-            not given. This is a set of PIDs to use. If None, all Wikidata properties with a distinct values
-            constraint will be used. (see: get_core_props)
+        not given. This is a set of PIDs to use. If None, all Wikidata properties with a distinct values
+        constraint will be used. (see: get_core_props)
         :type core_props: set
         :param core_prop_match_thresh: The proportion of core props that must match during retrieval of an item
-            when the wd_item_id is not specified.
+        when the wd_item_id is not specified.
         :type core_prop_match_thresh: float
         :param debug: Enable debug output.
         :type debug: boolean
@@ -220,10 +224,8 @@ class WDItemEngine(object):
         self.sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
         self.wikibase_url = config['WIKIBASE_URL'] if wikibase_url is None else wikibase_url
         self.concept_base_uri = config['CONCEPT_BASE_URI'] if concept_base_uri is None else concept_base_uri
-        self.property_constraint_pid = config[
-            'PROPERTY_CONSTRAINT_PID'] if property_constraint_pid is None else property_constraint_pid
-        self.distinct_values_constraint_qid = config[
-            'DISTINCT_VALUES_CONSTRAINT_QID'] if distinct_values_constraint_qid is None else distinct_values_constraint_qid
+        self.property_constraint_pid = config['PROPERTY_CONSTRAINT_PID'] if property_constraint_pid is None else property_constraint_pid
+        self.distinct_values_constraint_qid = config['DISTINCT_VALUES_CONSTRAINT_QID'] if distinct_values_constraint_qid is None else distinct_values_constraint_qid
         self.data = [] if data is None else data
         self.append_value = [] if append_value is None else append_value
         self.fast_run = fast_run
@@ -1553,8 +1555,7 @@ class WDItemEngine(object):
             OPTIONAL {
               ?db wdt:P1687 ?wd_prop .
             }
-        }
-        '''
+        }'''
 
         for x in cls.execute_sparql_query(db_query, endpoint=sparql_endpoint_url)['results']['bindings']:
             db_qid = x['db']['value'].split('/')[-1]
@@ -1754,8 +1755,7 @@ class WDBaseDataType(object):
       ?item_id p:P492 ?s .
       ?s ps:P492 '614212' .
       OPTIONAL {?s pq:P4390 ?mrt}
-    }
-    """
+    }"""
 
     sparql_query = '''
         PREFIX wd: <{wb_url}/entity/>
@@ -3293,8 +3293,10 @@ class WDApiError(Exception):
     def __init__(self, wd_error_message):
         """
         Base class for Wikidata error handling
+
         :param wd_error_message: The error message returned by the WD API
         :type wd_error_message: A Python json representation dictionary of the error message
+
         :return:
         """
         self.wd_error_msg = wd_error_message
@@ -3306,13 +3308,15 @@ class WDApiError(Exception):
 class NonUniqueLabelDescriptionPairError(WDApiError):
     def __init__(self, wd_error_message):
         """
-        This class handles errors returned from the WD API due to an attempt to create an item which has the same
-         label and description as an existing item in a certain language.
-        :param wd_error_message: An WD API error mesage containing 'wikibase-validator-label-with-description-conflict'
-         as the message name.
-        :type wd_error_message: A Python json representation dictionary of the error message
-        :return:
-        """
+        This class handles errors returned from the WD API due to an attempt to create an item which has the same \
+        label and description as an existing item in a certain language.\
+
+        :param wd_error_message: An WD API error mesage containing 'wikibase-validator-label-with-description-conflict'\
+         as the message name.\
+        :type wd_error_message: A Python json representation dictionary of the error message\
+
+        :return:"""
+
         self.wd_error_msg = wd_error_message
 
     def get_language(self):
@@ -3323,9 +3327,11 @@ class NonUniqueLabelDescriptionPairError(WDApiError):
 
     def get_conflicting_item_qid(self):
         """
+        TODO: Needs better explanation
+
         :return: Returns the QID string of the item which has the same label and description as the one which should
          be set.
-        """
+         """
         qid_string = self.wd_error_msg['error']['messages'][0]['parameters'][2]
 
         return qid_string.split('|')[0][2:]
@@ -3375,11 +3381,9 @@ class MergeError(Exception):
 
 
 class FormatterWithHeader(logging.Formatter):
-    # http://stackoverflow.com/questions/33468174/write-header-to-a-python-log-file-but-only-if-a-record-gets-written
     def __init__(self, header, **kwargs):
         super(FormatterWithHeader, self).__init__(**kwargs)
         self.header = header
-        # Override the normal format method
         self.format = self.first_line_format
 
     def first_line_format(self, record):
