@@ -33,6 +33,99 @@ This file is part of the WikidataIntegrator.
 __author__ = 'Andra Waagmeester, Gregory Stupp, Sebastian Burgstaller '
 __license__ = 'MIT'
 
+class WDFunctionsEngine(object):
+    def __init__(self, mediawiki_api_url=None, sparql_endpoint_url=None,):
+        self.mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+        self.sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
+
+    @staticmethod
+    def get_rdf(wd_item_id='', format="turtle", mediawiki_api_url=None):
+        """
+            :param wd_item_id='': Wikidata identifier to extract the RDF of
+            :format RDF from to return takes (turtle, ntriples, rdfxml, see https://rdflib.readthedocs.io/en/stable/apidocs/rdflib.html)
+            :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
+            :return:
+        """
+        localcopy = Graph()
+        localcopy.parse(config["CONCEPT_BASE_URI"] + wd_item_id + ".ttl")
+        return (localcopy.serialize(format=format))
+
+    @staticmethod
+    @wdi_backoff()
+    def execute_sparql_query(query, prefix=None, endpoint=None,
+                             user_agent=None, as_dataframe=False, max_retries=1000, retry_after=60):
+        """
+        Static method which can be used to execute any SPARQL query
+        :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
+        :param query: The actual SPARQL query string
+        :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
+        :param user_agent: Set a user agent string for the HTTP header to let the WDQS know who you are.
+        :param as_dataframe: Return result as pandas dataframe
+        :type user_agent: str
+        :param max_retries: The number time this function should retry in case of header reports.
+        :param retry_after: the number of seconds should wait upon receiving either an error code or the WDQS is not reachable.
+        :return: The results of the query are returned in JSON format
+        """
+
+        sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if endpoint is None else endpoint
+        user_agent = config['USER_AGENT_DEFAULT'] if user_agent is None else user_agent
+
+        if prefix:
+            query = prefix + '\n' + query
+
+        params = {
+            'query': '#Tool: wdi_core fastrun\n' + query,
+            'format': 'json'
+        }
+
+        headers = {
+            'Accept': 'application/sparql-results+json',
+            'User-Agent': user_agent
+        }
+        response = None
+
+        for n in range(max_retries):
+            try:
+                response = requests.post(sparql_endpoint_url, params=params, headers=headers)
+            except requests.exceptions.ConnectionError as e:
+                print("Connection error: {}. Sleeping for {} seconds.".format(e, retry_after))
+                time.sleep(retry_after)
+                continue
+            if response.status_code == 503:
+                print("service unavailable. sleeping for {} seconds".format(retry_after))
+                time.sleep(retry_after)
+                continue
+            if response.status_code == 429:
+                if "retry-after" in response.headers.keys():
+                    retry_after = response.headers["retry-after"]
+                print("service unavailable. sleeping for {} seconds".format(retry_after))
+                time.sleep(retry_after)
+                continue
+            response.raise_for_status()
+            results = response.json()
+
+            if as_dataframe:
+                return WDItemEngine._sparql_query_result_to_df(results)
+            else:
+                return results
+
+    @staticmethod
+    def _sparql_query_result_to_df(results):
+
+        def parse_value(item):
+            if item.get("datatype") == "http://www.w3.org/2001/XMLSchema#decimal":
+                return float(item['value'])
+            if item.get("datatype") == "http://www.w3.org/2001/XMLSchema#integer":
+                return int(item['value'])
+            if item.get("datatype") == "http://www.w3.org/2001/XMLSchema#dateTime":
+                return datetime.datetime.strptime(item['value'], '%Y-%m-%dT%H:%M:%SZ')
+            return item['value']
+
+        results = results['results']['bindings']
+        results = [{k: parse_value(v) for k, v in item.items()} for item in results]
+        df = pd.DataFrame(results)
+        return df
+
 
 class WDItemEngine(object):
     databases = {}
