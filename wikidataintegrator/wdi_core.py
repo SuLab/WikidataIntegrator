@@ -55,8 +55,32 @@ class WDFunctionsEngine(object):
         return (localcopy.serialize(format=format))
 
     @staticmethod
-    @wdi_backoff()
+    def get_linked_by(qid, mediawiki_api_url=None):
+        """
+            :param qid: Wikidata identifier to which other wikidata items link
+            :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
+            :return:
+        """
 
+        mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+
+        linkedby = []
+        whatlinkshere = json.loads(requests.get(
+            mediawiki_api_url + "?action=query&list=backlinks&format=json&bllimit=500&bltitle=" + qid).text)
+        for link in whatlinkshere["query"]["backlinks"]:
+            if link["title"].startswith("Q"):
+                linkedby.append(link["title"])
+        while 'continue' in whatlinkshere.keys():
+            whatlinkshere = json.loads(requests.get(
+                mediawiki_api_url + "?action=query&list=backlinks&blcontinue=" +
+                whatlinkshere['continue']['blcontinue'] + "&format=json&bllimit=50&bltitle=" + "Q42").text)
+            for link in whatlinkshere["query"]["backlinks"]:
+                if link["title"].startswith("Q"):
+                    linkedby.append(link["title"])
+        return (linkedby)
+
+    @staticmethod
+    @wdi_backoff()
     def execute_sparql_query(query, prefix=None, endpoint=None, user_agent=None, as_dataframe=False, max_retries=1000, retry_after=60):
 
         """
