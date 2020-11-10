@@ -38,7 +38,7 @@ my_first_wikidata_item.get_wd_json_representation()
 ```
 
 # Introduction #
-WikidataIntegrator is a library for reading and writing to Wikidata/Wikibase. We created it for populating [WikiData](http://www.wikidata.org) with content from authoritative resources on Genes, Proteins, Diseases, Drugs and others. 
+WikidataIntegrator is a library for reading and writing to Wikidata/Wikibase. We created it for populating [Wikidata](http://www.wikidata.org) with content from authoritative resources on Genes, Proteins, Diseases, Drugs and others. 
 Details on the different tasks can be found on [the bot's Wikidata page](https://www.wikidata.org/wiki/User:ProteinBoxBot).
 
 [Pywikibot](https://www.mediawiki.org/wiki/Manual:Pywikibot) is an existing framework for interacting with the [MediaWiki](https://www.mediawiki.org/) API. The reason why we came up with our own solution is that we need a high integration with the [Wikidata SPARQL endpoint](query.wikidata.org) in order to ensure data consistency (duplicate check, consistency checks, correct item selection, etc.). 
