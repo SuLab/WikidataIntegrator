@@ -330,6 +330,38 @@ def crossref_api_to_publication(ext_id, id_type="doi"):
 
     return p
 
+def opencitations_api_to_publication(ext_id, id_type="doi"):
+    assert id_type == "doi", "Unsupported id type in OpenCitations: {}".format(id_type)
+    url = "https://w3id.org/oc/index/api/v1/metadata/{}"
+    url = url.format(ext_id)
+
+    response = requests.get(url)
+    response.raise_for_status()
+    r = response.json()
+
+    assert r['status'] == 'ok'
+    r = r['message']
+
+    p = Publication(source="opencitations", ref_url=url)
+    if r['type'] == "journal-article":
+        p.instance_of = "scientific_article"
+    else:
+        p.warnings.append("unknown type: {}".format(r['type']))
+
+    p.title = r['title'][0]
+    p.published_in_issn = r.get('ISSN', [None])[0]
+    p.publication_date = datetime.datetime.fromtimestamp(int(r['created']['timestamp']) / 1000)
+    p.issue = r.get('issue')
+    p.volume = r.get('volume')
+    p.pages = r.get('page')
+    if 'author' in r:
+        p.authors = [{'full_name': x['given'] + " " + x['family'],
+                      'orcid': x.get("ORCID", "").replace("http://orcid.org/", "")} for x in r['author']]
+
+    p.ids = {'doi': ext_id}
+
+    return p
+
 
 def europepmc_api_to_publication(ext_id, id_type):
     # https://europepmc.org/docs/EBI_Europe_PMC_Web_Service_Reference.pdf

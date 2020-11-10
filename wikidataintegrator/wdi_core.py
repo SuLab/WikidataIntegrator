@@ -47,6 +47,7 @@ class WDFunctionsEngine(object):
         :param wd_item_id='': Wikidata identifier to extract the RDF of
         :param format RDF from to return takes (turtle, ntriples, rdfxml, see https://rdflib.readthedocs.io/en/stable/apidocs/rdflib.html)
         :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
+
         :return:
         """
         localcopy = Graph()
@@ -55,6 +56,7 @@ class WDFunctionsEngine(object):
 
     @staticmethod
     @wdi_backoff()
+
     def execute_sparql_query(query, prefix=None, endpoint=None, user_agent=None, as_dataframe=False, max_retries=1000, retry_after=60):
 
         """
@@ -3093,6 +3095,7 @@ class WDLexeme(WDBaseDataType):
 
     def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=None,
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
+
         """
         Constructor, calls the superclass WDBaseDataType
         :param value: The WD lexeme number to serve as a value
@@ -3231,6 +3234,7 @@ class WDSense(WDBaseDataType):
 
     def __init__(self, value, prop_nr, is_reference=False, is_qualifier=False, snak_type='value', references=None,
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
+
         """
         Constructor, calls the superclass WDBaseDataType
         :param value: The WD form number to serve as a value using the format "L<Lexeme ID>-F<Form ID>" (example: L252248-F2)
@@ -3278,7 +3282,6 @@ class WDSense(WDBaseDataType):
             },
             'type': 'wikibase-entityid'
         }
-
         super(WDSense, self).set_value(value=value)
 
     @classmethod
@@ -3330,8 +3333,8 @@ class NonUniqueLabelDescriptionPairError(WDApiError):
         TODO: Needs better explanation
 
         :return: Returns the QID string of the item which has the same label and description as the one which should
-         be set.
-         """
+            be set.
+        """
         qid_string = self.wd_error_msg['error']['messages'][0]['parameters'][2]
 
         return qid_string.split('|')[0][2:]
