@@ -73,7 +73,7 @@ class WDFunctionsEngine(object):
         while 'continue' in whatlinkshere.keys():
             whatlinkshere = json.loads(requests.get(
                 mediawiki_api_url + "?action=query&list=backlinks&blcontinue=" +
-                whatlinkshere['continue']['blcontinue'] + "&format=json&bllimit=50&bltitle=" + "Q42").text)
+                whatlinkshere['continue']['blcontinue'] + "&format=json&bllimit=500&bltitle=" + qid).text)
             for link in whatlinkshere["query"]["backlinks"]:
                 if link["title"].startswith("Q"):
                     linkedby.append(link["title"])
