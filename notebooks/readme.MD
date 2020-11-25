@@ -8,6 +8,11 @@ In this example a sparql query is executed and the results are rendered either i
 ### Login to wikidata
 To be able to edit items on wikidata a bot needs to access the system with a bot account. This example demonstrates how to obtain a login token from the wikidata api
 [link](LoginWikidata.ipynb) 
+
+### Obtain a wikidata item for local parsing/editing
+With the following example a Wikidata item is obtained through the action api of Wikidata through its json representation. 
+[link](ObtainAWikidataItemAsPythonDict.ipynb) 
+
 ## wikibase examples
 Although the WikidataIntegrator library was developed with Wikidata in mind, with the release of the docker version of Wikibase, the code has been adapted to work on Wikibase instances as well. 
 
