@@ -156,6 +156,52 @@ class WDFunctionsEngine(object):
         df = pd.DataFrame(results)
         return df
 
+    @staticmethod
+    def delete_item(item, reason, login, mediawiki_api_url=None, user_agent=None):
+        """
+        Takes a list of items and posts them for deletion by Wikidata moderators, appends at the end of the deletion
+        request page.
+        :param item: a QID which should be deleted
+        :type item: string
+        :param reason: short text about the reason for the deletion request
+        :type reason: str
+        :param login: A WDI login object which contains username and password the edit should be performed with.
+        :type login: wdi_login.WDLogin
+        """
+
+        mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
+        user_agent = config['USER_AGENT_DEFAULT'] if user_agent is None else user_agent
+
+        params = {
+            'action': 'delete',
+            'title': 'Item:' + item,
+            'reason': reason,
+            'token': login.get_edit_token(),
+            'format': 'json'
+        }
+        headers = {
+            'User-Agent': user_agent
+        }
+        r = requests.post(url=mediawiki_api_url, data=params, cookies=login.get_edit_cookie(), headers=headers)
+        print(r.json())
+
+    @staticmethod
+    def delete_statement(statement_id, revision, login, mediawiki_api_url='https://www.wikidata.org/w/api.php',
+                         user_agent=config['USER_AGENT_DEFAULT']):
+        params = {
+            'action': 'wbremoveclaims',
+            'claim': statement_id,
+            'token': login.get_edit_token(),
+            'baserevid': revision,
+            'bot': True,
+            'format': 'json'
+        }
+        headers = {
+            'User-Agent': user_agent
+        }
+        r = requests.post(url=mediawiki_api_url, data=params, cookies=login.get_edit_cookie(), headers=headers)
+        print(r.json())
+
 
 class WDItemEngine(object):
     databases = {}
