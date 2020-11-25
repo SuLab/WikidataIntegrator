@@ -1,4 +1,10 @@
 # Example Jupyter notebooks 
+## Wikidata examples
+### Run a SPARQL query
+In this example a sparql query is executed and the results are rendered either in its default json output format or as a Pandas dataframe.
+
+[link](RunSparqlQueryWDQS.ipynb) 
+
 ## Wikibase examples
 Although the WikidataIntegrator library was developed with Wikidata in mind, with the release of the docker version of Wikibase, the code has been adapted to work on Wikibase instances as well. 
 
