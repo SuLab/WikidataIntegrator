@@ -5,8 +5,13 @@ pandas
 python-dateutil
 requests_oauthlib
 jsonasobj
+sparql_slurper
+ShExJSG
 mwoauth
 oauthlib
+pyshexc
+pyshex
 tqdm
 backoff
+shexer
 rdflib
