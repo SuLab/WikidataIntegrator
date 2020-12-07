@@ -10,7 +10,7 @@ ShExJSG
 mwoauth
 oauthlib
 pyshexc
-pyshex==0.7.14
+pyshex
 tqdm
 backoff
 shexer

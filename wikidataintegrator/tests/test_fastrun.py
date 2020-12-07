@@ -29,9 +29,6 @@ def test_query_data():
     assert all(x in d for x in {'qual', 'ref', 'v'})
     assert frc.prop_data['Q10874']['P699'][statement_id]['v'].startswith('DOID:')
 
-    # item
-    assert list(frc.prop_data['Q10874']['P31'].values())[0]['v'] == "Q12136"
-
     # uri
     # temporarily stop of test below
     # v = set([x['v'] for x in frc.prop_data['Q18211153']['P1709'].values()])
