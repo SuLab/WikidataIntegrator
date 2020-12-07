@@ -11,7 +11,9 @@ from typing import List
 
 import pandas as pd
 import requests
+from pyshex import ShExEvaluator
 from rdflib import Graph
+from shexer.shaper import Shaper
 
 from wikidataintegrator.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_config import config
@@ -1430,6 +1432,95 @@ class WDItemEngine(object):
         results = [{k: parse_value(v) for k, v in item.items()} for item in results]
         df = pd.DataFrame(results)
         return df
+
+    # SHEX related functions
+    @staticmethod
+    def check_shex_conformance(qid, eid, sparql_endpoint_url=None, output='confirm'):
+        """
+                Static method which can be used to check for conformance of a Wikidata item to an EntitySchema any SPARQL query
+                :param qid: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
+                :param eid: The EntitySchema identifier from Wikidata
+                :param sparql_endpoint_url: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
+                :param output: results of a test of conformance on a given shape expression
+                :return: The results of the query are returned in string format
+        """
+
+        sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
+
+        schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText/" + eid).text
+        rdfdata = Graph()
+        rdfdata.parse(config["CONCEPT_BASE_URI"] + qid + ".ttl")
+
+        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["CONCEPT_BASE_URI"] + qid).evaluate():
+            shex_result = dict()
+            if result.result:
+                shex_result["result"] = True
+            else:
+                shex_result["result"] = False
+            shex_result["reason"] = result.reason
+            shex_result["focus"] = result.focus
+
+        if output == "confirm":
+            return shex_result["result"]
+        elif output == "reason":
+            return shex_result["reason"]
+        else:
+            return shex_result
+
+    @staticmethod
+    def extract_shex(qid, extract_shape_of_qualifiers=False, just_direct_properties=True,
+                     comments=False, endpoint="https://query.wikidata.org/sparql"):
+        """
+        It extracts a shape tor the entity specified in qid. The shape is built w.r.t the outgoing
+        properties of the selected Wikidata entity.
+
+        Optionally, it generates as well a shape for each qualifier.
+
+        :param qid: Wikidata identifier to which other wikidata items link
+        :param extract_shape_of_qualifiers: It it is set to True, the result will contain the shape of the qid
+                selected but also the shapes of its qualifiers.
+        :param just_direct_properties: If it set to True, the shape obtained will just contain direct properties to other
+                Wikidata items. It will ignore qualifiers. Do not set to True if extract_shape_of_qualifiers is True
+        :param comments: If it is set to True, each triple constraint will have an associated comment that indicates
+               the trustworthiness of each triple constraint. This is usefull for shapes that have been extracted
+               w.r.t to the properties of more than one entity.
+        :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
+
+        :return: shex content in String format
+        """
+        namespaces_dict = {
+            "http://www.w3.org/2000/01/rdf-schema#": "rdfs",
+            "http://www.wikidata.org/prop/": "p",
+            "http://www.wikidata.org/prop/direct/": "wdt",
+            "http://www.wikidata.org/entity/": "wd",
+            "http://www.w3.org/2001/XMLSchema#": "xsd",
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#": "rdf",
+            "http://www.w3.org/XML/1998/namespace": "xml",
+            "http://wikiba.se/ontology#": "wikibase",
+            "http://schema.org/": "schema",
+            "http://www.w3.org/2004/02/skos/core#": "skos"
+        }
+        namespaces_to_ignore = [  # Ignoring these namespaces, mainly just direct properties are considered.
+            "http://www.wikidata.org/prop/",
+            "http://www.wikidata.org/prop/direct-normalized/",
+            "http://schema.org/",
+            "http://www.w3.org/2004/02/skos/core#",
+            "http://wikiba.se/ontology#",
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+            "http://www.w3.org/2000/01/rdf-schema#"
+        ]
+
+        shape_map = "<http://www.wikidata.org/entity/{qid}>@<{qid}>".format(qid=qid)
+        shaper = Shaper(shape_map_raw=shape_map,
+                        url_endpoint=endpoint,
+                        disable_comments=not comments,
+                        shape_qualifiers_mode=extract_shape_of_qualifiers,
+                        namespaces_dict=namespaces_dict,
+                        namespaces_to_ignore=namespaces_to_ignore if just_direct_properties else None,
+                        namespaces_for_qualifier_props=["http://www.wikidata.org/prop/"],
+                        depth_for_building_subgraph=2 if extract_shape_of_qualifiers else 1)
+        return shaper.shex_graph(string_output=True,
+                                 acceptance_threshold=0)
 
     @staticmethod
     def get_linked_by(qid, mediawiki_api_url=None):
