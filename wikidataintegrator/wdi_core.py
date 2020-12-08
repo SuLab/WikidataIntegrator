@@ -1163,7 +1163,6 @@ class WDItemEngine(object):
         self.data = []
         if "success" in json_data and "entity" in json_data and "lastrevid" in json_data["entity"]:
             self.lastrevid = json_data["entity"]["lastrevid"]
-        time.sleep(.5)
         return self.wd_item_id
 
     @staticmethod
