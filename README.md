@@ -100,7 +100,7 @@ for OAuth login is required. This means that the method continue_oath() needs to
 
 Example:
 ```Python     
-    login_instance = wdi_login.WDLogin(consumer_token='<your_consumer_token>', pwd='<your_consumer_secret>')
+    login_instance = wdi_login.WDLogin(consumer_key='<your_consumer_key>', pwd='<your_consumer_secret>')
     login_instance.continue_oauth()
 ```
 
