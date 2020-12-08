@@ -23,7 +23,6 @@ from wikidataintegrator.wdi_helpers import MappingRelationHelper
 """
 Authors:
 Andra Waagmeester (andra' at ' micelio.be)
-Dragan Espenschied ()
 Gregory Stupp (stuppie' at 'gmail.com )
 Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
 
@@ -31,7 +30,7 @@ This file is part of the WikidataIntegrator.
 
 """
 
-__author__ = 'Andra Waagmeester, Gregory Stupp, Sebastian Burgstaller, Dragan Espenschied '
+__author__ = 'Andra Waagmeester, Gregory Stupp, Sebastian Burgstaller '
 __license__ = 'MIT'
 
 class WDFunctionsEngine(object):
