@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = "0.8.3"
+VERSION = "0.8.3-dev"
 
 setup(
     name='wikidataintegrator',
@@ -21,6 +21,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Development Status :: 4 - Beta",
         "Operating System :: POSIX",
         "Operating System :: MacOS :: MacOS X",
@@ -40,11 +41,8 @@ setup(
         'tqdm',
         'mwoauth',
         'oauthlib',
-        'sparql_slurper',
-        'ShExJSG',
         'jsonasobj',
         'pyshex',
         'backoff',
-        'shexer'
     ],
 )
