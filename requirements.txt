@@ -9,8 +9,8 @@ sparql_slurper
 ShExJSG
 mwoauth
 oauthlib
-pyshexc==0.7.0
-pyshex==0.7.14
+pyshexc
+pyshex
 tqdm
 backoff
 shexer
