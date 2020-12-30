@@ -535,7 +535,7 @@ class WDItemEngine(object):
             'language': language,
             'search': search_string,
             'format': 'json',
-            'limit': 50
+            'limit': max_results
         }
 
         headers = {
