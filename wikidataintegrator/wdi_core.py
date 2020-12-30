@@ -507,7 +507,7 @@ class WDItemEngine(object):
     @staticmethod
     def get_wd_search_results(search_string='', mediawiki_api_url=None,
                               user_agent=None, max_results=500,
-                              language='en', dict_id_label=False):
+                              language='en', dict_id_label=False, dict_id_all_info=False):
         """
         Performs a search in WD for a certain WD search string
         :param search_string: a string which should be searched for in WD
@@ -522,7 +522,9 @@ class WDItemEngine(object):
         :type language: str
         :return: returns a list of QIDs found in the search and a list of labels complementary to the QIDs
         :type dict_id_label: boolean
-        :return: function return a list with a dict of id and label
+        :return: returns a list of QIDs found in the search and a list of labels, descriptions, and wikidata urls complementary to the QIDs
+        :type dict_id_all_info: boolean
+        :return: function return a list with a dict of id, label, description, and url
         """
 
         mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
@@ -554,7 +556,11 @@ class WDItemEngine(object):
                 raise WDSearchError('WD search failed')
             else:
                 for i in search_results['search']:
-                    if dict_id_label:
+                    if dict_id_all_info: # overrides dict_id_label if both are set to True
+                        description = i['description'] if 'description' in i else ""
+                        url = i['url'] if 'url' in i else ""
+                        results.append({'id': i['id'], 'label': i['label'], 'description': description, 'url': url})
+                    elif dict_id_label:
                         results.append({'id': i['id'], 'label': i['label']})
                     else:
                         results.append(i['id'])
@@ -568,7 +574,7 @@ class WDItemEngine(object):
                 break
 
         return results
-
+    
     def get_property_list(self):
         """
         List of properties on the current item
