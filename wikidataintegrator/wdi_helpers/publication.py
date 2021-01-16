@@ -25,7 +25,7 @@ class Publication:
         "pmid": "P698",
         "pmcid": "P932",
         'arxiv': 'P818',
-        'biorxiv': 'P3951',
+        'biorxiv': PROPS['biorxiv id'],
     }
 
     INSTANCE_OF = {
