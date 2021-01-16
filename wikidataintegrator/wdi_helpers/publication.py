@@ -509,9 +509,9 @@ def arxiv_api_to_publication(ext_id, id_type='arxiv'):
     return publication
 
 
-def biorxiv_api_to_publication(ext_id, id_type='biorxiv'):
+def biorxiv_api_to_publication(biorxiv_id: str, id_type='biorxiv') -> Publication:
     """Make a :class:`Publication` from a bioRxiv identifier."""
-    url = f'https://api.biorxiv.org/details/biorxiv/10.1101/{ext_id}'
+    url = f'https://api.biorxiv.org/details/biorxiv/10.1101/{biorxiv_id}'
     headers = {
         'User-Agent': config['USER_AGENT_DEFAULT']
     }
@@ -524,7 +524,7 @@ def biorxiv_api_to_publication(ext_id, id_type='biorxiv'):
 
     publication = Publication(
         title=latest_revision['title'],
-        ref_url=f'https://www.biorxiv.org/content/10.1101/{ext_id}v{version}',
+        ref_url=f'https://www.biorxiv.org/content/10.1101/{biorxiv_id}v{version}',
         authors=[
             {
                 'full_name': author,
@@ -534,11 +534,11 @@ def biorxiv_api_to_publication(ext_id, id_type='biorxiv'):
         ],
         publication_date=datetime.datetime.strptime(latest_revision['date'], '%Y-%m-%d'),
         ids={
-            'biorxiv': ext_id,
+            'biorxiv': biorxiv_id,
             'doi': latest_revision['doi'],
         },
         source='biorxiv',
-        full_work_available_at=f'https://www.biorxiv.org/content/10.1101/{ext_id}v{version}.full.pdf',
+        full_work_available_at=f'https://www.biorxiv.org/content/10.1101/{biorxiv_id}v{version}.full.pdf',
     )
     publication.instance_of = 'preprint'
     return publication
