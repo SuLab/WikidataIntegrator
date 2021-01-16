@@ -44,7 +44,6 @@ PROPS = {
     'retrieved': 'P813',
     'mapping relation type': 'P4390',
     'arxiv id': 'P818',
-    'biorxiv id': 'P3951',
 }
 
 # https://www.wikidata.org/wiki/Property:P4390

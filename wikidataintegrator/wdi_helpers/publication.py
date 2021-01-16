@@ -25,7 +25,7 @@ class Publication:
         "pmid": "P698",
         "pmcid": "P932",
         'arxiv': 'P818',
-        'biorxiv': PROPS['biorxiv id'],
+        'biorxiv': 'P3951',
     }
 
     INSTANCE_OF = {
@@ -209,7 +209,7 @@ class Publication:
             edt_id_id, ext_id_prop = self.ids['arxiv'], PROPS['arxiv id']
         elif self.source == 'biorxiv':
             assert 'biorxiv' in self.ids
-            edt_id_id, ext_id_prop = self.ids['biorxiv'], PROPS['biorxiv id']
+            edt_id_id, ext_id_prop = self.ids['biorxiv'], self.ID_TYPES['biorxiv']
         else:
             raise ValueError(f'Unhandled source: {self.source}')
 
