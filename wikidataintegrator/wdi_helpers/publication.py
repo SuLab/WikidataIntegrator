@@ -519,7 +519,7 @@ def biorxiv_api_to_publication(ext_id, id_type='biorxiv'):
     response.raise_for_status()
     revisions = response.json()['collection']
     latest_revision = revisions[-1]
-    version = len(revisions)
+    version = latest_revision['version']
     authors = [author.strip() for author in latest_revision['authors'].split(';')]
 
     publication = Publication(
