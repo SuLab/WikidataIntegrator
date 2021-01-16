@@ -518,14 +518,13 @@ def biorxiv_api_to_publication(ext_id, id_type='biorxiv'):
     }
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    collection = response.json()['collection']
-    d = collection[-1]
-    version = len(collection)
-    authors = [author.strip() for author in d['authors'].split(';')]
+    revisions = response.json()['collection']
+    latest_revision = revisions[-1]
+    version = len(revisions)
+    authors = [author.strip() for author in latest_revision['authors'].split(';')]
 
-    return Publication(
-        instance_of=Publication.INSTANCE_OF['preprint'],
-        title=d['title'],
+    publication = Publication(
+        title=latest_revision['title'],
         ref_url=f'https://www.biorxiv.org/content/10.1101/{ext_id}v{version}',
         authors=[
             {
@@ -534,14 +533,16 @@ def biorxiv_api_to_publication(ext_id, id_type='biorxiv'):
             for author in authors
             if author
         ],
-        publication_date=datetime.datetime.strptime(d['date'], '%Y-%m-%d'),
+        publication_date=datetime.datetime.strptime(latest_revision['date'], '%Y-%m-%d'),
         ids={
             'biorxiv': ext_id,
-            'doi': d['doi'],
+            'doi': latest_revision['doi'],
         },
         source='biorxiv',
         full_work_available_at=f'https://www.biorxiv.org/content/10.1101/{ext_id}v{version}.full.pdf',
     )
+    publication.instance_of = 'preprint'
+    return publication
 
 
 class PublicationHelper:
