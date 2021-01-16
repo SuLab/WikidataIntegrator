@@ -25,6 +25,7 @@ class Publication:
         "pmid": "P698",
         "pmcid": "P932",
         'arxiv': 'P818',
+        'biorxiv': 'P3951',
     }
 
     INSTANCE_OF = {
@@ -37,6 +38,7 @@ class Publication:
         'crossref': 'Q5188229',
         'europepmc': 'Q5412157',
         'arxiv': 'Q118398',
+        'biorxiv': 'Q19835482',
     }
 
     def __init__(self, title=None, instance_of=None, subtitle=None, authors=None,
@@ -205,6 +207,9 @@ class Publication:
         elif self.source == 'arxiv':
             assert 'arxiv' in self.ids
             edt_id_id, ext_id_prop = self.ids['arxiv'], PROPS['arxiv id']
+        elif self.source == 'biorxiv':
+            assert 'biorxiv' in self.ids
+            edt_id_id, ext_id_prop = self.ids['biorxiv'], PROPS['biorxiv id']
         else:
             raise ValueError(f'Unhandled source: {self.source}')
 
@@ -505,11 +510,46 @@ def arxiv_api_to_publication(ext_id, id_type='arxiv'):
     return publication
 
 
+def biorxiv_api_to_publication(ext_id, id_type='biorxiv'):
+    """Make a :class:`Publication` from a bioRxiv identifier."""
+    url = f'https://api.biorxiv.org/details/biorxiv/10.1101/{ext_id}'
+    headers = {
+        'User-Agent': config['USER_AGENT_DEFAULT']
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    collection = response.json()['collection']
+    d = collection[-1]
+    version = len(collection)
+    authors = [author.strip() for author in d['authors'].split(';')]
+
+    return Publication(
+        instance_of=Publication.INSTANCE_OF['preprint'],
+        title=d['title'],
+        ref_url=f'https://www.biorxiv.org/content/10.1101/{ext_id}v{version}',
+        authors=[
+            {
+                'full_name': author,
+            }
+            for author in authors
+            if author
+        ],
+        publication_date=datetime.datetime.strptime(d['date'], '%Y-%m-%d'),
+        ids={
+            'biorxiv': ext_id,
+            'doi': d['doi'],
+        },
+        source='biorxiv',
+        full_work_available_at=f'https://www.biorxiv.org/content/10.1101/{ext_id}v{version}.full.pdf',
+    )
+
+
 class PublicationHelper:
     SOURCE_FUNCT = {
         'crossref': crossref_api_to_publication,
         'europepmc': europepmc_api_to_publication,
         'arxiv': arxiv_api_to_publication,
+        'biorxiv': biorxiv_api_to_publication,
     }
 
     def __init__(self, ext_id, id_type, source):
