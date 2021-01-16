@@ -555,8 +555,17 @@ def main():
             WDUSER = os.environ['WDUSER']
             WDPASS = os.environ['WDPASS']
         else:
-            import getpass
+            try:
+                import pystow
+            except ImportError:
+                WDUSER, WDPASS = None, None
+            else:
+                WDUSER = pystow.get_config('wikidata', 'username')
+                WDPASS = pystow.get_config('wikidata', 'password')
+        if not WDUSER:
             WDUSER = input('Wikidata Username: ')
+        if not WDPASS:
+            import getpass
             WDPASS = getpass.getpass('Wikidata Password: ')
 
     parser = argparse.ArgumentParser(description='run publication creator')
