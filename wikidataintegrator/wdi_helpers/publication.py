@@ -506,6 +506,7 @@ def arxiv_api_to_publication(ext_id, id_type='arxiv'):
         full_work_available_at=f'https://arxiv.org/pdf/{ext_id}',
     )
     publication.instance_of = 'preprint'
+    publication.published_in_qid = Publication.SOURCES['arxiv']
     return publication
 
 
@@ -541,6 +542,7 @@ def biorxiv_api_to_publication(biorxiv_id: str, id_type='biorxiv') -> Publicatio
         full_work_available_at=f'https://www.biorxiv.org/content/10.1101/{biorxiv_id}v{version}.full.pdf',
     )
     publication.instance_of = 'preprint'
+    publication.published_in_qid = Publication.SOURCES['biorxiv']
     return publication
 
 
