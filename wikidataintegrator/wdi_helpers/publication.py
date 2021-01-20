@@ -25,6 +25,7 @@ class Publication:
         "pmid": "P698",
         "pmcid": "P932",
         'arxiv': 'P818',
+        'biorxiv': 'P3951',
     }
 
     INSTANCE_OF = {
@@ -37,6 +38,7 @@ class Publication:
         'crossref': 'Q5188229',
         'europepmc': 'Q5412157',
         'arxiv': 'Q118398',
+        'biorxiv': 'Q19835482',
     }
 
     def __init__(self, title=None, instance_of=None, subtitle=None, authors=None,
@@ -205,6 +207,8 @@ class Publication:
         elif self.source == 'arxiv':
             assert 'arxiv' in self.ids
             edt_id_id, ext_id_prop = self.ids['arxiv'], PROPS['arxiv id']
+        elif self.source == 'biorxiv':
+            edt_id_id, ext_id_prop = self.ids['biorxiv'], self.ID_TYPES['biorxiv']
         else:
             raise ValueError(f'Unhandled source: {self.source}')
 
@@ -293,6 +297,8 @@ class Publication:
 
         if self.source == 'arxiv':
             success = try_write(item, self.ids['arxiv'], PROPS["arxiv id"], login)
+        elif self.source == 'biorxiv':
+            success = try_write(item, self.ids['biorxiv'], PROPS["biorxiv id"], login)
         else:
             success = try_write(item, self.ids['doi'], PROPS["DOI"], login)
         return item.wd_item_id, self.warnings, success
@@ -502,6 +508,43 @@ def arxiv_api_to_publication(ext_id, id_type='arxiv'):
         full_work_available_at=f'https://arxiv.org/pdf/{ext_id}',
     )
     publication.instance_of = 'preprint'
+    publication.published_in_qid = Publication.SOURCES['arxiv']
+    return publication
+
+
+def biorxiv_api_to_publication(biorxiv_id: str, id_type='biorxiv') -> Publication:
+    """Make a :class:`Publication` from a bioRxiv identifier."""
+    url = f'https://api.biorxiv.org/details/biorxiv/10.1101/{biorxiv_id}'
+    headers = {
+        'User-Agent': config['USER_AGENT_DEFAULT']
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    revisions = response.json()['collection']
+    latest_revision = revisions[-1]
+    version = latest_revision['version']
+    authors = [author.strip() for author in latest_revision['authors'].split(';')]
+
+    publication = Publication(
+        title=latest_revision['title'],
+        ref_url=f'https://www.biorxiv.org/content/10.1101/{biorxiv_id}v{version}',
+        authors=[
+            {
+                'full_name': author,
+            }
+            for author in authors
+            if author
+        ],
+        publication_date=datetime.datetime.strptime(latest_revision['date'], '%Y-%m-%d'),
+        ids={
+            'biorxiv': biorxiv_id,
+            'doi': latest_revision['doi'],
+        },
+        source='biorxiv',
+        full_work_available_at=f'https://www.biorxiv.org/content/10.1101/{biorxiv_id}v{version}.full.pdf',
+    )
+    publication.instance_of = 'preprint'
+    publication.published_in_qid = Publication.SOURCES['biorxiv']
     return publication
 
 
@@ -510,6 +553,7 @@ class PublicationHelper:
         'crossref': crossref_api_to_publication,
         'europepmc': europepmc_api_to_publication,
         'arxiv': arxiv_api_to_publication,
+        'biorxiv': biorxiv_api_to_publication,
     }
 
     def __init__(self, ext_id, id_type, source):
