@@ -210,6 +210,8 @@ class Publication:
             edt_id_id, ext_id_prop = self.ids['arxiv'], PROPS['arxiv id']
         elif self.source == 'biorxiv':
             edt_id_id, ext_id_prop = self.ids['biorxiv'], self.ID_TYPES['biorxiv']
+        elif self.source == 'chemrxiv':
+            edt_id_id, ext_id_prop = self.ids['doi'], self.ID_TYPES['doi']
         else:
             raise ValueError(f'Unhandled source: {self.source}')
 
