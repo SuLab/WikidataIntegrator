@@ -549,12 +549,47 @@ def biorxiv_api_to_publication(biorxiv_id: str, id_type='biorxiv') -> Publicatio
     return publication
 
 
+def chemrxiv_api_to_publication(chemrxiv_id: str, id_type='chemrxiv') -> Publication:
+    """Make a :class:`Publication` from a bioRxiv identifier."""
+    # https://doi.org/10.26434/chemrxiv.13607438.v1
+    url = f'https://api.figshare.com/v2/articles/{chemrxiv_id}'
+    headers = {
+        'User-Agent': config['USER_AGENT_DEFAULT']
+    }
+    res = requests.get(url, headers=headers)
+    res.raise_for_status()
+
+    res_json = res.json()
+
+    authors = []
+    for author in res_json['authors']:
+        ad = {'full_name': author['full_name']}
+        if 'orcid_id' in author:
+            ad['orcid'] = author['orcid_id']
+        authors.append(ad)
+
+    publication = Publication(
+        title=res_json['title'],
+        ref_url=res_json['figshare_url'],
+        authors=authors,
+        publication_date=datetime.datetime.strptime(res_json['published_date'], '%Y-%m-%dT%H:%M:%SZ'),
+        ids={
+            'doi': res_json['doi'],
+        },
+        source='chemrxiv',
+    )
+    publication.instance_of = 'preprint'
+    publication.published_in_qid = Publication.SOURCES['chemrxiv']
+    return publication
+
+
 class PublicationHelper:
     SOURCE_FUNCT = {
         'crossref': crossref_api_to_publication,
         'europepmc': europepmc_api_to_publication,
         'arxiv': arxiv_api_to_publication,
         'biorxiv': biorxiv_api_to_publication,
+        'chemrxiv': chemrxiv_api_to_publication,
     }
 
     def __init__(self, ext_id, id_type, source):
