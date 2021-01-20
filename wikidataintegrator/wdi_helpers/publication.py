@@ -560,20 +560,18 @@ def chemrxiv_api_to_publication(chemrxiv_id: str, id_type='chemrxiv') -> Publica
     }
     res = requests.get(url, headers=headers)
     res.raise_for_status()
-
     res_json = res.json()
-
-    authors = []
-    for author in res_json['authors']:
-        ad = {'full_name': author['full_name']}
-        if 'orcid_id' in author:
-            ad['orcid'] = author['orcid_id']
-        authors.append(ad)
 
     publication = Publication(
         title=res_json['title'],
         ref_url=res_json['figshare_url'],
-        authors=authors,
+        authors=[
+            {
+                'full_name': author['full_name'],
+                'orcid': author.get('orcid_id'),
+            }
+            for author in res_json['authors']
+        ],
         publication_date=datetime.datetime.strptime(res_json['published_date'], '%Y-%m-%dT%H:%M:%SZ'),
         ids={
             'doi': res_json['doi'],
