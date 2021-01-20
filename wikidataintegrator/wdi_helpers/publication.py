@@ -39,6 +39,7 @@ class Publication:
         'europepmc': 'Q5412157',
         'arxiv': 'Q118398',
         'biorxiv': 'Q19835482',
+        'chemrxiv': 'Q50012382',
     }
 
     def __init__(self, title=None, instance_of=None, subtitle=None, authors=None,
