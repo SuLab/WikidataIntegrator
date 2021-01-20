@@ -552,8 +552,7 @@ def biorxiv_api_to_publication(biorxiv_id: str, id_type='biorxiv') -> Publicatio
 
 
 def chemrxiv_api_to_publication(chemrxiv_id: str, id_type='chemrxiv') -> Publication:
-    """Make a :class:`Publication` from a bioRxiv identifier."""
-    # https://doi.org/10.26434/chemrxiv.13607438.v1
+    """Make a :class:`Publication` from a ChemRxiv identifier."""
     url = f'https://api.figshare.com/v2/articles/{chemrxiv_id}'
     headers = {
         'User-Agent': config['USER_AGENT_DEFAULT']
