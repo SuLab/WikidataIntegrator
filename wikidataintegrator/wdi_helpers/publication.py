@@ -297,6 +297,8 @@ class Publication:
 
         if self.source == 'arxiv':
             success = try_write(item, self.ids['arxiv'], PROPS["arxiv id"], login)
+        elif self.source == 'biorxiv':
+            success = try_write(item, self.ids['biorxiv'], PROPS["biorxiv id"], login)
         else:
             success = try_write(item, self.ids['doi'], PROPS["DOI"], login)
         return item.wd_item_id, self.warnings, success
