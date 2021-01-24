@@ -39,6 +39,7 @@ class Publication:
         'europepmc': 'Q5412157',
         'arxiv': 'Q118398',
         'biorxiv': 'Q19835482',
+        'chemrxiv': 'Q50012382',
     }
 
     def __init__(self, title=None, instance_of=None, subtitle=None, authors=None,
@@ -209,6 +210,8 @@ class Publication:
             edt_id_id, ext_id_prop = self.ids['arxiv'], PROPS['arxiv id']
         elif self.source == 'biorxiv':
             edt_id_id, ext_id_prop = self.ids['biorxiv'], self.ID_TYPES['biorxiv']
+        elif self.source == 'chemrxiv':
+            edt_id_id, ext_id_prop = self.ids['doi'], self.ID_TYPES['doi']
         else:
             raise ValueError(f'Unhandled source: {self.source}')
 
@@ -548,12 +551,44 @@ def biorxiv_api_to_publication(biorxiv_id: str, id_type='biorxiv') -> Publicatio
     return publication
 
 
+def chemrxiv_api_to_publication(chemrxiv_id: str, id_type='chemrxiv') -> Publication:
+    """Make a :class:`Publication` from a ChemRxiv identifier."""
+    url = f'https://api.figshare.com/v2/articles/{chemrxiv_id}'
+    headers = {
+        'User-Agent': config['USER_AGENT_DEFAULT']
+    }
+    res = requests.get(url, headers=headers)
+    res.raise_for_status()
+    res_json = res.json()
+
+    publication = Publication(
+        title=res_json['title'],
+        ref_url=res_json['figshare_url'],
+        authors=[
+            {
+                'full_name': author['full_name'],
+                'orcid': author.get('orcid_id'),
+            }
+            for author in res_json['authors']
+        ],
+        publication_date=datetime.datetime.strptime(res_json['published_date'], '%Y-%m-%dT%H:%M:%SZ'),
+        ids={
+            'doi': res_json['doi'],
+        },
+        source='chemrxiv',
+    )
+    publication.instance_of = 'preprint'
+    publication.published_in_qid = Publication.SOURCES['chemrxiv']
+    return publication
+
+
 class PublicationHelper:
     SOURCE_FUNCT = {
         'crossref': crossref_api_to_publication,
         'europepmc': europepmc_api_to_publication,
         'arxiv': arxiv_api_to_publication,
         'biorxiv': biorxiv_api_to_publication,
+        'chemrxiv': chemrxiv_api_to_publication,
     }
 
     def __init__(self, ext_id, id_type, source):
