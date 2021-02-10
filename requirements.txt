@@ -13,3 +13,4 @@ rdflib
 pyshexc
 pyshex
 ShExJSG
+shexer
