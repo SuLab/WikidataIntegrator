@@ -204,7 +204,7 @@ class WDFunctionsEngine(object):
 
     ## SHEX related functions
     @staticmethod
-    def check_shex_conformance(qid, eid, sparql_endpoint_url=None, output='confirm'):
+    def check_shex_conformance(qid, eid, sparql_endpoint_url=None, entity_schema_repo=None, output='confirm'):
         """
                 Static method which can be used to check for conformance of a Wikidata item to an EntitySchema any SPARQL query
                 :param qid: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
@@ -216,7 +216,8 @@ class WDFunctionsEngine(object):
 
         sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
 
-        schema = requests.get("https://www.wikidata.org/wiki/Special:EntitySchemaText/" + eid).text
+        entity_schema_repo = config["ENTITY_SCHEMA_REPO"] if sparql_endpoint_url is None else entity_schema_repo
+        schema = requests.get(entity_schema_repo+eid).text
         rdfdata = Graph()
         rdfdata.parse(config["CONCEPT_BASE_URI"] + qid + ".ttl")
 

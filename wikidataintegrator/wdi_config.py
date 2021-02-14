@@ -30,6 +30,7 @@ config = {
     'MEDIAWIKI_API_URL': 'https://www.wikidata.org/w/api.php',
     'MEDIAWIKI_INDEX_URL': 'https://www.wikidata.org/w/index.php',
     'SPARQL_ENDPOINT_URL': 'https://query.wikidata.org/sparql',
+    "ENTITY_SCHEMA_REPO": "https://www.wikidata.org/wiki/Special:EntitySchemaText/",
     'WIKIBASE_URL': 'http://www.wikidata.org',
     'CONCEPT_BASE_URI': 'http://www.wikidata.org/entity/'
 }
