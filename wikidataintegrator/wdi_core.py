@@ -548,6 +548,27 @@ class WDItemEngine(object):
             if not self.wd_item_id:
                 self.wd_item_id = self.fast_run_container.current_qid
 
+    def rollback(self, login, bot_account=True, summary=""):
+        """
+
+        :return:
+        """
+        params = {
+            'action': 'rollback',
+            'pageid': self.pageid,
+            'token': login.generate_rollback_credentials(),
+            'markbot': bot_account,
+            'summary': summary,
+            'ids': self.wd_item_id,
+            'format': 'json'
+        }
+        headers = {
+            'User-Agent': self.user_agent
+        }
+        json_data = self.mediawiki_api_call("GET", self.mediawiki_api_url, params=params, headers=headers)
+        return json_data
+
+
     def get_wd_entity(self):
         """
         retrieve a WD item in json representation from Wikidata
@@ -1256,6 +1277,8 @@ class WDItemEngine(object):
         self.data = []
         if "success" in json_data and "entity" in json_data and "lastrevid" in json_data["entity"]:
             self.lastrevid = json_data["entity"]["lastrevid"]
+        if "success" in json_data and "entity" in json_data and "pageid" in json_data["entity"]:
+            self.pageid = json_data["entity"]["pageid"]
         return self.wd_item_id
 
     @staticmethod
