@@ -162,7 +162,7 @@ class WDLogin(object):
 
         return self.s.cookies
 
-    def generate_roleback_credentials(self):
+    def generate_rollback_credentials(self):
         """
         request an edit token and update the cookie_jar in order to add the session cookie
         :return: Returns a json with all relevant cookies, aka cookie jar
