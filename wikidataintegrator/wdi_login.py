@@ -54,6 +54,7 @@ class WDLogin(object):
 
         self.s = requests.Session()
         self.edit_token = ''
+        self.rollback_token = ''
         self.instantiation_time = time.time()
         self.token_renew_period = token_renew_period
 
@@ -160,6 +161,22 @@ class WDLogin(object):
         self.edit_token = response.json()['query']['tokens']['csrftoken']
 
         return self.s.cookies
+
+    def generate_roleback_credentials(self):
+        """
+        request an edit token and update the cookie_jar in order to add the session cookie
+        :return: Returns a json with all relevant cookies, aka cookie jar
+        """
+        params = {
+            'action': 'query',
+            'meta': 'tokens',
+            'type': 'rollback',
+            'format': 'json'
+        }
+        response = self.s.get(self.mediawiki_api_url, params=params)
+        self.rollback_token = response.json()['query']['tokens']['rollbacktoken']
+        return self.s.cookies
+
 
     def get_edit_cookie(self):
         """
