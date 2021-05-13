@@ -200,6 +200,17 @@ class WDLogin(object):
 
         return self.edit_token
 
+    def get_rollback_token(self):
+        """
+        Can be called in order to retrieve the edit token from an instance of WDLogin
+        :return: returns the edit token
+        """
+        if not self.rollback_token or (time.time() - self.instantiation_time) > self.token_renew_period:
+            self.generate_rollback_credentials()
+            self.instantiation_time = time.time()
+
+        return self.rollback_token
+
     def get_session(self):
         """
         returns the requests session object used for the login.
