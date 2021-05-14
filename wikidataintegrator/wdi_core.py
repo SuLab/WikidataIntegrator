@@ -555,6 +555,7 @@ class WDItemEngine(object):
         """
         params = {
             'action': 'rollback',
+            'user': login.user,
             'pageid': self.get_pageid(),
             'token': login.generate_rollback_credentials(),
             'markbot': bot_account,

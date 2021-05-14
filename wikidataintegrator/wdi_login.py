@@ -51,7 +51,8 @@ class WDLogin(object):
 
         if debug:
             print(self.mediawiki_api_url)
-
+        if user:
+            self.user = user
         self.s = requests.Session()
         self.edit_token = ''
         self.rollback_token = ''
