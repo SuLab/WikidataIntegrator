@@ -594,7 +594,7 @@ class WDItemEngine(object):
         :type wd_json: A Python Json representation of a WD item
         :return: returns the json representation containing 'labels', 'descriptions', 'claims', 'aliases', 'sitelinks'.
         """
-        wd_data = {x: wd_json[x] for x in ('labels', 'descriptions', 'claims', 'aliases') if x in wd_json}
+        wd_data = {x: wd_json[x] for x in ('pageid', 'lastrevid', 'labels', 'descriptions', 'claims', 'aliases') if x in wd_json}
         wd_data['sitelinks'] = dict()
         self.entity_metadata = {x: wd_json[x] for x in wd_json if x not in
                                 ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks')}
