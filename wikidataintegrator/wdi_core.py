@@ -599,6 +599,8 @@ class WDItemEngine(object):
         self.entity_metadata = {x: wd_json[x] for x in wd_json if x not in
                                 ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks')}
         self.sitelinks = wd_json.get('sitelinks', dict())
+        self.pageid = wd_json.get('pageid')
+
 
         self.statements = []
         for prop in wd_data['claims']:
