@@ -555,7 +555,7 @@ class WDItemEngine(object):
         """
         params = {
             'action': 'rollback',
-            'pageid': self.pageid,
+            'pageid': self.get_pageid(),
             'token': login.generate_rollback_credentials(),
             'markbot': bot_account,
             'summary': summary,
@@ -1043,6 +1043,13 @@ class WDItemEngine(object):
                                              'statement unmatched core props: {}.'.format(nomatch_new))
         else:
             return True
+
+    def get_pageid(self):
+        """
+        Returns the pageid of a Wikidata item
+        :return:
+        """
+        return self.wd_json_representation['pageid']
 
     def get_label(self, lang='en'):
         """
