@@ -553,11 +553,11 @@ class WDItemEngine(object):
 
         :return:
         """
-        params = {
+        payload = {
             'action': 'rollback',
             'user': login.user,
             'pageid': self.get_pageid(),
-            'token': login.generate_rollback_credentials(),
+            'token': login.rollback_token,
             'markbot': bot_account,
             'summary': summary,
             'ids': self.wd_item_id,
@@ -566,7 +566,9 @@ class WDItemEngine(object):
         headers = {
             'User-Agent': self.user_agent
         }
-        json_data = self.mediawiki_api_call("POST", self.mediawiki_api_url, data=params, headers=headers)
+
+        json_data = self.mediawiki_api_call("POST", self.mediawiki_api_url, session=login.get_session(), headers=headers, data=payload)
+
         return json_data
 
 
