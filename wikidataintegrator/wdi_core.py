@@ -566,7 +566,7 @@ class WDItemEngine(object):
         headers = {
             'User-Agent': self.user_agent
         }
-        json_data = self.mediawiki_api_call("GET", self.mediawiki_api_url, params=params, headers=headers)
+        json_data = self.mediawiki_api_call("POSTß", self.mediawiki_api_url, params=params, headers=headers)
         return json_data
 
 
