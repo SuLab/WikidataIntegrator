@@ -36,6 +36,7 @@ config = {
 }
 
 prefix = {
+	'ontolex' : 'http://www.w3.org/ns/lemon/ontolex#',
     'dct' : 'http://purl.org/dc/terms/',
 	'rdfs' : 'http://www.w3.org/2000/01/rdf-schema#',
 	'owl' : 'http://www.w3.org/2002/07/owl#',
@@ -64,3 +65,18 @@ prefix = {
 	'prn' : 'http://www.wikidata.org/prop/reference/value-normalized/',
 	'wdno' : 'http://www.wikidata.org/prop/novalue/',
 }
+
+property_value_types = {'commonsMedia': 'http://wikiba.se/ontology#CommonsMedia' ,
+                'external-id': 'http://wikiba.se/ontology#ExternalId' ,
+                'geo-shape': 'http://wikiba.se/ontology#GeoShape',
+                'globe-coordinate': 'http://wikiba.se/ontology#GlobeCoordinate',
+                'math': 'http://wikiba.se/ontology#Math',
+                'monolingualtext': 'http://wikiba.se/ontology#Monolingualtext',
+                'quantity': 'http://wikiba.se/ontology#Quantity',
+                'string': 'http://wikiba.se/ontology#String',
+                'tabular-data': 'http://wikiba.se/ontology#TabularData',
+                'time': 'http://wikiba.se/ontology#Time',
+                'edtf': '<http://wikiba.se/ontology#Edtf>',
+                'url': 'http://wikiba.se/ontology#Url',
+                'wikibase-item': 'http://wikiba.se/ontology#WikibaseItem',
+                'wikibase-property': 'http://wikiba.se/ontology#WikibaseProperty'}
