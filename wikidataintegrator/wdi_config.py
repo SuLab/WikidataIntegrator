@@ -64,6 +64,10 @@ prefix = {
 	'prv' : 'http://www.wikidata.org/prop/reference/value/',
 	'prn' : 'http://www.wikidata.org/prop/reference/value-normalized/',
 	'wdno' : 'http://www.wikidata.org/prop/novalue/',
+    'lexeme': 'http://wikiba.se/ontology#WikibaseLexeme',
+    'form': 'http://wikiba.se/ontology#WikibaseForm' ,
+    'sense': 'http://wikiba.se/ontology#WikibaseSense' ,
+    'musical-notation': 'http://wikiba.se/ontology#MusicalNotation' ,
 }
 
 property_value_types = {'commonsMedia': 'http://wikiba.se/ontology#CommonsMedia' ,
