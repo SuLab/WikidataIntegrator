@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = "0.8.20"
+VERSION = "0.8.21"
 
 setup(
     name='wikidataintegrator',
@@ -42,5 +42,6 @@ setup(
         'jsonasobj',
         'pyshex',
         'backoff',
+        'shexer',
     ],
 )
