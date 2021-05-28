@@ -84,4 +84,5 @@ property_value_types = {'commonsMedia': 'http://wikiba.se/ontology#CommonsMedia'
                 'form': 'http://wikiba.se/ontology#WikibaseForm',
                 'sense': 'http://wikiba.se/ontology#WikibaseSense',
                 'musical-notation': 'http://wikiba.se/ontology#MusicalNotation',
+                'schema': 'http://schema.org/'
                 }
