@@ -127,17 +127,23 @@ class WDLogin(object):
             self.generate_edit_credentials()
         else:
             params = {
-                'action': 'login',
-                'lgname': user,
-                'lgpassword': pwd,
+                'action': 'query',
+                'meta': 'tokens',
+                'type': 'login',
                 'format': 'json'
             }
 
             # get login token
-            login_token = self.s.post(self.mediawiki_api_url, data=params).json()['login']['token']
+            login_token = self.s.get(self.mediawiki_api_url, params=params).json()['query']['tokens']['logintoken']
 
+            params = {
+                'action': 'login',
+                'lgname': user,
+                'lgpassword': pwd,
+                'lgtoken': login_token,
+                'format': 'json'
+            }
             # do the login using the login token
-            params.update({'lgtoken': login_token})
             r = self.s.post(self.mediawiki_api_url, data=params).json()
 
             if r['login']['result'] != 'Success':
