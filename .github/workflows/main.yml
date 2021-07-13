@@ -5,8 +5,7 @@ jobs:
     name: Build and publish Python 🐍 distributions 📦 to PyPI
     
   steps:
-  - name checkout
-    uses: actions/checkout@v2
+  - uses: actions/checkout@v2
   - name: Set up Python 3.7
     uses: actions/setup-python@v1
     with:
