@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-18.04
     
   steps:
-  - uses: actions/checkout@main
+  - uses: actions/checkout@v2
   - name: Set up Python 3.7
     uses: actions/setup-python@v1
     with:
