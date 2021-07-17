@@ -183,7 +183,7 @@ class WDqidRDFEngine(object):
             self.normalization_rules["iri"][row["prop"].replace("http://www.wikidata.org/entity/", "")].append(
                 row["format"])
         # SI conversion
-        with open('unitConversionConfig.json') as json_file:
+        with open('data/unitConversionConfig.json') as json_file:
             self.normalization_rules["siconversion"] = json.load(json_file)
 
     def fetch_normalized_values(self, snakuri, snak, prop, value, snaktype):
