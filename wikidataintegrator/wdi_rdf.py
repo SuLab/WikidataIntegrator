@@ -371,22 +371,6 @@ class WDqidRDFEngine(object):
                             for normProp in uriformat[pid]:
                                 self.rdf_item.add(
                                     (statement_uri, self.ns["psn"][pid], URIRef(normProp.replace("$1", objectValue))))
-                        if self.fetch_truthy_rdf:
-                            if preferredSet:
-                                if claim["rank"] == "preferred":
-                                    self.rdf_item.add((self.ns["wd"][self.qid], self.ns["wdt"][pid], objectValue))
-                                    if pid in uriformat.keys():
-                                        for normProp in uriformat[pid]:
-                                            self.rdf_item.add((self.ns["wd"][self.qid], self.ns["wdtn"][pid],
-                                                               URIRef(normProp.replace("$1", objectValue))))
-                            else:
-                                if claim["rank"] == "normal":
-                                    self.rdf_item.add((self.ns["wd"][self.qid], self.ns["wdt"][pid], objectValue))
-                                    if pid in uriformat.keys():
-                                        for normProp in uriformat[pid]:
-                                            self.rdf_item.add((self.ns["wd"][self.qid], self.ns["wdtn"][pid],
-                                                               URIRef(normProp.replace("$1", objectValue))))
-
                     self.rdf_item.add((self.ns["wd"][self.qid], self.ns["p"][pid], statement_uri))
                     self.rdf_item.add((statement_uri, RDF.type, self.ns["wikibase"].Statement))
                     if preferredSet:
@@ -425,5 +409,22 @@ class WDqidRDFEngine(object):
                                     if self.fetch_normalized_rdf:
                                         self.fetch_normalized_values(reference_uri, ref_prop_statement, ref_prop,
                                                                      object, "reference")
+
+                if self.fetch_truthy_rdf:
+                    if not claim["mainsnak"]["snaktype"] == "novalue":
+                        if preferredSet:
+                            if claim["rank"] == "preferred":
+                                self.rdf_item.add((self.ns["wd"][self.qid], self.ns["wdt"][pid], objectValue))
+                                if pid in uriformat.keys():
+                                    for normProp in uriformat[pid]:
+                                        self.rdf_item.add((self.ns["wd"][self.qid], self.ns["wdtn"][pid],
+                                                           URIRef(normProp.replace("$1", objectValue))))
+                        else:
+                            if claim["rank"] == "normal":
+                                self.rdf_item.add((self.ns["wd"][self.qid], self.ns["wdt"][pid], objectValue))
+                                if pid in uriformat.keys():
+                                    for normProp in uriformat[pid]:
+                                        self.rdf_item.add((self.ns["wd"][self.qid], self.ns["wdtn"][pid],
+                                                           URIRef(normProp.replace("$1", objectValue))))
 
 
