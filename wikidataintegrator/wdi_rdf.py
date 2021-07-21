@@ -386,12 +386,14 @@ class WDqidRDFEngine(object):
                             if qualifier not in self.properties.keys():
                                 self.properties[qualifier] = claim["qualifiers"][qualifier][0]["datatype"]
                             for qualifier_prop in claim["qualifiers"][qualifier]:
-                                object = self.parseSnak(qualifier_prop)
-
-                                self.rdf_item.add((statement_uri, self.ns["pq"][qualifier], object))
-                                if self.fetch_normalized_rdf:
-                                    self.fetch_normalized_values(statement_uri, qualifier_prop, qualifier, object,
-                                                                 "qualifier")
+                                if qualifier_prop["snaktype"] == "novalue":
+                                    self.rdf_item.add((statement_uri, RDF.type, self.ns["wdno"][pid]))
+                                else:
+                                    object = self.parseSnak(qualifier_prop)
+                                    self.rdf_item.add((statement_uri, self.ns["pq"][qualifier], object))
+                                    if self.fetch_normalized_rdf:
+                                        self.fetch_normalized_values(statement_uri, qualifier_prop, qualifier, object,
+                                                                     "qualifier")
 
                     # references
                     if "references" in claim.keys():
