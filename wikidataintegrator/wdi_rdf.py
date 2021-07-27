@@ -166,8 +166,9 @@ class WDqidRDFEngine(object):
         merged_items = json.loads(requests.get(
             "https://www.wikidata.org/w/api.php?action=query&prop=redirects&format=json&titles=" + self.qid).text)
         for page in merged_items["query"]["pages"].keys():
-            for redirect in merged_items["query"]["pages"][page]["redirects"]:
-                self.rdf_item.add((self.ns["wd"][redirect["title"]], OWL.sameAs, self.ns["wd"][self.qid]))
+            if "redirects" in merged_items["query"]["pages"][page].keys():
+                for redirect in merged_items["query"]["pages"][page]["redirects"]:
+                    self.rdf_item.add((self.ns["wd"][redirect["title"]], OWL.sameAs, self.ns["wd"][self.qid]))
 
     def fetch_normalization_rules(self):
         self.normalization_rules = {"iri": {}}
