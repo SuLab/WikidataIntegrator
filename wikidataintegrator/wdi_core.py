@@ -216,7 +216,7 @@ class WDFunctionsEngine(object):
 
         sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
 
-        entity_schema_repo = config["ENTITY_SCHEMA_REPO"] if sparql_endpoint_url is None else entity_schema_repo
+        entity_schema_repo = config["ENTITY_SCHEMA_REPO"] if entity_schema_repo is None else entity_schema_repo
         schema = requests.get(entity_schema_repo+eid).text
         rdfdata = Graph()
         rdfdata.parse(config["CONCEPT_BASE_URI"] + qid + ".ttl")
