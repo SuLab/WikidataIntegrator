@@ -204,7 +204,7 @@ class WDFunctionsEngine(object):
 
     ## SHEX related functions
     @staticmethod
-    def check_shex_conformance(qid, eid, sparql_endpoint_url=None, entity_schema_repo=None, output='confirm'):
+    def check_shex_conformance(qid=None,data=None, eid=None, entity_schema_repo=None, output='confirm'):
         """
                 Static method which can be used to check for conformance of a Wikidata item to an EntitySchema any SPARQL query
                 :param qid: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
@@ -213,13 +213,19 @@ class WDFunctionsEngine(object):
                 :param output: results of a test of conformance on a given shape expression
                 :return: The results of the query are returned in string format
         """
+        if not bool(qid) and not bool(data):
+            raise ValueError('Please provide either a QID or a json object of a Wikidata item')
 
-        sparql_endpoint_url = config['SPARQL_ENDPOINT_URL'] if sparql_endpoint_url is None else sparql_endpoint_url
+        if bool(qid) and bool(data):
+            raise ValueError('Please provide only a QID or a JSON object of a Wikidata item, not both')
 
+        rdfdata = Graph()
+        if bool(qid):
+            rdfdata.parse(config["CONCEPT_BASE_URI"] + qid + ".ttl")
+        else:
+            rdfdata.parse(data=data)
         entity_schema_repo = config["ENTITY_SCHEMA_REPO"] if entity_schema_repo is None else entity_schema_repo
         schema = requests.get(entity_schema_repo+eid).text
-        rdfdata = Graph()
-        rdfdata.parse(config["CONCEPT_BASE_URI"] + qid + ".ttl")
 
         for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["CONCEPT_BASE_URI"] + qid).evaluate():
             shex_result = dict()
@@ -1212,6 +1218,36 @@ class WDItemEngine(object):
             return self.sitelinks[site]
         else:
             return None
+
+    def check_shex_conformance(self, eid, entity_schema_repo=None, output='confirm'):
+        """
+                Static method which can be used to check for conformance of a Wikidata item to an EntitySchema any SPARQL query
+                :param eid: The EntitySchema identifier from Wikidata
+                :param output: results of a test of conformance on a given shape expression
+                :return: The results of the query are returned in string format
+        """
+
+        entity_schema_repo = config["ENTITY_SCHEMA_REPO"] if entity_schema_repo is None else entity_schema_repo
+        schema = requests.get(entity_schema_repo + eid).text
+        self.
+        rdfdata = Graph()
+        rdfdata.parse(config["CONCEPT_BASE_URI"] + qid + ".ttl")
+
+        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["CONCEPT_BASE_URI"] + qid).evaluate():
+            shex_result = dict()
+            if result.result:
+                shex_result["result"] = True
+            else:
+                shex_result["result"] = False
+            shex_result["reason"] = result.reason
+            shex_result["focus"] = result.focus
+
+        if output == "confirm":
+            return shex_result["result"]
+        elif output == "reason":
+            return shex_result["reason"]
+        else:
+            return shex_result
 
     def write(self, login, bot_account=True, edit_summary='', entity_type='item', property_datatype='string',
               max_retries=1000, retry_after=60):
