@@ -1219,35 +1219,6 @@ class WDItemEngine(object):
         else:
             return None
 
-    def check_shex_conformance(self, eid, entity_schema_repo=None, output='confirm'):
-        """
-                Static method which can be used to check for conformance of a Wikidata item to an EntitySchema any SPARQL query
-                :param eid: The EntitySchema identifier from Wikidata
-                :param output: results of a test of conformance on a given shape expression
-                :return: The results of the query are returned in string format
-        """
-
-        entity_schema_repo = config["ENTITY_SCHEMA_REPO"] if entity_schema_repo is None else entity_schema_repo
-        schema = requests.get(entity_schema_repo + eid).text
-        self.
-        rdfdata = Graph()
-        rdfdata.parse(config["CONCEPT_BASE_URI"] + qid + ".ttl")
-
-        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["CONCEPT_BASE_URI"] + qid).evaluate():
-            shex_result = dict()
-            if result.result:
-                shex_result["result"] = True
-            else:
-                shex_result["result"] = False
-            shex_result["reason"] = result.reason
-            shex_result["focus"] = result.focus
-
-        if output == "confirm":
-            return shex_result["result"]
-        elif output == "reason":
-            return shex_result["reason"]
-        else:
-            return shex_result
 
     def write(self, login, bot_account=True, edit_summary='', entity_type='item', property_datatype='string',
               max_retries=1000, retry_after=60):
