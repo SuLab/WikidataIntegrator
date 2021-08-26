@@ -1219,7 +1219,6 @@ class WDItemEngine(object):
         else:
             return None
 
-
     def write(self, login, bot_account=True, edit_summary='', entity_type='item', property_datatype='string',
               max_retries=1000, retry_after=60):
         """

@@ -17,10 +17,16 @@ __license__ = 'MIT'
 
 
 class WDqidRDFEngine(object):
-    def __init__(self, qid, fetch_provenance_rdf=True, fetch_metadata_rdf=True, fetch_truthy_rdf=False,
+    def __init__(self, qid=None, json_data=None, fetch_provenance_rdf=True, fetch_metadata_rdf=True, fetch_truthy_rdf=False,
                  fetch_normalized_rdf=False, fetch_sitelinks_rdf=False,
                  fetch_merged_items_rdf=False, fetch_property_descriptions_rdf=False, fetch_labels_rdf=True,
                  fetch_linked_items_rdf=False, fetch_all=False):
+        if not bool(qid) and not bool(json_data):
+            raise ValueError('Please provide either a QID or a json object of a Wikidata item')
+
+        if bool(qid) and bool(data):
+            raise ValueError('Please provide only a QID or a JSON object of a Wikidata item, not both')
+
         self.qid = qid
         if fetch_all:
             self.fetch_provenance_rdf = True
@@ -42,9 +48,11 @@ class WDqidRDFEngine(object):
             self.fetch_sitelinks_rdf = fetch_sitelinks_rdf
             self.fetch_truthy_rdf = fetch_truthy_rdf
             self.fetch_linked_items_rdf = fetch_linked_items_rdf
-
-        self.json_item = json.loads(requests.get("http://www.wikidata.org/entity/" + qid + ".json").text)["entities"][
-            qid]
+        if bool(qid):
+            self.json_item = json.loads(requests.get("http://www.wikidata.org/entity/" + qid + ".json").text)["entities"][
+                qid]
+        else:
+            self.json_item = json_data
         self.rdf_item = Graph()
         self.ns = dict()
         self.linked_items = []
