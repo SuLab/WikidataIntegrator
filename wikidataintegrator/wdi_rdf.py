@@ -24,7 +24,7 @@ class WDqidRDFEngine(object):
         if not bool(qid) and not bool(json_data):
             raise ValueError('Please provide either a QID or a json object of a Wikidata item')
 
-        if bool(qid) and bool(data):
+        if bool(qid) and bool(json_data):
             raise ValueError('Please provide only a QID or a JSON object of a Wikidata item, not both')
 
         self.qid = qid
