@@ -22,10 +22,10 @@ class WDqidRDFEngine(object):
                  fetch_merged_items_rdf=False, fetch_property_descriptions_rdf=False, fetch_labels_rdf=True,
                  fetch_linked_items_rdf=False, fetch_all=False):
         if not bool(qid) and not bool(json_data):
-            raise ValueError('Please provide either a QID or a json object of a Wikidata item')
+            raise ValueError('Please provide a QID or a QID and its json object of a Wikidata item')
 
-        if bool(qid) and bool(json_data):
-            raise ValueError('Please provide only a QID or a JSON object of a Wikidata item, not both')
+        if not bool(qid):
+            raise ValueError('Please provide only the QID, even if the json object is provided')
 
         self.qid = qid
         if fetch_all:
