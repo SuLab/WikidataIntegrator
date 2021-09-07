@@ -595,6 +595,7 @@ class PublicationHelper:
         """
         PublicationHelper: Helper to create wikidata items about literature
         Supported data sources and (ID types): crossref (doi), europepmc (pmid, pmcid, doi)
+
         :param ext_id: the external ID to use
         :type ext_id: str
         :param id_type: one of {'pmid', 'pmcid', 'doi'}
@@ -614,6 +615,7 @@ class PublicationHelper:
     def get_or_create(self, login):
         """
         Get the qid of the item by its external id or create if doesn't exist
+
         :param login: WDLogin item
         :return: tuple of (qid, list of warnings (strings), success (True if success, returns the Exception otherwise))
         """

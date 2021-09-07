@@ -17,6 +17,7 @@ def update_retrieved_if_new_multiple_refs(olditem, newitem, days=180, retrieved_
     def is_equal_not_retrieved(oldref, newref):
         """
         Return True if the oldref == newref, NOT including any "retrieved" statements
+
         :param oldref:
         :param newref:
         :return:

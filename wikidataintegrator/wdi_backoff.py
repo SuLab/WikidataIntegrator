@@ -34,6 +34,7 @@ def check_json_decode_error(e):
     """
     Check if the error message is "Expecting value: line 1 column 1 (char 0)"
     if not, its a real error and we shouldn't retry
+
     :param e:
     :return:
     """
