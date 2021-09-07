@@ -34,6 +34,7 @@ class MappingRelationHelper:
         """
         accepts a statement and adds a qualifer setting the mrt
         modifies s in place
+
         :param s: a WDBaseDataType statement
         :param mrt: one of {'close', 'broad', 'exact', 'related', 'narrow'}
         :return: s

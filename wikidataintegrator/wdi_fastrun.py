@@ -263,6 +263,7 @@ class FastRunContainer(object):
     def init_language_data(self, lang, lang_data_type):
         """
         Initialize language data store
+
         :param lang: language code
         :param lang_data_type: 'label', 'description' or 'aliases'
         :return: None
@@ -278,6 +279,7 @@ class FastRunContainer(object):
     def get_language_data(self, qid, lang, lang_data_type):
         """
         get language data for specified qid
+
         :param qid:
         :param lang: language code
         :param lang_data_type: 'label', 'description' or 'aliases'
@@ -298,6 +300,7 @@ class FastRunContainer(object):
     def check_language_data(self, qid, lang_data, lang, lang_data_type):
         """
         Method to check if certain language data exists as a label, description or aliases
+
         :param lang_data: list of string values to check
         :type lang_data: list
         :param lang: language code

@@ -162,6 +162,7 @@ class WDFunctionsEngine(object):
         """
         Takes a list of items and posts them for deletion by Wikidata moderators, appends at the end of the deletion
         request page.
+
         :param item: a QID which should be deleted
         :type item: string
         :param reason: short text about the reason for the deletion request
@@ -208,6 +209,7 @@ class WDFunctionsEngine(object):
     def check_shex_conformance(qid=None,data=None, eid=None, entity_schema_repo=None, output='confirm'):
         """
                 Static method which can be used to check for conformance of a Wikidata item to an EntitySchema any SPARQL query
+
                 :param qid: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
                 :param eid: The EntitySchema identifier from Wikidata
                 :param sparql_endpoint_url: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
@@ -248,6 +250,7 @@ class WDFunctionsEngine(object):
         It extracts a shape tor the entity specified in qid. The shape is built w.r.t the outgoing
         properties of the selected Wikidata entity.
         Optionally, it generates as well a shape for each qualifier.
+
         :param qid: Wikidata identifier to which other wikidata items link
         :param extract_shape_of_qualifiers: It it is set to True, the result will contain the shape of the qid
                 selected but also the shapes of its qualifiers.
@@ -313,6 +316,7 @@ class WDItemEngine(object):
                  fast_run_case_insensitive=False, debug=False):
         """
         constructor
+
         :param wd_item_id: Wikidata item id
         :param new_item: This parameter lets the user indicate if a new item should be created
         :type new_item: True or False
@@ -579,6 +583,7 @@ class WDItemEngine(object):
     def get_wd_entity(self):
         """
         retrieve a WD item in json representation from Wikidata
+
         :rtype: dict
         :return: python complex dictionary represenation of a json
         """
@@ -597,6 +602,7 @@ class WDItemEngine(object):
     def parse_wd_json(self, wd_json):
         """
         Parses a WD entity json and generates the datatype objects, sets self.wd_json_representation
+
         :param wd_json: the json of a WD entity
         :type wd_json: A Python Json representation of a WD item
         :return: returns the json representation containing 'labels', 'descriptions', 'claims', 'aliases', 'sitelinks'.
@@ -626,6 +632,7 @@ class WDItemEngine(object):
                               language='en', dict_id_label=False, dict_id_all_info=False):
         """
         Performs a search in WD for a certain WD search string
+
         :param search_string: a string which should be searched for in WD
         :type search_string: str
         :param mediawiki_api_url: Specify the mediawiki_api_url.
@@ -694,6 +701,7 @@ class WDItemEngine(object):
     def get_property_list(self):
         """
         List of properties on the current item
+
         :return: a list of WD property ID strings (Pxxxx).
         """
         property_list = set()
@@ -705,6 +713,7 @@ class WDItemEngine(object):
     def __select_wd_item(self):
         """
         The most likely WD item QID should be returned, after querying WDQ for all values in core_id properties
+
         :return: Either a single WD QID is returned, or an empty string if no suitable item in WD
         """
         qid_list = set()
@@ -775,6 +784,7 @@ class WDItemEngine(object):
     def __construct_claim_json(self):
         """
         Writes the properties from self.data to a new or existing json in self.wd_json_representation
+
         :return: None
         """
 
@@ -837,6 +847,7 @@ class WDItemEngine(object):
         def handle_references(old_item, new_item):
             """
             Local function to handle references
+
             :param old_item: An item containing the data as currently in WD
             :type old_item: A child of WDBaseDataType
             :param new_item: An item containing the new data which should be written to WD
@@ -969,6 +980,7 @@ class WDItemEngine(object):
         allows for checking the item data before deciding which new data should be written to the Wikidata item.
         The actual write to Wikidata only happens on calling of the write() method. If data has been provided already
         via the constructor, data provided via the update() method will be appended to these data.
+
         :param data: A list of Wikidata statment items inheriting from WDBaseDataType
         :type data: list
         :param append_value: list with Wikidata property strings where the values should only be appended,
@@ -1001,6 +1013,7 @@ class WDItemEngine(object):
     def get_wd_json_representation(self):
         """
         A method to access the internal json representation of the WD item, mainly for testing
+
         :return: returns a Python json representation object of the WD item at the current state of the instance
         """
         return self.wd_json_representation
@@ -1011,6 +1024,7 @@ class WDItemEngine(object):
         has a property of the current domain with a value like submitted in the data dict, this item does not get
         selected but a ManualInterventionReqException() is raised. This check is dependent on the core identifiers
         of a certain domain.
+
         :return: boolean True if test passed
         """
         # all core props
@@ -1055,6 +1069,7 @@ class WDItemEngine(object):
     def get_pageid(self):
         """
         Returns the pageid of a Wikidata item
+
         :return:
         """
         return self.wd_json_representation['pageid']
@@ -1062,6 +1077,7 @@ class WDItemEngine(object):
     def get_label(self, lang='en'):
         """
         Returns the label for a certain language
+
         :param lang:
         :type lang: str
         :return: returns the label in the specified language, an empty string if the label does not exist
@@ -1076,6 +1092,7 @@ class WDItemEngine(object):
     def set_label(self, label, lang='en'):
         """
         Set the label for a WD item in a certain language
+
         :param label: The description of the item in a certain language
         :type label: str
         :param lang: The language a label should be set for.
@@ -1101,6 +1118,7 @@ class WDItemEngine(object):
     def get_aliases(self, lang='en'):
         """
         Retrieve the aliases in a certain language
+
         :param lang: The Wikidata language the description should be retrieved for
         :return: Returns a list of aliases, an empty list if none exist for the specified language
         """
@@ -1117,6 +1135,7 @@ class WDItemEngine(object):
     def set_aliases(self, aliases, lang='en', append=True):
         """
         set the aliases for a WD item
+
         :param aliases: a list of strings representing the aliases of a WD item
         :param lang: The language a description should be set for
         :param append: If true, append a new alias to the list of existing aliases, else, overwrite. Default: True
@@ -1155,6 +1174,7 @@ class WDItemEngine(object):
     def get_description(self, lang='en'):
         """
         Retrieve the description in a certain language
+
         :param lang: The Wikidata language the description should be retrieved for
         :return: Returns the description string
         """
@@ -1168,6 +1188,7 @@ class WDItemEngine(object):
     def set_description(self, description, lang='en'):
         """
         Set the description for a WD item in a certain language
+
         :param description: The description of the item in a certain language
         :type description: str
         :param lang: The language a description should be set for.
@@ -1193,6 +1214,7 @@ class WDItemEngine(object):
     def set_sitelink(self, site, title, badges=()):
         """
         Set sitelinks to corresponding Wikipedia pages
+
         :param site: The Wikipedia page a sitelink is directed to (e.g. 'enwiki')
         :param title: The title of the Wikipedia page the sitelink is directed to
         :param badges: An iterable containing Wikipedia badge strings.
@@ -1209,6 +1231,7 @@ class WDItemEngine(object):
     def get_sitelink(self, site):
         """
         A method to access the interwiki links in the json.model
+
         :param site: The Wikipedia site the interwiki/sitelink should be returned for
         :return: The interwiki/sitelink string for the specified Wikipedia will be returned.
         """
@@ -1222,6 +1245,7 @@ class WDItemEngine(object):
         """
         Writes the WD item Json to WD and after successful write, updates the object with new ids and hashes generated
         by WD. For new items, also returns the new QIDs.
+
         :param login: a instance of the class PBB_login which provides edit-cookies and edit-tokens
         :param bot_account: Tell the Wikidata API whether the script should be run as part of a bot account or not.
         :type bot_account: bool
@@ -1404,6 +1428,7 @@ class WDItemEngine(object):
                       delimiter=";", logger_name='WD_logger'):
         """
         A static method which initiates log files compatible to .csv format, allowing for easy further analysis.
+
         :param log_dir: allows for setting relative or absolute path for logging, default is ./logs.
         :type log_dir: str
         :param log_name: File name of log file to be written. e.g. "WD_bot_run-20160204.log". Default is "WD_bot_run"
@@ -1478,6 +1503,7 @@ class WDItemEngine(object):
         A method which allows for retrieval of a list of Wikidata items or properties. The method generates a list of
         tuples where the first value in the tuple is the QID or property ID, whereas the second is the new instance of
         WDItemEngine containing all the data of the item. This is most useful for mass retrieval of WD items.
+
         :param items: A list of QIDs or property IDs
         :type items: list
         :param mediawiki_api_url: The MediaWiki url which should be used
@@ -1523,6 +1549,7 @@ class WDItemEngine(object):
                              user_agent=None, as_dataframe=False, max_retries=1000, retry_after=60):
         """
         Static method which can be used to execute any SPARQL query
+
         :param prefix: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
         :param query: The actual SPARQL query string
         :param endpoint: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
@@ -1638,6 +1665,7 @@ class WDItemEngine(object):
                     ignore_conflicts='', user_agent=None):
         """
         A static method to merge two Wikidata items
+
         :param from_id: The QID which should be merged into another item
         :type from_id: string with 'Q' prefix
         :param to_id: The QID into which another item should be merged
@@ -1713,6 +1741,7 @@ class WDItemEngine(object):
         """
         Takes a list of items and posts them for deletion by Wikidata moderators, appends at the end of the deletion
         request page.
+
         :param item: a QID which should be deleted
         :type item: string
         :param reason: short text about the reason for the deletion request
@@ -1784,6 +1813,7 @@ class WDItemEngine(object):
         """
         Helper function for creating a WDItemEngine class with arguments set for a different Wikibase instance than
         Wikidata.
+
         :param mediawiki_api_url: Mediawiki api url. For wikidata, this is: 'https://www.wikidata.org/w/api.php'
         :param sparql_endpoint_url: sparql endpoint url. For wikidata, this is: 'https://query.wikidata.org/sparql'
         :param name: name of the resulting class
@@ -1917,6 +1947,7 @@ class WDBaseDataType(object):
                  check_qualifier_equality):
         """
         Constructor, will be called by all data types.
+
         :param value: Data value of the WD data snak
         :type value: str or int or tuple
         :param snak_type: The snak type of the WD data snak, three values possible, depending if the value is a
@@ -2198,6 +2229,7 @@ class WDBaseDataType(object):
         This serves as an alternative constructor for WDBaseDataType with the only purpose of holding a WD property
         number and an empty string value in order to indicate that the whole statement with this property number of a
         WD item should be deleted.
+
         :param prop_nr: A WD property number as string
         :return: An instance of WDBaseDataType
         """
@@ -2258,6 +2290,7 @@ class WDString(WDBaseDataType):
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The string to be used as the value
         :type value: str
         :param prop_nr: The WD item ID for this claim
@@ -2312,6 +2345,7 @@ class WDMath(WDBaseDataType):
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The string to be used as the value
         :type value: str
         :param prop_nr: The WD item ID for this claim
@@ -2365,6 +2399,7 @@ class WDExternalID(WDBaseDataType):
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The string to be used as the value
         :type value: str
         :param prop_nr: The WD item ID for this claim
@@ -2431,6 +2466,7 @@ class WDItemID(WDBaseDataType):
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The WD item ID to serve as the value
         :type value: str with a 'Q' prefix, followed by several digits or only the digits without the 'Q' prefix
         :param prop_nr: The WD item ID for this claim
@@ -2515,6 +2551,7 @@ class WDProperty(WDBaseDataType):
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The WD property number to serve as a value
         :type value: str with a 'P' prefix, followed by several digits or only the digits without the 'P' prefix
         :param prop_nr: The WD property number for this claim
@@ -2588,6 +2625,7 @@ class WDTime(WDBaseDataType):
                  references=None, qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param time: A time representation string in the following format: '+%Y-%m-%dT%H:%M:%SZ'
         :type time: str in the format '+%Y-%m-%dT%H:%M:%SZ', e.g. '+2001-12-31T12:01:13Z'
         :param prop_nr: The WD property number for this claim
@@ -2673,6 +2711,7 @@ class WDUrl(WDBaseDataType):
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The URL to be used as the value
         :type value: str
         :param prop_nr: The WD item ID for this claim
@@ -2733,6 +2772,7 @@ class WDMonolingualText(WDBaseDataType):
                  references=None, qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The language specific string to be used as the value
         :type value: str
         :param prop_nr: The WD item ID for this claim
@@ -2797,6 +2837,7 @@ class WDQuantity(WDBaseDataType):
                  check_qualifier_equality=True, concept_base_uri=None):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The quantity value
         :type value: float, str
         :param prop_nr: The WD item ID for this claim
@@ -2918,6 +2959,7 @@ class WDCommonsMedia(WDBaseDataType):
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The media file name from Wikimedia commons to be used as the value
         :type value: str
         :param prop_nr: The WD item ID for this claim
@@ -2971,6 +3013,7 @@ class WDLocalMedia(WDBaseDataType):
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The media file name from the local Mediawiki to be used as the value
         :type value: str
         :param prop_nr: The property id for this claim
@@ -3024,6 +3067,7 @@ class WDGlobeCoordinate(WDBaseDataType):
                  snak_type='value', references=None, qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param latitude: Latitute in decimal format
         :type latitude: float
         :param longitude: Longitude in decimal format
@@ -3102,6 +3146,7 @@ class WDGeoShape(WDBaseDataType):
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The GeoShape map file name in Wikimedia Commons to be linked
         :type value: str
         :param prop_nr: The WD item ID for this claim
@@ -3163,6 +3208,7 @@ class WDMusicalNotation(WDBaseDataType):
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: Values for that data type are strings describing music following LilyPond syntax.
         :type value: str
         :param prop_nr: The WD item ID for this claim
@@ -3218,6 +3264,7 @@ class WDTabularData(WDBaseDataType):
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: Reference to tabular data file on Wikimedia Commons.
         :type value: str
         :param prop_nr: The WD item ID for this claim
@@ -3292,6 +3339,7 @@ class WDLexeme(WDBaseDataType):
 
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The WD lexeme number to serve as a value
         :type value: str with a 'P' prefix, followed by several digits or only the digits without the 'P' prefix
         :param prop_nr: The WD property number for this claim
@@ -3364,6 +3412,7 @@ class WDForm(WDBaseDataType):
                  qualifiers=None, rank='normal', check_qualifier_equality=True):
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The WD form number to serve as a value using the format "L<Lexeme ID>-F<Form ID>" (example: L252248-F2)
         :type value: str with a 'P' prefix, followed by several digits or only the digits without the 'P' prefix
         :param prop_nr: The WD property number for this claim
@@ -3431,6 +3480,7 @@ class WDSense(WDBaseDataType):
 
         """
         Constructor, calls the superclass WDBaseDataType
+
         :param value: The WD form number to serve as a value using the format "L<Lexeme ID>-F<Form ID>" (example: L252248-F2)
         :type value: str with a 'P' prefix, followed by several digits or only the digits without the 'P' prefix
         :param prop_nr: The WD property number for this claim

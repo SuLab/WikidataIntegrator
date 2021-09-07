@@ -75,6 +75,7 @@ class WikibaseHelper:
         Example: In my wikibase, I have CDK2 (Q79363) with the only statement:
             equivalent class -> http://www.wikidata.org/entity/Q14911732
             Calling prop2qid("P351", "1017") will return the local QID (Q79363)
+
         :param prop:
         :param value:
         :return:

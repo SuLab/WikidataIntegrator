@@ -105,6 +105,7 @@ def try_write(wd_item, record_id, record_prop, login, edit_summary='', write=Tru
 def format_msg(external_id, external_id_prop, wdid, msg, msg_type=None, delimiter=";"):
     """
     Format message for logging
+
     :return: str
     """
     fmt = ('{}' + delimiter) * 4 + '{}'  # '{};{};{};{};{}'
@@ -128,6 +129,7 @@ def prop2qid(prop, value, endpoint='https://query.wikidata.org/sparql'):
     Lookup a wikidata item ID from a property and string value. For example, get the item QID for the
      item with the entrez gene id (P351): "899959"
     >>> prop2qid('P351','899959')
+
     :param prop: property
     :type prop: str
     :param value: value of property
@@ -156,6 +158,7 @@ def id_mapper(prop, filters=None, raise_on_duplicate=False, return_as_set=False,
                                      'Q53WF2': 'Q21766762', .... }
     Optional filters can filter query results.
     Example (get all uniprot to wdid, where taxon is human): id_mapper("P352",(("P703", "Q15978631"),))
+
     :param prop: wikidata property
     :type prop: str
     :param filters: list of tuples, where the first item is a property, second is a value
@@ -244,6 +247,7 @@ def get_values(pid, values, endpoint='https://query.wikidata.org/sparql'):
     """
     This is a basic version of id_mapper, but restrict to values in `values`.
     Missing IDs are ignored
+
     :param pid: PID
     :param values: list of strings
     :param endpoint: sparql endpoint url
