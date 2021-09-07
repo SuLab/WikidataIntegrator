@@ -1334,7 +1334,7 @@ class WDItemEngine(object):
         entity_schema_repo = config["ENTITY_SCHEMA_REPO"] if entity_schema_repo is None else entity_schema_repo
         schema = requests.get(entity_schema_repo+eid).text
 
-        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["CONCEPT_BASE_URI"] + qid).evaluate():
+        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["CONCEPT_BASE_URI"] + self.wd_item_id).evaluate():
             shex_result = dict()
             if result.result:
                 shex_result["result"] = True
