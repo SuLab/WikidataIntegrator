@@ -1296,6 +1296,36 @@ class WDItemEngine(object):
             self.pageid = json_data["entity"]["pageid"]
         return self.wd_item_id
 
+    def check_entity_schema(self, eid=None, entity_schema_repo=None, output='confirm'):
+        """
+                Static method which can be used to check for conformance of a Wikidata item to an EntitySchema any SPARQL query
+                :param qid: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
+                :param eid: The EntitySchema identifier from Wikidata
+                :param sparql_endpoint_url: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
+                :param output: results of a test of conformance on a given shape expression
+                :return: The results of the query are returned in string format
+        """
+        rdfdata = wdi_rdf.WDqidRDFEngine(qid=self.wd_item_id, json_data=self.get_wd_json_representation()).rdf_item
+
+        entity_schema_repo = config["ENTITY_SCHEMA_REPO"] if entity_schema_repo is None else entity_schema_repo
+        schema = requests.get(entity_schema_repo+eid).text
+
+        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["CONCEPT_BASE_URI"] + qid).evaluate():
+            shex_result = dict()
+            if result.result:
+                shex_result["result"] = True
+            else:
+                shex_result["result"] = False
+            shex_result["reason"] = result.reason
+            shex_result["focus"] = result.focus
+
+        if output == "confirm":
+            return shex_result["result"]
+        elif output == "reason":
+            return shex_result["reason"]
+        else:
+            return shex_result
+
     @staticmethod
     def mediawiki_api_call(method, mediawiki_api_url=None,
                            session=None, max_retries=1000, retry_after=60, **kwargs):
@@ -1486,36 +1516,6 @@ class WDItemEngine(object):
             item_instances.append((qid, ii))
 
         return item_instances
-
-    def check_entity_schema(self, eid=None, entity_schema_repo=None, output='confirm'):
-        """
-                Static method which can be used to check for conformance of a Wikidata item to an EntitySchema any SPARQL query
-                :param qid: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
-                :param eid: The EntitySchema identifier from Wikidata
-                :param sparql_endpoint_url: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
-                :param output: results of a test of conformance on a given shape expression
-                :return: The results of the query are returned in string format
-        """
-        rdfdata = wdi_rdf.WDqidRDFEngine(qid=self.wd_item_id, json_data=self.get_wd_json_representation()).rdf_item
-
-        entity_schema_repo = config["ENTITY_SCHEMA_REPO"] if entity_schema_repo is None else entity_schema_repo
-        schema = requests.get(entity_schema_repo+eid).text
-
-        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["CONCEPT_BASE_URI"] + qid).evaluate():
-            shex_result = dict()
-            if result.result:
-                shex_result["result"] = True
-            else:
-                shex_result["result"] = False
-            shex_result["reason"] = result.reason
-            shex_result["focus"] = result.focus
-
-        if output == "confirm":
-            return shex_result["result"]
-        elif output == "reason":
-            return shex_result["reason"]
-        else:
-            return shex_result
 
     @staticmethod
     @wdi_backoff()
