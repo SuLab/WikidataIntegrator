@@ -19,6 +19,7 @@ from wikidataintegrator.wdi_backoff import wdi_backoff
 from wikidataintegrator.wdi_config import config
 from wikidataintegrator.wdi_fastrun import FastRunContainer
 from wikidataintegrator.wdi_helpers import MappingRelationHelper
+from wikidataintegrator import wdi_rdf
 
 """
 Authors:
@@ -213,14 +214,11 @@ class WDFunctionsEngine(object):
                 :param output: results of a test of conformance on a given shape expression
                 :return: The results of the query are returned in string format
         """
-        if not bool(qid) and not bool(data):
-            raise ValueError('Please provide either a QID or a json object of a Wikidata item')
-
-        if bool(qid) and bool(data):
-            raise ValueError('Please provide only a QID or a JSON object of a Wikidata item, not both')
+        if not bool(qid):
+            raise ValueError('Please provide  a QID even with a json object of a Wikidata item')
 
         rdfdata = Graph()
-        if bool(qid):
+        if not bool(data):
             rdfdata.parse(config["CONCEPT_BASE_URI"] + qid + ".ttl")
         else:
             rdfdata.parse(data=data)
@@ -1488,6 +1486,36 @@ class WDItemEngine(object):
             item_instances.append((qid, ii))
 
         return item_instances
+
+    def check_entity_schema(self, eid=None, entity_schema_repo=None, output='confirm'):
+        """
+                Static method which can be used to check for conformance of a Wikidata item to an EntitySchema any SPARQL query
+                :param qid: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
+                :param eid: The EntitySchema identifier from Wikidata
+                :param sparql_endpoint_url: The URL string for the SPARQL endpoint. Default is the URL for the Wikidata SPARQL endpoint
+                :param output: results of a test of conformance on a given shape expression
+                :return: The results of the query are returned in string format
+        """
+        rdfdata = wdi_rdf.WDqidRDFEngine(qid=self.wd_item_id, json_data=self.get_wd_json_representation()).rdf_item
+
+        entity_schema_repo = config["ENTITY_SCHEMA_REPO"] if entity_schema_repo is None else entity_schema_repo
+        schema = requests.get(entity_schema_repo+eid).text
+
+        for result in ShExEvaluator(rdf=rdfdata, schema=schema, focus=config["CONCEPT_BASE_URI"] + qid).evaluate():
+            shex_result = dict()
+            if result.result:
+                shex_result["result"] = True
+            else:
+                shex_result["result"] = False
+            shex_result["reason"] = result.reason
+            shex_result["focus"] = result.focus
+
+        if output == "confirm":
+            return shex_result["result"]
+        elif output == "reason":
+            return shex_result["reason"]
+        else:
+            return shex_result
 
     @staticmethod
     @wdi_backoff()
