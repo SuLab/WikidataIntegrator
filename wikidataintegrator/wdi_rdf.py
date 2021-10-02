@@ -4,6 +4,7 @@ from wikidataintegrator import wdi_core, wdi_config
 import uuid
 import requests
 import json
+import urllib.parse
 
 """
 Authors:
@@ -97,7 +98,7 @@ class WDqidRDFEngine(object):
     def parseSnak(self, statement):
         value = statement["datavalue"]["value"]
         if statement["datatype"] == "commonsMedia":
-            return URIRef("http://commons.wikimedia.org/wiki/Special:FilePath/" + value.replace(" ", "_"))
+            return URIRef("http://commons.wikimedia.org/wiki/Special:FilePath/" + urllib.parse.quote_plus(value.replace(" ", "_")))
         elif statement["datatype"] == "string":
             return Literal(value)
         elif statement["datatype"] == "external-id":
