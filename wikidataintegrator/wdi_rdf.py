@@ -96,6 +96,8 @@ class WDqidRDFEngine(object):
         self.turtle = self.rdf_item.serialize(format="turtle")
 
     def parseSnak(self, statement):
+        if "datavalue" not in statement.keys():
+            return BNode()
         value = statement["datavalue"]["value"]
         if statement["datatype"] == "commonsMedia":
             return URIRef("http://commons.wikimedia.org/wiki/Special:FilePath/" + urllib.parse.quote_plus(value.replace(" ", "_")))
