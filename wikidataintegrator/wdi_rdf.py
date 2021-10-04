@@ -105,7 +105,7 @@ class WDqidRDFEngine(object):
             return Literal(value)
         elif statement["datatype"] == "external-id":
             return Literal(value)
-        elif statement["datatype"] == "wikibase-item":
+        elif statement["datatype"] == "wikibase-item" or statement["datatype"] == "wikibase-property":
             if value["id"] not in self.linked_items:
                 self.linked_items.append(value["id"])
             return self.ns["wd"][value["id"]]
@@ -270,7 +270,7 @@ class WDqidRDFEngine(object):
 
     def fetch_property_descriptions(self, pid, datatype):
         ## Properties and their derivatives
-        object_properties = ["wikibase-item", 'external-id', 'string', 'commonsMedia', 'time', 'edtf',
+        object_properties = ["wikibase-item", "wikibase-property", 'external-id', 'string', 'commonsMedia', 'time', 'edtf',
                              'globe-coordinate', 'url', 'quantity', 'wikibase-property', 'monolingualtext', 'math',
                              'tabular-data', 'form', 'lexeme', 'geo-shape', 'musical-notation', 'sense']
         data_properties = ['external-id', 'string', 'time', 'edtf', 'globe-coordinate', 'quantity', 'monolingualtext',
