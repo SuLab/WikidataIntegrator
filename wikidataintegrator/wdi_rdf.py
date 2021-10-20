@@ -21,7 +21,9 @@ class WDqidRDFEngine(object):
     def __init__(self, qid=None, json_data=None, fetch_provenance_rdf=True, fetch_metadata_rdf=True, fetch_truthy_rdf=False,
                  fetch_normalized_rdf=False, fetch_sitelinks_rdf=False,
                  fetch_merged_items_rdf=False, fetch_property_descriptions_rdf=False, fetch_labels_rdf=True,
-                 fetch_linked_items_rdf=False, fetch_all=False):
+                 fetch_linked_items_rdf=False, fetch_all=False, max_steps=1, current_step=0):
+        self.current_step = current_step
+        self.max_steps = max_steps
         if not bool(qid) and not bool(json_data):
             raise ValueError('Please provide a QID or a QID and its json object of a Wikidata item')
 
@@ -108,6 +110,7 @@ class WDqidRDFEngine(object):
         elif statement["datatype"] == "wikibase-item" or statement["datatype"] == "wikibase-property":
             if value["id"] not in self.linked_items:
                 self.linked_items.append(value["id"])
+
             return self.ns["wd"][value["id"]]
         elif statement["datatype"] == "monolingualtext":
             return Literal(value["text"], value["language"])
@@ -153,6 +156,8 @@ class WDqidRDFEngine(object):
         for linked_qid in self.linked_items:
             self.rdf_item.add((self.ns["wd"][linked_qid], RDF.type, self.ns["wikibase"].Item))
             linked_qid_item = wdi_core.WDItemEngine(wd_item_id=linked_qid).get_wd_json_representation()
+            if self.current_step < self.max_steps:
+                self.rdf_item = self.rdf_item + WDqidRDFEngine(qid=linked_qid,json_data=linked_qid_item,max_steps=self.max_steps, current_step=self.current_step+1).rdf_item
             self.fetch_labels(linked_qid, linked_qid_item)
 
     def fetch_metadata(self):
