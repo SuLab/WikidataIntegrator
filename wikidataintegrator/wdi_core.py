@@ -1329,7 +1329,7 @@ class WDItemEngine(object):
                 :param output: results of a test of conformance on a given shape expression
                 :return: The results of the query are returned in string format
         """
-        rdfdata = wdi_rdf.WDqidRDFEngine(qid=self.wd_item_id, json_data=self.get_wd_json_representation()).rdf_item
+        rdfdata = wdi_rdf.WDqidRDFEngine(qid=self.wd_item_id, json_data=self.get_wd_json_representation(), max_steps = 1, current_step = 0).rdf_item
 
         entity_schema_repo = config["ENTITY_SCHEMA_REPO"] if entity_schema_repo is None else entity_schema_repo
         schema = requests.get(entity_schema_repo+eid).text
