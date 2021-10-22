@@ -1320,7 +1320,7 @@ class WDItemEngine(object):
             self.pageid = json_data["entity"]["pageid"]
         return self.wd_item_id
 
-    def check_entity_schema(self, eid=None, entity_schema_repo=None, output='confirm'):
+    def check_entity_schema(self, eid=None, entity_schema_repo=None, output='confirm', max_steps=1):
         """
                 Static method which can be used to check for conformance of a Wikidata item to an EntitySchema any SPARQL query
                 :param qid: The URI prefixes required for an endpoint, default is the Wikidata specific prefixes
@@ -1329,7 +1329,7 @@ class WDItemEngine(object):
                 :param output: results of a test of conformance on a given shape expression
                 :return: The results of the query are returned in string format
         """
-        rdfdata = wdi_rdf.WDqidRDFEngine(qid=self.wd_item_id, json_data=self.get_wd_json_representation(), max_steps = 1, current_step = 0).rdf_item
+        rdfdata = wdi_rdf.WDqidRDFEngine(qid=self.wd_item_id, json_data=self.get_wd_json_representation(), max_steps=max_steps, current_step = 0).rdf_item
 
         entity_schema_repo = config["ENTITY_SCHEMA_REPO"] if entity_schema_repo is None else entity_schema_repo
         schema = requests.get(entity_schema_repo+eid).text
