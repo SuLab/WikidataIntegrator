@@ -13,4 +13,4 @@ rdflib~=5.0
 pyshexc
 pyshex
 ShExJSG
-shexer
+shexer~=1.3.0
