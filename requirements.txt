@@ -9,7 +9,7 @@ mwoauth
 oauthlib
 tqdm
 backoff
-rdflib
+rdflib~=5.0
 pyshexc
 pyshex
 ShExJSG
