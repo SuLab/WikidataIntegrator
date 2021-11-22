@@ -14,3 +14,4 @@ pyshexc
 pyshex
 ShExJSG
 shexer~=1.3.0
+chardet
