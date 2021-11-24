@@ -9,6 +9,7 @@ mwoauth
 oauthlib
 tqdm
 backoff
+pyparsing~=2.4.7
 rdflib~=5.0
 pyshexc
 pyshex
