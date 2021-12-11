@@ -2436,7 +2436,7 @@ class WDEDTF(WDBaseDataType):
 
         self.json_representation['datavalue'] = {
             'value': self.value,
-            'type': self.DTYPE
+            'type': 'string'
         }
 
         super(WDEDTF, self).set_value(value=self.value)
