@@ -70,8 +70,8 @@ class WDqidRDFEngine(object):
         self.triplify()
 
     def triplify(self):
-        # self.fetch_normalization_rules()
-        # uriformat = self.normalization_rules["iri"]
+        if fetch
+        self.fetch_normalization_rules()
         for prefix in wdi_config.prefix.keys():
             self.ns[prefix] = Namespace(wdi_config.prefix[prefix])
             self.rdf_item.namespace_manager.bind(prefix, self.ns[prefix])
@@ -348,12 +348,15 @@ class WDqidRDFEngine(object):
                 print(language)
 
     def fetch_statements(self):
-        uriformat = self.normalization_rules["iri"]
+        if self.fetch_normalized_rdf:
+            uriformat = self.normalization_rules["iri"]
+        else:
+            uriformat = None
         self.rdf_item.add((self.ns["wd"][self.qid], RDF.type, self.ns["wikibase"].Item))
         for pid in self.json_item['claims'].keys():
             if pid not in self.properties.keys():
                 self.properties[pid] = self.json_item['claims'][pid][0]["mainsnak"]["datatype"]
-            ## Ststements
+            ## Statements
             for claim in self.json_item['claims'][pid]:
                 if self.fetch_provenance_rdf:
                     statement_uri = self.ns["s"][claim["id"].replace("$", "-")]
