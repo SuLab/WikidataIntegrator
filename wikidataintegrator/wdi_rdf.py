@@ -351,7 +351,7 @@ class WDqidRDFEngine(object):
         if self.fetch_normalized_rdf:
             uriformat = self.normalization_rules["iri"]
         else:
-            uriformat = None
+            uriformat = dict()
         self.rdf_item.add((self.ns["wd"][self.qid], RDF.type, self.ns["wikibase"].Item))
         for pid in self.json_item['claims'].keys():
             if pid not in self.properties.keys():
