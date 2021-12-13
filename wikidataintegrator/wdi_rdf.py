@@ -70,8 +70,8 @@ class WDqidRDFEngine(object):
         self.triplify()
 
     def triplify(self):
-        if fetch
-        self.fetch_normalization_rules()
+        if self.fetch_normalized_rdf:
+            self.fetch_normalization_rules()
         for prefix in wdi_config.prefix.keys():
             self.ns[prefix] = Namespace(wdi_config.prefix[prefix])
             self.rdf_item.namespace_manager.bind(prefix, self.ns[prefix])
