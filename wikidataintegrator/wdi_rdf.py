@@ -6,6 +6,7 @@ import requests
 import json
 import urllib.parse
 
+
 """
 Authors:
 Andra Waagmeester (andra' at ' micelio.be)
@@ -27,10 +28,10 @@ class WDqidRDFEngine(object):
         if not bool(qid) and not bool(json_data):
             raise ValueError('Please provide a QID or a QID and its json object of a Wikidata item')
 
-        if not bool(qid):
-            raise ValueError('Please provide only the QID, even if the json object is provided')
-
-        self.qid = qid
+        if not bool(json_data):
+            self.qid = json_data["id"]
+        else:
+            self.qid = qid
         if fetch_all:
             self.fetch_provenance_rdf = True
             self.fetch_labels_rdf = True
