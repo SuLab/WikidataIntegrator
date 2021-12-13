@@ -70,9 +70,8 @@ class WDqidRDFEngine(object):
         self.triplify()
 
     def triplify(self):
-        self.fetch_normalization_rules()
-        uriformat = self.normalization_rules["iri"]
-        # qid = "Q35869"
+        # self.fetch_normalization_rules()
+        # uriformat = self.normalization_rules["iri"]
         for prefix in wdi_config.prefix.keys():
             self.ns[prefix] = Namespace(wdi_config.prefix[prefix])
             self.rdf_item.namespace_manager.bind(prefix, self.ns[prefix])
