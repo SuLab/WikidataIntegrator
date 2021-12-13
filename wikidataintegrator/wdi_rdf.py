@@ -274,7 +274,7 @@ class WDqidRDFEngine(object):
         self.rdf_item.add((self.ns["psv"][pid], RDF.type, owlType))
 
     def fetch_property_descriptions(self, pid, datatype):
-        ## Properties and their derivatives
+        # Properties and their derivatives
         object_properties = ["wikibase-item", "wikibase-property", 'external-id', 'string', 'commonsMedia', 'time', 'edtf',
                              'globe-coordinate', 'url', 'quantity', 'wikibase-property', 'monolingualtext', 'math',
                              'tabular-data', 'form', 'lexeme', 'geo-shape', 'musical-notation', 'sense']
@@ -344,7 +344,7 @@ class WDqidRDFEngine(object):
                 self.rdf_item.add(
                     (wiki, self.ns['schema'].name, Literal(self.json_item['sitelinks'][sitelink]["title"], language)))
                 self.rdf_item.add((wiki, self.ns['schema'].inLanguage, Literal(language)))
-            except:
+            except ValueError:
                 print(language)
 
     def fetch_statements(self):
