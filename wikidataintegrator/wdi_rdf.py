@@ -58,6 +58,7 @@ class WDqidRDFEngine(object):
         else:
             self.json_item = json_data
         self.rdf_item = Graph()
+        
         self.ns = dict()
         self.linked_items = []
         self.metadata = {"identifiers": 0, "sitelinks": 0, "statements": 0}
