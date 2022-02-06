@@ -144,11 +144,11 @@ class WDFunctionsEngine(object):
     def _sparql_query_result_to_df(results):
 
         def parse_value(item):
-            if item.get("datatype") == "http://www.w3.org/2001/XMLSchema#decimal":
+            if item.get("type") == "http://www.w3.org/2001/XMLSchema#decimal":
                 return float(item['value'])
-            if item.get("datatype") == "http://www.w3.org/2001/XMLSchema#integer":
+            if item.get("type") == "http://www.w3.org/2001/XMLSchema#integer":
                 return int(item['value'])
-            if item.get("datatype") == "http://www.w3.org/2001/XMLSchema#dateTime":
+            if item.get("type") == "http://www.w3.org/2001/XMLSchema#dateTime":
                 return datetime.datetime.strptime(item['value'], '%Y-%m-%dT%H:%M:%SZ')
             return item['value']
 
@@ -617,7 +617,7 @@ class WDItemEngine(object):
         self.statements = []
         for prop in wd_data['statements']:
             for z in wd_data['statements'][prop]:
-                data_type = [x for x in WDBaseDataType.__subclasses__() if x.DTYPE == z['mainsnak']['datatype']][0]
+                data_type = [x for x in WDBaseDataType.__subclasses__() if x.DTYPE == z['mainsnak']['type']][0]
                 statement = data_type.from_json(z)
                 self.statements.append(statement)
 
@@ -1267,7 +1267,7 @@ class WDItemEngine(object):
             return self.wd_item_id
 
         if entity_type == 'property':
-            self.wd_json_representation['datatype'] = property_datatype
+            self.wd_json_representation['type'] = property_datatype
             if 'sitelinks' in self.wd_json_representation:
                 del self.wd_json_representation['sitelinks']
 
@@ -1607,11 +1607,11 @@ class WDItemEngine(object):
     def _sparql_query_result_to_df(results):
 
         def parse_value(item):
-            if item.get("datatype") == "http://www.w3.org/2001/XMLSchema#decimal":
+            if item.get("type") == "http://www.w3.org/2001/XMLSchema#decimal":
                 return float(item['value'])
-            if item.get("datatype") == "http://www.w3.org/2001/XMLSchema#integer":
+            if item.get("type") == "http://www.w3.org/2001/XMLSchema#integer":
                 return int(item['value'])
-            if item.get("datatype") == "http://www.w3.org/2001/XMLSchema#dateTime":
+            if item.get("type") == "http://www.w3.org/2001/XMLSchema#dateTime":
                 return datetime.datetime.strptime(item['value'], '%Y-%m-%dT%H:%M:%SZ')
             return item['value']
 
@@ -1911,7 +1911,7 @@ class JsonParser(object):
             return self.get_class_representation(jsn=self.json_representation)
 
     def get_class_representation(self, jsn):
-        data_type = [x for x in WDBaseDataType.__subclasses__() if x.DTYPE == jsn['datatype']][0]
+        data_type = [x for x in WDBaseDataType.__subclasses__() if x.DTYPE == jsn['type']][0]
         self.final = True
         self.current_type = data_type
         return data_type.from_json(jsn)
@@ -2009,7 +2009,7 @@ class WDBaseDataType(object):
             "snaktype": self.snak_type,
             "property": self.prop_nr,
             "datavalue": {},
-            "datatype": self.data_type
+            "type": self.data_type
         }
 
         self.snak_types = ['value', 'novalue', 'somevalue']
