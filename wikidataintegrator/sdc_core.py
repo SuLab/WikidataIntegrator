@@ -2488,7 +2488,7 @@ class WDItemID(WDBaseDataType):
     """
     Implements the Wikidata data type with a value being another WD item ID
     """
-    DTYPE = 'wikibase-item'
+    DTYPE = 'wikibase-entityid'
     sparql_query = '''
         PREFIX wd: <{wb_url}/entity/>
         PREFIX wdt: <{wb_url}/prop/direct/>
