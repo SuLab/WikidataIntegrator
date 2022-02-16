@@ -3101,7 +3101,7 @@ class WDGlobeCoordinate(WDBaseDataType):
     """
     Implements the Wikidata data type for globe coordinates
     """
-    DTYPE = 'globe-coordinate'
+    DTYPE = 'globecoordinate'
 
     def __init__(self, latitude, longitude, precision, prop_nr, globe=None,
                  concept_base_uri=None, is_reference=False, is_qualifier=False,
