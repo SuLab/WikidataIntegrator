@@ -598,6 +598,7 @@ class WDItemEngine(object):
         self.statements = []
         for prop in wd_data['statements']:
             for z in wd_data['statements'][prop]:
+                print(z['mainsnak']['datavalue']['type'])
                 data_type = [x for x in WDBaseDataType.__subclasses__() if x.DTYPE == z['mainsnak']['datavalue']['type']][0]
                 statement = data_type.from_json(z)
                 self.statements.append(statement)
