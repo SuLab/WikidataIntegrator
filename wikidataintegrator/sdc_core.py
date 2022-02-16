@@ -1990,8 +1990,10 @@ class WDBaseDataType(object):
         self.json_representation = {
             "snaktype": self.snak_type,
             "property": self.prop_nr,
-            "datavalue": {},
-            "type": self.data_type
+            "datavalue": {
+                "type": self.data_type
+            },
+            #"type": self.data_type
         }
 
         self.snak_types = ['value', 'novalue', 'somevalue']
