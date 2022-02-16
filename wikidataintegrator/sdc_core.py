@@ -1892,7 +1892,7 @@ class JsonParser(object):
             return self.get_class_representation(jsn=self.json_representation)
 
     def get_class_representation(self, jsn):
-        data_type = [x for x in WDBaseDataType.__subclasses__() if x.DTYPE == jsn['type']][0]
+        data_type = [x for x in WDBaseDataType.__subclasses__() if x.DTYPE == jsn["datavalue"]['type']][0]
         self.final = True
         self.current_type = data_type
         return data_type.from_json(jsn)
