@@ -31,6 +31,12 @@ This file is part of the WikidataIntegrator.
 
 """
 
+"""
+working examples:
+https://www.wikidata.org/wiki/Special:EntityData/P279.json
+https://commons.wikimedia.org/wiki/Special:EntityData/M574781.json
+"""
+
 __author__ = 'Andra Waagmeester, Gregory Stupp, Sebastian Burgstaller '
 __license__ = 'MIT'
 
@@ -54,31 +60,6 @@ class WDFunctionsEngine(object):
         localcopy = Graph()
         localcopy.parse(config["CONCEPT_BASE_URI"] + wd_item_id + ".ttl")
         return localcopy.serialize(format=format)
-
-    @staticmethod
-    def get_linked_by(qid, mediawiki_api_url=None):
-        """
-            :param qid: Wikidata identifier to which other wikidata items link
-            :param mediawiki_api_url: default to wikidata's api, but can be changed to any wikibase
-            :return:
-        """
-
-        mediawiki_api_url = config['MEDIAWIKI_API_URL'] if mediawiki_api_url is None else mediawiki_api_url
-
-        linkedby = []
-        whatlinkshere = json.loads(requests.get(
-            mediawiki_api_url + "?action=query&list=backlinks&format=json&bllimit=500&bltitle=" + qid).text)
-        for link in whatlinkshere["query"]["backlinks"]:
-            if link["title"].startswith("Q"):
-                linkedby.append(link["title"])
-        while 'continue' in whatlinkshere.keys():
-            whatlinkshere = json.loads(requests.get(
-                mediawiki_api_url + "?action=query&list=backlinks&blcontinue=" +
-                whatlinkshere['continue']['blcontinue'] + "&format=json&bllimit=500&bltitle=" + qid).text)
-            for link in whatlinkshere["query"]["backlinks"]:
-                if link["title"].startswith("Q"):
-                    linkedby.append(link["title"])
-        return linkedby
 
     @staticmethod
     @wdi_backoff()
@@ -617,7 +598,7 @@ class WDItemEngine(object):
         self.statements = []
         for prop in wd_data['statements']:
             for z in wd_data['statements'][prop]:
-                data_type = [x for x in WDBaseDataType.__subclasses__() if x.DTYPE == z['mainsnak']['type']][0]
+                data_type = [x for x in WDBaseDataType.__subclasses__() if x.DTYPE == z['mainsnak']['datavalue']['type']][0]
                 statement = data_type.from_json(z)
                 self.statements.append(statement)
 
