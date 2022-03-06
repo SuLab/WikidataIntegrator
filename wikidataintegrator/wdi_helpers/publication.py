@@ -309,7 +309,7 @@ class Publication:
 
 def crossref_api_to_publication(ext_id, id_type="doi"):
     assert id_type == "doi", "Unsupported id type in crossref: {}".format(id_type)
-    url = "https://api.crossref.org/v1/works/http://dx.doi.org/{}"
+    url = "https://api.crossref.org/v1/works/https://doi.org/{}"
     url = url.format(ext_id)
 
     response = requests.get(url)
