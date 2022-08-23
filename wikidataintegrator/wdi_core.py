@@ -128,7 +128,7 @@ class WDFunctionsEngine(object):
                 continue
             if response.status_code == 429:
                 if "retry-after" in response.headers.keys():
-                    retry_after = response.headers["retry-after"]
+                    retry_after = int(response.headers["retry-after"])
                 print("service unavailable. sleeping for {} seconds".format(retry_after))
                 time.sleep(retry_after)
                 continue
