@@ -327,7 +327,19 @@ def crossref_api_to_publication(ext_id, id_type="doi"):
 
     p.title = r['title'][0]
     p.published_in_issn = r.get('ISSN', [None])[0]
-    p.publication_date = datetime.datetime.fromtimestamp(int(r['created']['timestamp']) / 1000)
+
+    # p.publication_date = datetime.datetime.fromtimestamp(int(r['created']['timestamp']) / 1000)
+    year = r['issued']['date-parts'][0][0]
+    if len(r['issued']['date-parts'][0]) == 1:
+        p.publication_date = datetime.datetime(year=year)
+    if len(r['issued']['date-parts'][0]) == 2:
+        month = r['issued']['date-parts'][0][1]
+        p.publication_date = datetime.datetime(year=year, month=month)
+    if len(r['issued']['date-parts'][0]) == 3:
+        day = r['issued']['date-parts'][0][2]
+        month = r['issued']['date-parts'][0][1]
+        p.publication_date = datetime.datetime(year=year, month=month, day=day)
+
     p.issue = r.get('issue')
     p.volume = r.get('volume')
     p.pages = r.get('page')
