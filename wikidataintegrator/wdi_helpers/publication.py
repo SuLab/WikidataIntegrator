@@ -43,7 +43,7 @@ class Publication:
     }
 
     def __init__(self, title=None, instance_of=None, subtitle=None, authors=None,
-                 publication_date=None, original_language_of_work=None,
+                 publication_date=None, publication_date_precision=None, original_language_of_work=None,
                  published_in_issn=None, published_in_isbn=None,
                  volume=None, issue=None, pages=None, number_of_pages=None, cites=None,
                  editor=None, license=None, full_work_available_at=None, language_of_work_or_name=None,
@@ -105,6 +105,7 @@ class Publication:
         self._authors = authors
         self.title = title
         self.publication_date = publication_date
+        self.publication_date_precision = publication_date_precision
         self.volume = volume
         self.issue = issue
         self.pages = pages
@@ -234,8 +235,8 @@ class Publication:
     def set_description(self, item):
         # item is a WDItemEngine
         if item.get_description() == "" and self.publication_date:
-            item.set_description("{} published on {}".format(self.instance_of.replace("_", " "),
-                                                             self.publication_date.strftime("%d %B %Y")))
+            item.set_description("{} published in {}".format(self.instance_of.replace("_", " "),
+                                                             self.publication_date.strftime("%Y")))
         elif item.get_description() == "":
             item.set_description("{}".format(self.instance_of.replace("_", " ")))
 
@@ -248,8 +249,18 @@ class Publication:
 
         if self.publication_date:
             date = self.publication_date.strftime("+%Y-%m-%dT00:00:00Z")
-            self.statements.append(
-                wdi_core.WDTime(date, PROPS['publication date'], references=[self.reference]))
+            if self.publication_date_precision == "year":
+               self.statements.append(
+                   wdi_core.WDTime(date, PROPS['publication date'], precision=9, references=[self.reference] )
+               )
+            elif self.publication_date_precision == "month":
+                self.statements.append(
+                    wdi_core.WDTime(date, PROPS['publication date'], precision=10, references=[self.reference])
+                )
+            else:
+                self.statements.append(
+                    wdi_core.WDTime(date, PROPS['publication date'], references=[self.reference]))
+
         if self.published_in_qid:
             self.statements.append(
                 wdi_core.WDItemID(self.published_in_qid, PROPS['published in'], references=[self.reference]))
@@ -331,10 +342,12 @@ def crossref_api_to_publication(ext_id, id_type="doi"):
     # p.publication_date = datetime.datetime.fromtimestamp(int(r['created']['timestamp']) / 1000)
     year = r['issued']['date-parts'][0][0]
     if len(r['issued']['date-parts'][0]) == 1:
-        p.publication_date = datetime.datetime(year=year)
+        p.publication_date = datetime.datetime(year=year, month=7, day=2)  # middle of the year is July 2nd
+        p.publication_date_precision = "year"
     if len(r['issued']['date-parts'][0]) == 2:
         month = r['issued']['date-parts'][0][1]
-        p.publication_date = datetime.datetime(year=year, month=month)
+        p.publication_date = datetime.datetime(year=year, month=month, day=15)  # middle of the month is the 15th
+        p.publication_date_precision = "month"
     if len(r['issued']['date-parts'][0]) == 3:
         day = r['issued']['date-parts'][0][2]
         month = r['issued']['date-parts'][0][1]
