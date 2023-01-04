@@ -5,8 +5,8 @@
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SuLab/WikidataIntegrator/main)
 [<img src="https://img.shields.io/badge/slack-@genewiki/wdi_bot_dev-green.svg?logo=slack">](https://suwulab.slack.com/archives/C014ADW3SGZ)
 
-# Slack channel 
-We have a slack channel for Wikidata bot developers using the Wikidata Integrator. Send us a [request](mailto:andra@micel.io) to join this channel. 
+# Telegram channel 
+We have a telegram channel for Wikidata bot developers using the Wikidata Integrator. Follow [this link](https://t.me/wikidata_integrator) to join this channel. 
 
 # Installation #
 The easiest way to install WikidataIntegrator is using `pip` or `pip3`. WikidataIntegrator supports python 3.6 and higher, hence the suggestion for pip3. If python2 is installed pip will lead to an error indicating missing dependencies. 
