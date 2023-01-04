@@ -172,8 +172,26 @@ information, a server (server) if the Wikibase instance is not Wikidata and a fl
 The last parameter will do a partial merge for all statements which do not conflict. This should generally be avoided because it 
 leaves a crippled item in Wikidata. Before a merge, any potential conflicts should be resolved first.
 
-## Pubmed Articles ##
-The class wdi_core.wdi_helpers.PubmedItem allows you to create article items. Given a PMID, it will create an item representing this journal article. It can also retrieve existing items. This is useful for quickly creating items to use in reference statements.
+## Adding publication records  ##
+The class wdi_core.wdi_helpers. PublicationHelper allows you to create article items. This helper function supports extracting publication records from the following resources:
+* crossref
+* europepmc
+* arxiv
+* biorxiv
+* chemrxiv
+
+Given an identifier from above-mentioned resources an item representing this journal article will either be created or fetched.
+
+Below is an example snippet to create an item from a DOI:
+
+```
+from wikidataintegrator import wdi_core, wdi_login, wdi_helpers
+DOI = "<DOI>"
+WDUSER = "<wikidata user>"
+WDPASS = "<wikidata password>"
+login = wdi_login.WDLogin(WDUSER, WDPASS)
+print(wdi_helpers.PublicationHelper(DOI, id_type="doi", source="crossref").get_or_create(login))
+```
 
 ## Database Release ##
 The class wdi_core.wdi_helpers.Release allows you to create an item for a database release. These should be used in reference statements. See [here](https://www.wikidata.org/wiki/User:ProteinBoxBot/evidence#Guidelines_for_Referencing_Databases.2C_Ontologies_and_similar_Web-native_information_entities.) 
