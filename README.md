@@ -5,6 +5,10 @@
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SuLab/WikidataIntegrator/main)
 [<img src="https://img.shields.io/badge/slack-@genewiki/wdi_bot_dev-green.svg?logo=slack">](https://suwulab.slack.com/archives/C014ADW3SGZ)
 
+[![Downloads](https://static.pepy.tech/badge/wikidataintegrator)](https://pepy.tech/project/wikidataintegrator)
+[![Downloads](https://static.pepy.tech/badge/wikidataintegrator/month)](https://pepy.tech/project/wikidataintegrator)
+[![Downloads](https://static.pepy.tech/badge/wikidataintegrator/week)](https://pepy.tech/project/wikidataintegrator)
+
 # Telegram channel 
 We have a telegram channel for Wikidata bot developers using the Wikidata Integrator. Follow [this link](https://t.me/wikidata_integrator) to join this channel. 
 
