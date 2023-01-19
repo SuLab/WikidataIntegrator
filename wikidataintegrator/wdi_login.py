@@ -248,7 +248,7 @@ class WDLogin(object):
             self.response_qs = input("Callback URL: ")
 
         # input the url from redirect after authorization
-        response_qs = self.response_qs.split(b'?')[-1]
+        response_qs = self.response_qs.split('?')[-1]
 
         # Step 3: Complete -- obtain authorized key/secret for "resource owner"
         access_token = self.handshaker.complete(self.request_token, response_qs)
