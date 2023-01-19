@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = "0.9.25"
+VERSION = "0.9.26"
 
 setup(
     name='wikidataintegrator',

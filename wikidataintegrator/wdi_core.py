@@ -311,7 +311,7 @@ class WDItemEngine(object):
     def __init__(self, wd_item_id='', new_item=False, data=None, mediawiki_api_url=None, sparql_endpoint_url=None,
                  wikibase_url=None, concept_base_uri=None, append_value=None, fast_run=False, fast_run_base_filter=None,
                  fast_run_use_refs=False, ref_handler=None, global_ref_mode='KEEP_GOOD', good_refs=None,
-                 keep_good_ref_statements=False, search_only=False, item_data=None, user_agent=None, core_props=None,
+                 keep_good_ref_statements=True, search_only=False, item_data=None, user_agent=None, core_props=None,
                  core_prop_match_thresh=0.66, property_constraint_pid=None, distinct_values_constraint_qid=None,
                  fast_run_case_insensitive=False, debug=False):
         """
