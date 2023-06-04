@@ -495,7 +495,7 @@ class WDItemEngine(object):
                           "Continuing with no core_props")
             cls.DISTINCT_VALUE_PROPS[sparql_endpoint_url] = set()
             return None
-        df.p = df.p.str.rsplit("/", 1).str[-1]
+        df.p = df.p.str.rsplit("/", n=1).str[-1]
         cls.DISTINCT_VALUE_PROPS[sparql_endpoint_url] = set(df.p)
 
     def init_data_load(self):
