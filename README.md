@@ -23,7 +23,7 @@ You can also clone the repo and execute with administrator rights or install int
 
 ```bash
 
-git clone https://github.com/sebotic/WikidataIntegrator.git
+git clone https://github.com/SuLab/WikidataIntegrator.git
 
 cd WikidataIntegrator
 
