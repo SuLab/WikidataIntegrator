@@ -1,17 +1,24 @@
-name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
+name: Publish WikidataIntegrator to PyPi and TestPyPI
 
 on: release
 
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/wikidataintegrator
+    permissions:
+      id-token: write
     steps:
+    - name: Enable debug logs
+      run: echo "::set-env name=DEBUG::1"
     - uses: actions/checkout@main
-    - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
       with:
-        python-version: 3.7
+        python-version: 3.10
     - name: Install pypa/build
       run: >-
         python -m
