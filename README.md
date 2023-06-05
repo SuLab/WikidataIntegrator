@@ -13,7 +13,7 @@
 We have a telegram channel for Wikidata bot developers using the Wikidata Integrator. Follow [this link](https://t.me/wikidata_integrator) to join this channel. 
 
 # Installation #
-The easiest way to install WikidataIntegrator is using `pip` or `pip3`. WikidataIntegrator supports python 3.6 and higher, hence the suggestion for pip3. If python2 is installed pip will lead to an error indicating missing dependencies. 
+The easiest way to install WikidataIntegrator is using `pip` or `pip3`. WikidataIntegrator supports python 3.8 and higher, hence the suggestion for pip3. If python2 is installed pip will lead to an error indicating missing dependencies. 
 
 ```
 pip3 install wikidataintegrator
