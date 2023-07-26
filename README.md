@@ -210,7 +210,7 @@ In the example below the wikidata item [helium (!560)](https://www.wikidata.org/
 ```Python
 from wikidataintegrator import wdi_core
 
-print("Q560 conforms to E46"+wdi_core.WDItemEngine.check_shex_conformance("Q560", "E46"))
+print("Q560 conforms to E46"+wdi_core.WDItemEngine.check_shex_conformance(qid="Q560", eid="E46"))
 ```
 
 # Examples (in normal mode) #
