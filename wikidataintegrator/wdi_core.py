@@ -1099,6 +1099,10 @@ class WDItemEngine(object):
         :type lang: str
         :return: None
         """
+        arabic_chars = re.compile('[ابتثجحخدذرزسشصضطظعغفقكلمنهوي]')
+        # If the label contains Arabic characters, set the language to "ar"
+        if label != arabic_chars.sub('', label):
+            lang = "ar"
         if self.fast_run and not self.require_write:
             self.require_write = self.fast_run_container.check_language_data(qid=self.wd_item_id,
                                                                              lang_data=[label], lang=lang,
