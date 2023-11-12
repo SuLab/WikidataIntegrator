@@ -1099,8 +1099,6 @@ class WDItemEngine(object):
         :type lang: str
         :return: None
         """
-        if label != re.sub('[ابتثجحخدذرزسشصضطظعغفقكلمنهوي]', '', label):
-            lang = "ar"
         if self.fast_run and not self.require_write:
             self.require_write = self.fast_run_container.check_language_data(qid=self.wd_item_id,
                                                                              lang_data=[label], lang=lang,
