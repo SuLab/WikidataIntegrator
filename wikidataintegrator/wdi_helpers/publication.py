@@ -245,7 +245,12 @@ class Publication:
             raise ValueError('can not create WDItemID with None')
         self.statements.append(
             wdi_core.WDItemID(self.instance_of_qid, PROPS['instance of'], references=[self.reference]))
-        self.statements.append(wdi_core.WDMonolingualText(self.title, PROPS['title'], references=[self.reference]))
+        language = "en"
+        arabic_chars = re.compile('[ابتثجحخدذرزسشصضطظعغفقكلمنهوي]')
+        # If the label contains Arabic characters, set the language to "ar"
+        if label != arabic_chars.sub('', label):
+            language = "ar"
+        self.statements.append(wdi_core.WDMonolingualText(self.title, PROPS['title'], language=language, references=[self.reference]))
 
         if self.publication_date:
             date = self.publication_date.strftime("+%Y-%m-%dT00:00:00Z")
